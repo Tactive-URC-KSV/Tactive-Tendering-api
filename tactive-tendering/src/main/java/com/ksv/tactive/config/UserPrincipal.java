@@ -5,20 +5,23 @@ import java.util.Collection;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import com.ksv.tactive.entity.User;
+import com.ksv.tactive.user.entity.User;
 
 public class UserPrincipal implements UserDetails{
 	
 	
 	private static final long serialVersionUID = 1L;
 	
-	private final User user;
+	private User user;
 	
 	public UserPrincipal(User user) {
 		this.user=user;
 	}
 
-	
+	public User getUser() {
+		return user;
+	}
+
 	@Override
 	public Collection<? extends GrantedAuthority> getAuthorities() {
 		return null;
@@ -37,7 +40,7 @@ public class UserPrincipal implements UserDetails{
 	
 	@Override
 	public boolean isEnabled() {
-		return user.isEnabled();
+		return true;
 	}
 
 }

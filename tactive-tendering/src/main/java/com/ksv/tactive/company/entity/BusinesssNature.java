@@ -1,0 +1,18 @@
+package com.ksv.tactive.company.entity;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import lombok.Data;
+
+@Data
+@Entity
+public class BusinesssNature {
+
+	@Id
+	@Column(name = "id", length = 36)
+	private String id;
+	@Column(unique = true)
+	private String businessNature;
+	private boolean isActive; 
+}

@@ -1,0 +1,66 @@
+package com.ksv.tactive.dbconfig;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import javax.sql.DataSource;
+
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.orm.jpa.EntityManagerFactoryBuilder;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.orm.jpa.JpaTransactionManager;
+import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
+import org.springframework.transaction.PlatformTransactionManager;
+
+@Configuration
+@EnableJpaRepositories(
+    basePackages = "com.ksv.tactive.user.dao",
+    entityManagerFactoryRef = "userEntityManagerFactory",
+    transactionManagerRef = "userTransactionManager"
+)
+public class UserDbConfig {
+
+
+	@Bean
+	@ConfigurationProperties("spring.datasource.user")
+	DataSourceProperties userDataSourceProperties() {
+	    return new DataSourceProperties();
+	}
+
+	
+    @Bean(name = "userDataSource")
+    @ConfigurationProperties("spring.datasource.user")
+    DataSource userDataSource() {
+        return userDataSourceProperties()
+        		.initializeDataSourceBuilder()
+        		.build();
+    }
+
+	
+    @Bean(name = "userEntityManagerFactory")
+    LocalContainerEntityManagerFactoryBean userEntityManagerFactory (EntityManagerFactoryBuilder builder,
+    					@Qualifier("userDataSource") DataSource dataSource) {
+        Map<String, Object> properties = new HashMap<>();
+        properties.put("hibernate.dialect", "org.hibernate.dialect.PostgreSQLDialect");
+        properties.put("hibernate.hbm2ddl.auto", "update");
+        properties.put("hibernate.show_sql", "true");
+        properties.put("hibernate.format_sql", "true");
+        return builder
+                .dataSource(dataSource)
+                .packages("com.ksv.tactive.user.entity")
+                .persistenceUnit("user")
+                .properties(properties)
+                .build();
+    }
+
+	
+    @Bean(name = "userTransactionManager")
+    PlatformTransactionManager userTransactionManager(
+            @Qualifier("userEntityManagerFactory") LocalContainerEntityManagerFactoryBean emf) {
+        return new JpaTransactionManager(emf.getObject());
+    }
+}
