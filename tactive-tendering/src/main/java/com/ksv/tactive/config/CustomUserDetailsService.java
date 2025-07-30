@@ -5,8 +5,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
-import com.ksv.tactive.dao.UserDao;
-import com.ksv.tactive.entity.User;
+import com.ksv.tactive.user.dao.UserDao;
+import com.ksv.tactive.user.entity.User;
 
 public class CustomUserDetailsService implements UserDetailsService{
 	

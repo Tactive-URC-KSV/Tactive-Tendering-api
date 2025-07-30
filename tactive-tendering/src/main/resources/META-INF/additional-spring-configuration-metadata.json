@@ -1,0 +1,22 @@
+{"properties": [
+  {
+    "name": "spring.datasource.project.url",
+    "type": "java.lang.String",
+    "description": "A description for 'spring.datasource.project.url'"
+  },
+  {
+    "name": "spring.datasource.company.url",
+    "type": "java.lang.String",
+    "description": "A description for 'spring.datasource.company.url'"
+  },
+  {
+    "name": "spring.datasource.user.url",
+    "type": "java.lang.String",
+    "description": "A description for 'spring.datasource.user.url'"
+  },
+  {
+    "name": "file.upload.path",
+    "type": "java.lang.String",
+    "description": "A description for 'file.upload.path'"
+  }
+]}
