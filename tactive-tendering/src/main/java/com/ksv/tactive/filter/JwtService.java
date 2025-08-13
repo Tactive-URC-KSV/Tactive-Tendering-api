@@ -21,7 +21,7 @@ public class JwtService {
 	
 	SecretKey secretKey = Jwts.SIG.HS256.key().build(); 
 
-	final String key=Encoders.BASE64.encode(secretKey.getEncoded());
+	final String key = Encoders.BASE64.encode(secretKey.getEncoded());
 	
 	Map<String,Object> claims=new HashMap<>();
 

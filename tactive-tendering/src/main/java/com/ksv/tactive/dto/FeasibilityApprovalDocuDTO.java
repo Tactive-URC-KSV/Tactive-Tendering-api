@@ -1,8 +1,5 @@
 package com.ksv.tactive.dto;
 
-import lombok.Data;
-
-
 public class FeasibilityApprovalDocuDTO {
 	
 	private String docId;

@@ -8,6 +8,7 @@ import com.ksv.tactive.project.entity.ProjectStatus;
 @Repository
 public interface ProjectStatusDao extends JpaRepository<ProjectStatus, String> {
 
+	
 	ProjectStatus findByProcessUrl(String url);
 	
 

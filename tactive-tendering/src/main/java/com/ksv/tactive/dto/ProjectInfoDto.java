@@ -17,11 +17,12 @@ public class ProjectInfoDto {
     private Double estimatedValue;
     private String status;
     private String regionName;
+    private Date createdAt;
 
     
     public ProjectInfoDto(String projectId, String projectCode, String projectName,
             Date startDate, Date endDate, String sectorName,
-            String regionName, Double estimatedValue, String status) {
+            String regionName, Double estimatedValue, String status, Date createdAt) {
     	this.projectId = projectId;
     	this.projectCode = projectCode;
     	this.projectName = projectName;
@@ -31,6 +32,7 @@ public class ProjectInfoDto {
     	this.regionName = regionName;
     	this.estimatedValue = estimatedValue;
     	this.status = status;
+    	this.createdAt = createdAt;
     }
 
 }

@@ -1,5 +1,6 @@
 package com.ksv.tactive.controller;
 
+import java.io.IOException;
 import java.sql.SQLIntegrityConstraintViolationException;
 import java.util.List;
 import java.util.Locale;
@@ -25,11 +26,13 @@ import org.springframework.web.multipart.MultipartFile;
 import com.ksv.tactive.dto.FeasibilityApprovalDocuDTO;
 import com.ksv.tactive.dto.ProjectInfoDto;
 import com.ksv.tactive.dto.ProjectInputDTO;
+import com.ksv.tactive.dto.TemplateDto;
 import com.ksv.tactive.exception.DataNotFoundException;
 import com.ksv.tactive.exception.DuplicateEntryException;
 import com.ksv.tactive.exception.DuplicateProjectCodeException;
 import com.ksv.tactive.exception.ProjectNotFoundException;
 import com.ksv.tactive.project.entity.ApprovalDocuments;
+import com.ksv.tactive.project.entity.BOQ;
 import com.ksv.tactive.project.entity.FeasibilityStudy;
 import com.ksv.tactive.project.entity.FinancialFeasibility;
 import com.ksv.tactive.project.entity.ListOfApprovals;
@@ -39,6 +42,7 @@ import com.ksv.tactive.project.entity.Region;
 import com.ksv.tactive.project.entity.ScopeOfPackage;
 import com.ksv.tactive.project.entity.Sector;
 import com.ksv.tactive.project.entity.TechnicalFeasibility;
+import com.ksv.tactive.project.entity.Template;
 import com.ksv.tactive.project.entity.UOM;
 import com.ksv.tactive.service.ProjectService;
 
@@ -218,7 +222,8 @@ public class ProjectControler {
     
     @GetMapping("/project/approved/projects")
     public ResponseEntity<?> getApprovedProjects() {
-		return null;
+    	List<ProjectInfoDto> approvedProjects = projectService.getAllApprovedProjects();
+		return ResponseEntity.status(HttpStatus.OK).body(approvedProjects);
 	}
     
     @GetMapping("/feasibility/approvalDoc/{techId}")
@@ -228,4 +233,113 @@ public class ProjectControler {
 //    	Map<ApprovalDocuments, Resource> approvalDocMap = projectService.getApprovalDocs(approvalDoc);
 //    	return ResponseEntity.status(HttpStatus.OK).body(approvalDocMap);
     }
+    
+    @PostMapping("/project/excel/getSheets")
+    public ResponseEntity<?> getSheets(@RequestParam("file") MultipartFile boqFile) {
+    	List<String> columnNames;
+		try {
+			columnNames = projectService.getExcelSheets(boqFile);
+			return ResponseEntity.status(HttpStatus.OK).body(columnNames);
+		} catch (IOException e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+					.body("Error reading the Excel file: " + e.getMessage());
+		}
+    	
+    }
+    
+    @PostMapping("/project/excel/getColumns/{sheetName}")
+    public ResponseEntity<?> getColumns(@RequestParam("file") MultipartFile boqFile, @PathVariable String sheetName) {
+    	List<String> columnNames;
+    	try {
+			columnNames = projectService.getExcelColumns(boqFile, sheetName);
+			return ResponseEntity.status(HttpStatus.OK).body(columnNames);
+		} catch (IOException e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+					.body("Error reading the Excel file: " + e.getMessage());
+		}
+    }
+    
+    @PostMapping("project/uploadBOQ/{sheetName}/{projectId}")
+    public ResponseEntity<?> uploadBOQ(
+    		@PathVariable String projectId,
+    		@RequestPart("file") MultipartFile boqFile,
+    		@PathVariable String sheetName,
+    		@RequestPart Map<String, String> columnMapping){
+    	String filePath = projectService.saveBoqFile(boqFile, projectId);
+    	try {
+			String response = projectService.mapBOQ(projectId, sheetName, columnMapping, filePath);
+			return ResponseEntity.status(HttpStatus.OK).body(response);
+		} catch (IOException e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+					.body("Error processing the Excel file: " + e.getMessage());
+		}
+    }
+    
+    @GetMapping("project/getParentBoq/{projectId}")
+    public ResponseEntity<?> getParentBOQ(@PathVariable String projectId){
+    	List<BOQ> boqList =projectService.getAllBOQ(projectId);
+    	List<BOQ> parentBoqList = projectService.getParentBOQ(boqList);
+    	if(boqList.isEmpty()) {
+			return ResponseEntity.status(HttpStatus.NO_CONTENT)
+					.body(messageSource.getMessage("boq.not.found", null, Locale.ENGLISH));
+		}
+		return ResponseEntity.status(HttpStatus.OK).body(parentBoqList);
+    }
+    
+    @GetMapping("project/getBoqTotalValue/{projectId}")
+    public ResponseEntity<?> getBoqTotalValue(@PathVariable String projectId){
+    	List<BOQ> boqList =projectService.getAllBOQ(projectId);
+    	if(boqList.isEmpty()) {
+			return ResponseEntity.status(HttpStatus.NO_CONTENT)
+					.body(messageSource.getMessage("boq.not.found", null, Locale.ENGLISH));
+		}
+    	double totalValue = boqList.stream()
+    			.mapToDouble(b -> b.getTotalAmount() != 0 ? b.getTotalAmount() : 0.0)
+    			.sum();
+		return ResponseEntity.status(HttpStatus.OK).body(totalValue);
+    }
+
+    @GetMapping("project/getParentTotalValue/{projectId}/{parentCode}")
+    public ResponseEntity<?> getParentTotalValue(@PathVariable String projectId, @PathVariable String parentCode){
+    	List<BOQ> boqList =projectService.getAllBOQ(projectId);
+    	if(boqList.isEmpty()) {
+			return ResponseEntity.status(HttpStatus.NO_CONTENT)
+					.body(messageSource.getMessage("boq.not.found", null, Locale.ENGLISH));
+		}
+    	double totalValue = projectService.getParentTotalValue(boqList, parentCode);
+		return ResponseEntity.status(HttpStatus.OK).body(totalValue);
+    }
+    
+    @PostMapping("project/saveTemplateMapping")
+    public ResponseEntity<?> saveTemplate(@RequestPart Template template,
+    		@RequestPart Map<String, String> mapping){
+    	String response = projectService.saveTemplate(template,mapping);
+    	if(response != null) {
+			return ResponseEntity.status(HttpStatus.OK).body(response);
+		}
+		return ResponseEntity.status(HttpStatus.CONFLICT).body(messageSource.getMessage("template.save.error", null, Locale.ENGLISH));
+
+    }
+    
+    @GetMapping("project/getAllTemplate")
+    public ResponseEntity<?> getAllTemplate(){
+    	List<Template> templates = projectService.getAllTemplate();
+		if(templates.isEmpty()) {
+			return ResponseEntity.status(HttpStatus.NO_CONTENT)
+					.body(messageSource.getMessage("template.not.found", null, Locale.ENGLISH));
+		}
+		return ResponseEntity.status(HttpStatus.OK).body(templates);
+    }
+    
+    @GetMapping("project/getTemplate/{templateId}")
+    public ResponseEntity<?> getTemplateById(@PathVariable String templateId){
+    	try {
+    		TemplateDto template = projectService.getTemplateById(templateId);
+        	return ResponseEntity.status(HttpStatus.OK).body(template);
+    	}catch (DataNotFoundException e) {
+    		return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+    	}
+    }
+		
+    
 }
