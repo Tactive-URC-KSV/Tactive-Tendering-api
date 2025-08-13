@@ -7,4 +7,5 @@ import com.ksv.tactive.project.entity.UOM;
 
 public interface UOMDao extends JpaRepository<UOM, String> {
 
+	UOM findByUomCode(String uomCode);
 }

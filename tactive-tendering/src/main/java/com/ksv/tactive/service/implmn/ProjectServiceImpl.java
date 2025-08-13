@@ -1,6 +1,7 @@
 package com.ksv.tactive.service.implmn;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -20,6 +21,8 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -27,12 +30,15 @@ import org.springframework.web.multipart.MultipartFile;
 import com.ksv.tactive.dto.FeasibilityApprovalDocuDTO;
 import com.ksv.tactive.dto.ProjectInfoDto;
 import com.ksv.tactive.dto.ProjectInputDTO;
+import com.ksv.tactive.dto.TemplateDto;
 import com.ksv.tactive.exception.DataNotFoundException;
 import com.ksv.tactive.exception.DuplicateEntryException;
 import com.ksv.tactive.exception.DuplicateProjectCodeException;
 import com.ksv.tactive.exception.FileNotSaveException;
 import com.ksv.tactive.exception.ProjectNotFoundException;
 import com.ksv.tactive.project.dao.ApprovalsDao;
+import com.ksv.tactive.project.dao.BOQDao;
+import com.ksv.tactive.project.dao.BOQFileDao;
 import com.ksv.tactive.project.dao.FeasibilityStudyDao;
 import com.ksv.tactive.project.dao.FinancialFeasibilityDao;
 import com.ksv.tactive.project.dao.ListOfApprovalsDao;
@@ -43,8 +49,12 @@ import com.ksv.tactive.project.dao.RegionDao;
 import com.ksv.tactive.project.dao.ScopeOfPackDao;
 import com.ksv.tactive.project.dao.SectorDao;
 import com.ksv.tactive.project.dao.TechnicalFeasibilityDao;
+import com.ksv.tactive.project.dao.TemplateDao;
+import com.ksv.tactive.project.dao.TemplateMappingDao;
 import com.ksv.tactive.project.dao.UOMDao;
 import com.ksv.tactive.project.entity.ApprovalDocuments;
+import com.ksv.tactive.project.entity.BOQ;
+import com.ksv.tactive.project.entity.BOQFile;
 import com.ksv.tactive.project.entity.FeasibilityStudy;
 import com.ksv.tactive.project.entity.FinancialFeasibility;
 import com.ksv.tactive.project.entity.ListOfApprovals;
@@ -55,7 +65,10 @@ import com.ksv.tactive.project.entity.Region;
 import com.ksv.tactive.project.entity.ScopeOfPackage;
 import com.ksv.tactive.project.entity.Sector;
 import com.ksv.tactive.project.entity.TechnicalFeasibility;
+import com.ksv.tactive.project.entity.Template;
+import com.ksv.tactive.project.entity.TemplateMapping;
 import com.ksv.tactive.project.entity.UOM;
+import com.ksv.tactive.service.ExcelFileService;
 import com.ksv.tactive.service.ProjectService;
 import com.ksv.tactive.service.UserService;
 
@@ -94,8 +107,6 @@ public class ProjectServiceImpl implements ProjectService{
 	@Autowired
 	private ProjectStatusDao statusDao;
 	
-	@Autowired
-	private ProjectStatusDao projectStatusDao;
 	
 	@Autowired
 	private ProjectDocumentDetailsDao documentDetailsDao;
@@ -111,6 +122,21 @@ public class ProjectServiceImpl implements ProjectService{
 	
 	@Autowired
 	private FeasibilityStudyDao feaStudyDao;
+	
+	@Autowired
+	private BOQFileDao boqFileDao;
+	
+	@Autowired
+	private TemplateDao templateDao;
+	
+	@Autowired
+	private TemplateMappingDao templateMappingDao;
+	
+	@Autowired
+	private BOQDao boqDao;
+	
+	@Autowired
+	private ExcelFileService excelService;
 
 	@Override
 	public String addSector(Sector sector) {
@@ -164,13 +190,13 @@ public class ProjectServiceImpl implements ProjectService{
 
 	@Override
 	public List<ProjectStatus> getAllProjectStatus() {
-		return projectStatusDao.findAll();
+		return statusDao.findAll();
 	}
 
 	@Override
 	public String addProjectStatus(ProjectStatus projectStatus) {
 		projectStatus.setId(UUID.randomUUID().toString());
-		projectStatusDao.save(projectStatus);
+		statusDao.save(projectStatus);
 		return null;
 	}
 
@@ -243,7 +269,6 @@ public class ProjectServiceImpl implements ProjectService{
 		}
 		return password.toString();
 	}
-
 
 	@Override
 	public String saveProjectFiles(String projectId, List<MultipartFile> files) {
@@ -411,19 +436,31 @@ public class ProjectServiceImpl implements ProjectService{
 	}
 
 	@Override
-	public String updateFeasibilityStudyStatus(String projectId, boolean status, String comments, HttpServletRequest request) {
-		FeasibilityStudy feasibilityStudy = feaStudyDao.findByProjectId(projectId)
-				.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
-		if(feasibilityStudy != null) {
-			feasibilityStudy.setFeasibilityApproved(status);
-			feasibilityStudy.setComments(comments);
-			feasibilityStudy.setReviewedBy(userService.findLoggedInUser().getId());
-			feaStudyDao.save(feasibilityStudy);
-			return messageSource.getMessage("feasibility.study.status.update.success", null, Locale.ENGLISH);
+	public String updateFeasibilityStudyStatus(String projectId, boolean status, String comments,
+			HttpServletRequest request) {
+		FeasibilityStudy feasibilityStudy = feaStudyDao.findByProjectId(projectId).orElseThrow(
+				() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
+
+		feasibilityStudy.setFeasibilityApproved(status);
+		feasibilityStudy.setComments(comments);
+		feasibilityStudy.setReviewedBy(userService.findLoggedInUser().getId());
+		Projects project = feasibilityStudy.getProject();
+		String requestUrl = request.getRequestURI();	
+		ProjectStatus projectStatus = statusDao.findByProcessUrl(requestUrl.substring(0, requestUrl.lastIndexOf("/")));
+		if (projectStatus != null) {
+			project = updateProjectStatus(project, projectStatus);
+			feasibilityStudy.setProject(project);
 		}
-		return null;
+		feaStudyDao.save(feasibilityStudy);
+		return messageSource.getMessage("feasibility.study.status.update.success", null, Locale.ENGLISH);
+
 	}
 
+	private Projects updateProjectStatus(Projects project, ProjectStatus status) {
+		project.setProjectStatus(status);
+		return projectDao.save(project);
+
+	}
 	@Override
 	public FeasibilityStudy findFeasibilityStudy(String projectId) {
 		return feaStudyDao.findByProjectId(projectId)
@@ -456,4 +493,171 @@ public class ProjectServiceImpl implements ProjectService{
 //		return approvalDocMap;
 //	}
 
+	@Override
+	public List<ProjectInfoDto> getAllApprovedProjects() {
+		List<String> projectId = feaStudyDao.findAll().stream()
+				.filter(id -> id.isFeasibilityApproved())
+				.map(project -> project.getProject().getId())
+				.collect(Collectors.toList());
+		List<ProjectInfoDto> approvedProjects = projectId.stream()
+				.map(id -> projectDao.findAllProjectInfoById(id))
+				.collect(Collectors.toList());
+		return approvedProjects.stream()
+				.filter(project -> project !=null)
+				.collect(Collectors.toList());
+	}
+	
+	@Override
+	public List<String> getExcelSheets(MultipartFile boqFile) throws IOException {
+		String fileName =boqFile.getOriginalFilename();
+		if(fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
+			return excelService.getSheetNames(boqFile);
+		}
+		else if(fileName.endsWith(".pdf")) {
+			
+		}
+		return null;
+	}
+	
+	@Override
+	public List<String> getExcelColumns(MultipartFile boqFile, String sheetName) throws IOException {
+		String fileName = boqFile.getOriginalFilename();
+		if(fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
+			return excelService.getColumns(boqFile, sheetName);
+		}
+		return null;
+	}
+	
+	@Override
+	public String saveBoqFile(MultipartFile boqFile, String projectId) {
+		String projectName = findByProjectId(projectId).getProjectName();
+		Path directory=Paths.get(uploadDir,
+				projectName
+				.trim()
+				.replaceAll("\\s+", "_")                    
+			    .replaceAll("[^a-zA-Z0-9-_\\.]", ""))
+				.toAbsolutePath().normalize();
+		directory = directory.resolve("BOQ");
+		try {
+			Files.createDirectories(directory);
+			Path targetLocation = directory.resolve(StringUtils.cleanPath(boqFile.getOriginalFilename()));
+			Files.copy(boqFile.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
+			String filePath = targetLocation.toString();
+			String fileName = StringUtils.cleanPath(boqFile.getOriginalFilename());
+			List<BOQFile> boqFiles = boqFileDao.findByProjectId(projectId);
+			BOQFile boqFileEntity = new BOQFile();
+			if(!boqFiles.isEmpty() && !boqFiles.stream().anyMatch(b -> b.getFilename().equals(fileName))) {
+				boqFileEntity.setId(UUID.randomUUID().toString());
+				boqFileEntity.setFilename(fileName);
+				boqFileEntity.setFileUrl(filePath);
+				boqFileEntity.setProject(findByProjectId(projectId));
+				boqFileDao.save(boqFileEntity);
+			}
+			return filePath;
+		} catch (IOException e) {
+			throw new FileNotSaveException(messageSource.getMessage("file.upload.failure", null, Locale.ENGLISH));
+		}
+		
+	}
+	
+	@Override
+	public String mapBOQ(String projectId, String sheetName, Map<String, String> columnMapping, String filePath) throws IOException {
+		Projects project = findByProjectId(projectId);
+		Resource resource = new UrlResource(Paths.get(filePath).toUri());
+		if(resource.exists() || resource.isReadable()) {
+			InputStream inputStream = resource.getInputStream();
+			List<BOQ> boqList = excelService.mapBOQData(sheetName, columnMapping, inputStream); 
+			if(!boqList.isEmpty()) {
+				for(BOQ boq : boqList) {
+					boq.setProject(project);
+					if(boq.getBoqCode().length() > 1) {
+						String parentCode = boq.getBoqCode().substring(0, boq.getBoqCode().length() - 2);
+						BOQ parentBoq = boqDao.findByBoqCodeAndProjectId(parentCode, projectId);
+						boq.setParentBOQ(parentBoq);
+					}
+					boqDao.save(boq);
+				}
+			}
+			
+			return "BOQ data mapped successfully";
+		}
+		return null;
+	}
+	@Override
+	public UOM findUomByCode(String uomCode) {
+		UOM uom = uomDao.findByUomCode(uomCode);
+		return uom;
+	}
+	
+	@Override
+	public List<BOQ> getAllBOQ(String projectId) {
+		List<BOQ> boqList = boqDao.findByProjectId(projectId);
+		return boqList;
+	}
+	@Override
+	public List<BOQ> getParentBOQ(List<BOQ> boqList) {
+		if(boqList != null && !boqList.isEmpty()) {
+			return boqList.stream()
+					.filter(boq -> boq.getParentBOQ() == null )
+					.collect(Collectors.toList());
+		}
+		return null;
+	}
+	@Override
+	public double getParentTotalValue(List<BOQ> boqList, String parentCode) {
+		double totalValue = 0.0;
+		if(boqList != null) {
+			for(BOQ boq : boqList) {
+				if(boq.getParentBOQ() != null && 
+						boq.getParentBOQ().getBoqCode() != null && 
+						boq.getParentBOQ().getBoqCode().contains(parentCode)) {
+					totalValue += boq.getTotalAmount(); 
+				}
+			}
+		}
+		return totalValue;
+	}
+	
+	@Override
+	public String saveTemplate(Template template, Map<String,String> mapping) {
+		if(templateDao.findByTemplateName(template.getTemplateName()) == null) {
+			template.setId(UUID.randomUUID().toString());
+			Template savedTemplate = templateDao.save(template);
+			saveTemplateMapping(mapping, savedTemplate);
+			return messageSource.getMessage("template.save.success", null, Locale.ENGLISH);
+		}
+		return messageSource.getMessage("template.duplicate", null, Locale.ENGLISH);
+	}
+
+	private void saveTemplateMapping(Map<String, String> mapping, Template savedTemplate) {
+		for(Map.Entry<String, String> map : mapping.entrySet()) {
+			TemplateMapping tempMap = new TemplateMapping();
+			tempMap.setTemplate(savedTemplate);
+			tempMap.setInternalFields(map.getKey());
+			tempMap.setExcelFields(map.getValue());
+			templateMappingDao.save(tempMap);
+		}
+		
+	}
+	
+	@Override
+	public List<Template> getAllTemplate() {
+		List<Template> templates = templateDao.findAll();
+		return templates;
+	}
+	
+	@Override
+	public TemplateDto getTemplateById(String templateId) {
+		TemplateDto templateDto = new TemplateDto();
+		Template template = templateDao.findById(templateId)
+				.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
+		templateDto.setTemplate(template);
+		List<TemplateMapping> mappings = templateMappingDao.findByTemplateId(templateId);
+		Map<String, String> mapping = new HashMap<>();
+		for(TemplateMapping map : mappings) {
+			mapping.put(map.getInternalFields(), map.getExcelFields());
+		}
+		templateDto.setTemplateMapping(mapping);
+		return templateDto;
+	}
 }

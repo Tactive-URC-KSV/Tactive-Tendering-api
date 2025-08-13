@@ -48,7 +48,7 @@ public class UserDbConfig {
         properties.put("hibernate.dialect", "org.hibernate.dialect.PostgreSQLDialect");
         properties.put("hibernate.hbm2ddl.auto", "update");
         properties.put("hibernate.show_sql", "true");
-        properties.put("hibernate.format_sql", "true");
+     
         return builder
                 .dataSource(dataSource)
                 .packages("com.ksv.tactive.user.entity")
