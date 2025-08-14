@@ -340,6 +340,16 @@ public class ProjectControler {
     		return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
     	}
     }
+    
+    @GetMapping("project/getAllBOQ/{projectId}")
+    public ResponseEntity<?> getAllBOQ(@PathVariable String projectId){
+    	List<BOQ> boqList =projectService.getAllBOQ(projectId);
+    	if(boqList.isEmpty()) {
+    		return ResponseEntity.status(HttpStatus.NO_CONTENT)
+					.body(messageSource.getMessage("boq.not.found", null, Locale.ENGLISH));
+    	}
+    	return ResponseEntity.status(HttpStatus.OK).body(boqList);
+    }
 		
     
 }
