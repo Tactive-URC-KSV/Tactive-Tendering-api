@@ -9,7 +9,9 @@ import java.nio.file.StandardCopyOption;
 import java.sql.Date;
 import java.sql.SQLIntegrityConstraintViolationException;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -36,6 +38,8 @@ import com.ksv.tactive.exception.DuplicateEntryException;
 import com.ksv.tactive.exception.DuplicateProjectCodeException;
 import com.ksv.tactive.exception.FileNotSaveException;
 import com.ksv.tactive.exception.ProjectNotFoundException;
+import com.ksv.tactive.fileservice.ExcelFileService;
+import com.ksv.tactive.fileservice.PdfFileService;
 import com.ksv.tactive.project.dao.ApprovalsDao;
 import com.ksv.tactive.project.dao.BOQDao;
 import com.ksv.tactive.project.dao.BOQFileDao;
@@ -68,7 +72,6 @@ import com.ksv.tactive.project.entity.TechnicalFeasibility;
 import com.ksv.tactive.project.entity.Template;
 import com.ksv.tactive.project.entity.TemplateMapping;
 import com.ksv.tactive.project.entity.UOM;
-import com.ksv.tactive.service.ExcelFileService;
 import com.ksv.tactive.service.ProjectService;
 import com.ksv.tactive.service.UserService;
 
@@ -137,6 +140,9 @@ public class ProjectServiceImpl implements ProjectService{
 	
 	@Autowired
 	private ExcelFileService excelService;
+	
+	@Autowired
+	private PdfFileService pdfService;
 
 	@Override
 	public String addSector(Sector sector) {
@@ -509,14 +515,12 @@ public class ProjectServiceImpl implements ProjectService{
 	
 	@Override
 	public List<String> getExcelSheets(MultipartFile boqFile) throws IOException {
-		String fileName =boqFile.getOriginalFilename();
-		if(fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
-			return excelService.getSheetNames(boqFile);
-		}
-		else if(fileName.endsWith(".pdf")) {
-			
-		}
-		return null;
+		return excelService.getSheetNames(boqFile);
+	}
+	
+	@Override
+	public List<String> getPdfColumns(MultipartFile boqFile) throws IOException {
+		return pdfService.getColumnsHeaders(boqFile);
 	}
 	
 	@Override
@@ -531,42 +535,65 @@ public class ProjectServiceImpl implements ProjectService{
 	@Override
 	public String saveBoqFile(MultipartFile boqFile, String projectId) {
 		String projectName = findByProjectId(projectId).getProjectName();
-		Path directory=Paths.get(uploadDir,
-				projectName
-				.trim()
-				.replaceAll("\\s+", "_")                    
-			    .replaceAll("[^a-zA-Z0-9-_\\.]", ""))
-				.toAbsolutePath().normalize();
-		directory = directory.resolve("BOQ");
+		Path directory = Paths.get(uploadDir,
+		        projectName.trim()
+		                   .replaceAll("\\s+", "_")
+		                   .replaceAll("[^a-zA-Z0-9-_\\.]", ""))
+		        .toAbsolutePath().normalize()
+		        .resolve("BOQ");
+
 		try {
-			Files.createDirectories(directory);
-			Path targetLocation = directory.resolve(StringUtils.cleanPath(boqFile.getOriginalFilename()));
-			Files.copy(boqFile.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
-			String filePath = targetLocation.toString();
-			String fileName = StringUtils.cleanPath(boqFile.getOriginalFilename());
-			List<BOQFile> boqFiles = boqFileDao.findByProjectId(projectId);
-			BOQFile boqFileEntity = new BOQFile();
-			if(!boqFiles.isEmpty() && !boqFiles.stream().anyMatch(b -> b.getFilename().equals(fileName))) {
-				boqFileEntity.setId(UUID.randomUUID().toString());
-				boqFileEntity.setFilename(fileName);
-				boqFileEntity.setFileUrl(filePath);
-				boqFileEntity.setProject(findByProjectId(projectId));
-				boqFileDao.save(boqFileEntity);
-			}
-			return filePath;
+		    if (boqFile == null || boqFile.isEmpty()) {
+		        throw new FileNotSaveException("Uploaded file is empty");
+		    }
+
+		    String fileName = StringUtils.cleanPath(boqFile.getOriginalFilename());
+		    if (fileName.isBlank() || fileName.contains("..")) {
+		        throw new FileNotSaveException("Invalid file name: " + fileName);
+		    }
+
+		    Files.createDirectories(directory);
+		    Path targetLocation = directory.resolve(fileName);
+		    Files.copy(boqFile.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
+
+		    String filePath = targetLocation.toString();
+		    List<BOQFile> boqFiles = boqFileDao.findByProjectId(projectId);
+
+		    if (boqFiles.stream().noneMatch(b -> b.getFilename().equals(fileName))) {
+		        BOQFile boqFileEntity = new BOQFile();
+		        boqFileEntity.setId(UUID.randomUUID().toString());
+		        boqFileEntity.setFilename(fileName);
+		        boqFileEntity.setFileUrl(filePath);
+		        boqFileEntity.setProject(findByProjectId(projectId));
+		        boqFileDao.save(boqFileEntity);
+		    }
+
+		    return filePath;
+
 		} catch (IOException e) {
-			throw new FileNotSaveException(messageSource.getMessage("file.upload.failure", null, Locale.ENGLISH));
+		    throw new FileNotSaveException(messageSource.getMessage("file.upload.failure", null, Locale.ENGLISH), e);
 		}
-		
+
 	}
 	
 	@Override
 	public String mapBOQ(String projectId, String sheetName, Map<String, String> columnMapping, String filePath) throws IOException {
 		Projects project = findByProjectId(projectId);
 		Resource resource = new UrlResource(Paths.get(filePath).toUri());
+		List<BOQ> boqList = null;
 		if(resource.exists() || resource.isReadable()) {
+			String fileName = resource.getFilename();
 			InputStream inputStream = resource.getInputStream();
-			List<BOQ> boqList = excelService.mapBOQData(sheetName, columnMapping, inputStream); 
+			if(fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
+				boqList = excelService.mapBOQData(sheetName, columnMapping, inputStream); 
+			}
+			else if(fileName.endsWith(".pdf")) {
+				boqList = pdfService.mapBOQData(columnMapping, inputStream);
+			}
+			else {
+				throw new FileNotSaveException(messageSource.getMessage("file.type.not.supported", null, Locale.ENGLISH));
+			}
+			boqList = validateBOQData(boqList,projectId);
 			if(!boqList.isEmpty()) {
 				for(BOQ boq : boqList) {
 					boq.setProject(project);
@@ -583,6 +610,24 @@ public class ProjectServiceImpl implements ProjectService{
 		}
 		return null;
 	}
+	private List<BOQ> validateBOQData(List<BOQ> boqList, String projectId) {
+		Projects project = findByProjectId(projectId);
+		Iterator<BOQ> iterator = boqList.iterator();
+		while(iterator.hasNext()) {
+			BOQ boq = iterator.next();
+			BOQ savedBOQ = boqDao.findByBoqCodeAndProjectId(boq.getBoqCode(), projectId);
+			if(savedBOQ != null && savedBOQ.getBoqName().equals(boq.getBoqName())) {
+				boq.setId(savedBOQ.getId());
+				boq.setParentBOQ(savedBOQ.getParentBOQ());
+				boq.setProject(project);
+                boqDao.save(boq);
+                iterator.remove();
+			}
+			
+		}
+		return boqList;
+	}
+
 	@Override
 	public UOM findUomByCode(String uomCode) {
 		UOM uom = uomDao.findByUomCode(uomCode);
@@ -659,5 +704,18 @@ public class ProjectServiceImpl implements ProjectService{
 		}
 		templateDto.setTemplateMapping(mapping);
 		return templateDto;
+	}
+	
+	@Override
+	public List<ProjectInfoDto> getAllBoqUploadedProject() {
+		List<ProjectInfoDto> projects = new ArrayList<>();
+		Set<String> projectIds = boqFileDao.findAll().stream()
+				.map(boq -> boq.getProject().getId())
+				.collect(Collectors.toSet());
+		for(String id : projectIds) {
+			ProjectInfoDto projectInfo = projectDao.findAllProjectInfoById(id);
+			projects.add(projectInfo);
+		}
+		return projects;
 	}
 }

@@ -39,6 +39,7 @@ public interface ProjectService {
 	String addRegion(Region region);
 	List<Region> getAllRegions();
 	List<ProjectInfoDto> getAllApprovedProjects();
+	List<ProjectInfoDto> getAllBoqUploadedProject();
 	
 	String addSector(Sector sector);
 	List<Sector> getAllSector();
@@ -70,6 +71,7 @@ public interface ProjectService {
 	
 	
 	List<String> getExcelSheets(MultipartFile boqFile) throws IOException;
+	List<String> getPdfColumns(MultipartFile boqFile) throws IOException;
 	List<String> getExcelColumns(MultipartFile boqFile, String sheetName) throws IOException;
 	String saveBoqFile(MultipartFile boqFile, String projectId);
 	String mapBOQ(String projectId, String sheetName, Map<String, String> columnMapping, String filePath) throws IOException;
@@ -81,6 +83,7 @@ public interface ProjectService {
 	String saveTemplate(Template template, Map<String, String> mapping);
 	List<Template> getAllTemplate();
 	TemplateDto getTemplateById(String templateId);
+	
 	
 	
 }

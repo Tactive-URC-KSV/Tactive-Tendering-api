@@ -1,4 +1,4 @@
-package com.ksv.tactive.service;
+package com.ksv.tactive.fileservice;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -22,6 +22,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.ksv.tactive.exception.DataNotFoundException;
 import com.ksv.tactive.project.dao.UOMDao;
 import com.ksv.tactive.project.entity.BOQ;
 import com.ksv.tactive.project.entity.UOM;
@@ -127,8 +128,7 @@ public class ExcelFileService {
 						    }
 						    case "uom" -> {
 						    	if(isNotEmpty(value)) {
-						    		UOM uom = uomDao.findByUomCode(value);
-						    		boq.setUom(uom);
+						    		boq.setUom(findUOM(value));
 						    	}
 						    }
 						    case "supplyRate" -> {
@@ -166,10 +166,11 @@ public class ExcelFileService {
 		}
 		return boqList;
 	}
+	
 	private Integer parseInteger(String value) {
 	    if (isNotEmpty(value)) {
 	        try {
-	            return (int) Double.parseDouble(value); // handles "1", "1.0"
+	            return (int) Double.parseDouble(value); 
 	        } catch (NumberFormatException e) {
 	            return null;
 	        }
@@ -262,5 +263,14 @@ public class ExcelFileService {
 		Sheet sheet = workbook !=null ? workbook.getSheet(sheetName) : null;
 		return sheet != null ? sheet : null;
 	}
-
+	
+	protected UOM findUOM(String value) {
+		List<UOM> uoms = uomDao.findAll();
+		for (UOM uom : uoms) {
+			if (uom.getUomCode().equalsIgnoreCase(value)) {
+				return uom;
+			}
+		}
+		throw new DataNotFoundException("UOM not available");
+	}
 }
