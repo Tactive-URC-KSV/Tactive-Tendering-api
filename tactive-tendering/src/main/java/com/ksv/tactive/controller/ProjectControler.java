@@ -9,6 +9,7 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -187,7 +188,6 @@ public class ProjectControler {
     		@RequestPart FinancialFeasibility financialFeasibility,
     		@RequestParam Map<String , MultipartFile> approvalDoc,
     		@PathVariable String projectId){
-    	System.out.println(approvalDocDTO);
     	String techFeasibilityId = projectService.saveTechFeasibility(techFeasibility);
     	String finFeasibilityId = projectService.saveFinancialFeasibility(financialFeasibility);
     	String response = projectService.saveApprovalDoc(approvalDoc, approvalDocDTO, techFeasibilityId, projectId);
@@ -235,14 +235,26 @@ public class ProjectControler {
     }
     
     @PostMapping("/project/excel/getSheets")
-    public ResponseEntity<?> getSheets(@RequestParam("file") MultipartFile boqFile) {
+    public ResponseEntity<?> getBOQFileData(@RequestParam("file") MultipartFile boqFile) {
     	List<String> columnNames;
+    	List<String> sheetNames;
 		try {
-			columnNames = projectService.getExcelSheets(boqFile);
-			return ResponseEntity.status(HttpStatus.OK).body(columnNames);
+			String fileName = boqFile.getOriginalFilename();
+			if(fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
+				sheetNames = projectService.getExcelSheets(boqFile);
+				return ResponseEntity.status(HttpStatus.OK).body(sheetNames);
+			}
+			else if(fileName.endsWith(".pdf")){
+				columnNames = projectService.getPdfColumns(boqFile);
+				return ResponseEntity.status(HttpStatus.OK).body(columnNames);
+			}
+			else {
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+						.body(messageSource.getMessage("file.type.not.supported", null, Locale.ENGLISH));
+			}
 		} catch (IOException e) {
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-					.body("Error reading the Excel file: " + e.getMessage());
+					.body(e.getMessage());
 		}
     	
     }
@@ -259,7 +271,7 @@ public class ProjectControler {
 		}
     }
     
-    @PostMapping("project/uploadBOQ/{sheetName}/{projectId}")
+    @PostMapping("project/mapBOQ/{sheetName}/{projectId}")
     public ResponseEntity<?> uploadBOQ(
     		@PathVariable String projectId,
     		@RequestPart("file") MultipartFile boqFile,
@@ -350,6 +362,11 @@ public class ProjectControler {
     	}
     	return ResponseEntity.status(HttpStatus.OK).body(boqList);
     }
-		
     
+    @GetMapping("project/getAllBoqUploadedProject")
+    public ResponseEntity<?> getAllBoqProjects(){
+    	List<ProjectInfoDto> projects = projectService.getAllBoqUploadedProject();
+    	return ResponseEntity.status(HttpStatus.OK).body(projects);
+    }
+		
 }
