@@ -8,6 +8,7 @@ import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.itextpdf.text.DocumentException;
 import com.ksv.tactive.dto.FeasibilityApprovalDocuDTO;
 import com.ksv.tactive.dto.ProjectInfoDto;
 import com.ksv.tactive.dto.ProjectInputDTO;
@@ -27,6 +28,7 @@ import com.ksv.tactive.project.entity.Template;
 import com.ksv.tactive.project.entity.UOM;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 @Service
 public interface ProjectService {
@@ -78,6 +80,8 @@ public interface ProjectService {
 	List<BOQ> getAllBOQ(String projectId);
 	List<BOQ> getParentBOQ(List<BOQ> boqList);
 	double getParentTotalValue(List<BOQ> boqList, String parentCode);
+	void generateBoqExcel(String projectId, HttpServletResponse response) throws IOException;
+	void generateBoqPdf(String projectId, HttpServletResponse response) throws IOException, DocumentException;
 	
 	
 	String saveTemplate(Template template, Map<String, String> mapping);

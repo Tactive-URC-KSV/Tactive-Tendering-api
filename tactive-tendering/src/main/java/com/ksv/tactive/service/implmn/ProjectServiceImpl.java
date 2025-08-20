@@ -29,6 +29,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.itextpdf.text.DocumentException;
 import com.ksv.tactive.dto.FeasibilityApprovalDocuDTO;
 import com.ksv.tactive.dto.ProjectInfoDto;
 import com.ksv.tactive.dto.ProjectInputDTO;
@@ -76,6 +77,7 @@ import com.ksv.tactive.service.ProjectService;
 import com.ksv.tactive.service.UserService;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 @Service
 public class ProjectServiceImpl implements ProjectService{
@@ -639,6 +641,22 @@ public class ProjectServiceImpl implements ProjectService{
 		List<BOQ> boqList = boqDao.findByProjectId(projectId);
 		return boqList;
 	}
+	
+	@Override
+	public void generateBoqExcel(String projectId, HttpServletResponse response) throws IOException {
+		response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+		List<BOQ> boqList = getAllBOQ(projectId);
+		excelService.generateBoqFile(boqList,response);
+		
+	}
+	
+	@Override
+	public void generateBoqPdf(String projectId, HttpServletResponse response) throws IOException, DocumentException {
+		response.setContentType("application/pdf");	
+		List<BOQ> boqList = getAllBOQ(projectId);
+		pdfService.generateBoqPdf(boqList, response);
+	}
+	
 	@Override
 	public List<BOQ> getParentBOQ(List<BOQ> boqList) {
 		if(boqList != null && !boqList.isEmpty()) {
