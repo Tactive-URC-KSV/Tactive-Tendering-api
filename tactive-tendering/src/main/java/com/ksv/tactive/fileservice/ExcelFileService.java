@@ -10,13 +10,16 @@ import java.util.Map;
 import org.apache.poi.EncryptedDocumentException;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.CellValue;
 import org.apache.poi.ss.usermodel.FormulaEvaluator;
+import org.apache.poi.ss.usermodel.HorizontalAlignment;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -26,6 +29,8 @@ import com.ksv.tactive.exception.DataNotFoundException;
 import com.ksv.tactive.project.dao.UOMDao;
 import com.ksv.tactive.project.entity.BOQ;
 import com.ksv.tactive.project.entity.UOM;
+
+import jakarta.servlet.http.HttpServletResponse;
 
 @Service
 public class ExcelFileService {
@@ -272,5 +277,56 @@ public class ExcelFileService {
 			}
 		}
 		throw new DataNotFoundException("UOM not available");
+	}
+	public void generateBoqFile(List<BOQ> boqList, HttpServletResponse response) throws IOException {
+		String projectName = boqList.get(0).getProject().getProjectName()
+		        .trim()
+		        .replaceAll("\\s+", "_");            
+		String fileName = projectName; 
+
+		response.setHeader("Content-Disposition", "attachment; filename=" + fileName + ".xlsx");
+		XSSFWorkbook workBook = new XSSFWorkbook();
+		XSSFSheet sheet = workBook.createSheet("BOQ");
+		addData(sheet,boqList);
+		workBook.write(response.getOutputStream());
+		response.getOutputStream().flush();
+		response.getOutputStream().close();
+		workBook.close();
+	}
+	private void addData(XSSFSheet sheet, List<BOQ> boqList) {
+		sheet.setColumnWidth(2, 256 * 10);
+		sheet.setColumnWidth(3, 256 * 50);
+		sheet.setColumnWidth(7, 256 * 15);
+		sheet.setColumnWidth(8, 256 * 15);
+		addHeader(sheet);
+		int rowNum = 1;
+		for(BOQ boq : boqList) {
+			int slNo = rowNum++;
+			Row row = sheet.createRow(slNo);
+			row.createCell(0).setCellValue(slNo);
+			row.createCell(1).setCellValue(boq.getId());
+			row.createCell(2).setCellValue(boq.getBoqCode());
+			row.createCell(3).setCellValue(boq.getBoqName());
+			row.createCell(4).setCellValue(boq.getUom() != null ? boq.getUom().getUomCode() : "");
+			row.createCell(5).setCellValue(boq.getQuantity());
+			row.createCell(6).setCellValue(boq.getTotalRate());
+			row.createCell(7).setCellValue(boq.getTotalAmount());
+			row.createCell(8).setCellValue(boq.getParentBOQ() != null ? boq.getParentBOQ().getBoqCode() : "");
+			row.createCell(9).setCellValue(boq.isLastLevel() ? "Yes" : "No");
+		}
+		
+	}
+	private void addHeader(XSSFSheet sheet) {
+		Row row = sheet.createRow(0);
+		CellStyle style = sheet.getWorkbook().createCellStyle();
+		style.setAlignment(HorizontalAlignment.CENTER);
+		style.setWrapText(true);
+		row.setRowStyle(style);
+		String [] header = {"S No", "ID", "BOQ Code", "BOQ Name", "UOM", "Quantity", "Rate", "Amount","Parent Code","Last level"};
+		for(int i = 0; i < header.length; i++) {
+			Cell cell = row.createCell(i);
+			cell.setCellValue(header[i]);
+		}
+		
 	}
 }

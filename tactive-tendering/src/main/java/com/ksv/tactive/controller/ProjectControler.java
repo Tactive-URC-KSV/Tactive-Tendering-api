@@ -9,7 +9,6 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -24,6 +23,7 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.itextpdf.text.DocumentException;
 import com.ksv.tactive.dto.FeasibilityApprovalDocuDTO;
 import com.ksv.tactive.dto.ProjectInfoDto;
 import com.ksv.tactive.dto.ProjectInputDTO;
@@ -48,6 +48,7 @@ import com.ksv.tactive.project.entity.UOM;
 import com.ksv.tactive.service.ProjectService;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 
 @RestController
@@ -361,6 +362,26 @@ public class ProjectControler {
 					.body(messageSource.getMessage("boq.not.found", null, Locale.ENGLISH));
     	}
     	return ResponseEntity.status(HttpStatus.OK).body(boqList);
+    }
+    
+    @GetMapping("project/Boq/excel/{projectId}")
+    public ResponseEntity<?> generateBOQExcel(HttpServletResponse response, @PathVariable String projectId) {
+    	try {
+    		projectService.generateBoqExcel(projectId,response);
+    		return ResponseEntity.status(HttpStatus.OK).body(null);
+    	}
+    	catch(IOException e) {
+    		return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+    	}
+    }
+    @GetMapping("project/Boq/pdf/{projectId}")
+    public ResponseEntity<?> generateBOQPdf(HttpServletResponse response, @PathVariable String projectId) {
+    	try {
+			projectService.generateBoqPdf(projectId,response);
+			return ResponseEntity.status(HttpStatus.OK).body(null);
+		} catch (IOException | DocumentException e) {
+			return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+		}
     }
     
     @GetMapping("project/getAllBoqUploadedProject")
