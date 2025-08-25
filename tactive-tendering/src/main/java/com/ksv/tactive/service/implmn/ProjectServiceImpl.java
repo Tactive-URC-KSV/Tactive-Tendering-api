@@ -699,6 +699,16 @@ public class ProjectServiceImpl implements ProjectService{
 	}
 	
 	@Override
+	public void deleteBOQ(List<String> boqCode, String projectId) {
+		for(String code : boqCode) {
+			BOQ boq = boqDao.findByBoqCodeAndProjectId(code, projectId);
+			if(boq != null) {
+				boqDao.delete(boq);
+			}
+		}
+	}
+	
+	@Override
 	public void generateBoqExcel(String projectId, HttpServletResponse response) throws IOException , DataNotFoundException{
 		response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 		List<BOQ> boqList = getAllBOQ(projectId);

@@ -89,6 +89,7 @@ public interface ProjectService {
 	List<Template> getAllTemplate();
 	TemplateDto getTemplateById(String templateId);
 	void editProject(ProjectInputDTO projectInputDTO, String projectId);
+	void deleteBOQ(List<String> boqCode, String projectId);
 	
 	
 	
