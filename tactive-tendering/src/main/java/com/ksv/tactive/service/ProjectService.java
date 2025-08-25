@@ -13,6 +13,7 @@ import com.ksv.tactive.dto.FeasibilityApprovalDocuDTO;
 import com.ksv.tactive.dto.ProjectInfoDto;
 import com.ksv.tactive.dto.ProjectInputDTO;
 import com.ksv.tactive.dto.TemplateDto;
+import com.ksv.tactive.exception.DataNotFoundException;
 import com.ksv.tactive.project.entity.ApprovalDocuments;
 import com.ksv.tactive.project.entity.BOQ;
 import com.ksv.tactive.project.entity.FeasibilityStudy;
@@ -80,13 +81,14 @@ public interface ProjectService {
 	List<BOQ> getAllBOQ(String projectId);
 	List<BOQ> getParentBOQ(List<BOQ> boqList);
 	double getParentTotalValue(List<BOQ> boqList, String parentCode);
-	void generateBoqExcel(String projectId, HttpServletResponse response) throws IOException;
-	void generateBoqPdf(String projectId, HttpServletResponse response) throws IOException, DocumentException;
+	void generateBoqExcel(String projectId, HttpServletResponse response) throws IOException, DataNotFoundException;
+	void generateBoqPdf(String projectId, HttpServletResponse response) throws IOException, DocumentException, DataNotFoundException;
 	
 	
 	String saveTemplate(Template template, Map<String, String> mapping);
 	List<Template> getAllTemplate();
 	TemplateDto getTemplateById(String templateId);
+	void editProject(ProjectInputDTO projectInputDTO, String projectId);
 	
 	
 	
