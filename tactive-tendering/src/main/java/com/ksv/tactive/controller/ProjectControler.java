@@ -382,6 +382,7 @@ public class ProjectControler {
     
     @DeleteMapping("project/deleteBOQ/{projectId}")
     public ResponseEntity<?> deleteBOQ(@RequestBody List<String> boqCode, @PathVariable String projectId) {
+    	projectService.deleteBOQ(boqCode, projectId);
     	return null;
     }
     
