@@ -103,6 +103,20 @@ public class ProjectControler {
 		}
 	}
 	
+	@PutMapping("project/updateProject/{projectId}")
+	public ResponseEntity<?> updateProject(@RequestBody ProjectInputDTO projectInputDTO,
+			@PathVariable String projectId){
+		try {
+			projectService.editProject(projectInputDTO, projectId);
+			return ResponseEntity.status(HttpStatus.OK)
+					.body(messageSource.getMessage("project.update.success", null, Locale.ENGLISH));
+		}
+		catch (ProjectNotFoundException | DataNotFoundException e) {
+			return ResponseEntity.status(HttpStatus.CONFLICT)
+					.body(e.getMessage());
+		}
+	}
+	
 	@DeleteMapping("project/deleteProject/{projectId}")
 	public ResponseEntity<String> deleteProject(@PathVariable String projectId){
 		try {
@@ -356,12 +370,19 @@ public class ProjectControler {
     
     @GetMapping("project/getAllBOQ/{projectId}")
     public ResponseEntity<?> getAllBOQ(@PathVariable String projectId){
-    	List<BOQ> boqList =projectService.getAllBOQ(projectId);
-    	if(boqList.isEmpty()) {
-    		return ResponseEntity.status(HttpStatus.NO_CONTENT)
-					.body(messageSource.getMessage("boq.not.found", null, Locale.ENGLISH));
+    	try {
+    		
+    		List<BOQ> boqList =projectService.getAllBOQ(projectId);
+    		return ResponseEntity.status(HttpStatus.OK).body(boqList);
     	}
-    	return ResponseEntity.status(HttpStatus.OK).body(boqList);
+    	catch (DataNotFoundException e) {
+			return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+		}
+    }
+    
+    @DeleteMapping("project/deleteBOQ/{projectId}")
+    public ResponseEntity<?> deleteBOQ(@RequestBody List<String> boqCode, @PathVariable String projectId) {
+    	return null;
     }
     
     @GetMapping("project/Boq/excel/{projectId}")
@@ -370,8 +391,8 @@ public class ProjectControler {
     		projectService.generateBoqExcel(projectId,response);
     		return ResponseEntity.status(HttpStatus.OK).body(null);
     	}
-    	catch(IOException e) {
-    		return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+    	catch(IOException | DataNotFoundException e) {
+    		return ResponseEntity.status(HttpStatus.NO_CONTENT).body(e.getMessage());
     	}
     }
     @GetMapping("project/Boq/pdf/{projectId}")
@@ -379,8 +400,8 @@ public class ProjectControler {
     	try {
 			projectService.generateBoqPdf(projectId,response);
 			return ResponseEntity.status(HttpStatus.OK).body(null);
-		} catch (IOException | DocumentException e) {
-			return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+		} catch (IOException | DocumentException | DataNotFoundException e) {
+			return ResponseEntity.status(HttpStatus.NO_CONTENT).body(e.getMessage());
 		}
     }
     

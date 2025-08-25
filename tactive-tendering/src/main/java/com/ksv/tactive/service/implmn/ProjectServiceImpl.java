@@ -211,7 +211,10 @@ public class ProjectServiceImpl implements ProjectService{
 	
 	@Override
 	public List<ProjectInfoDto> getAllProjects() {
-		return projectDao.findAllProjectInfo();
+		List<ProjectInfoDto> projects = projectDao.findAllProjectInfo().stream()
+				.filter(project -> !project.isArchieve())
+				.collect(Collectors.toList());
+		return projects;
 	}
 
 	@Override
@@ -222,6 +225,7 @@ public class ProjectServiceImpl implements ProjectService{
 	
 	@Override
 	public Projects saveProject(ProjectInputDTO projectInputDTO, HttpServletRequest request) throws SQLIntegrityConstraintViolationException {
+		
 		Projects project = projectInputDTO.getProject();
 		if(projectDao.findByProjectCode(project.getProjectCode()) != null) {
 			throw new DuplicateProjectCodeException(messageSource.getMessage("project.code.duplicate", null , Locale.ENGLISH));
@@ -229,6 +233,10 @@ public class ProjectServiceImpl implements ProjectService{
 		
 		project.setId(UUID.randomUUID().toString());
 		project.setProjectCode(generateProjectCode());
+		if(project.getProjectName() == null || project.getShortName() == null ) {
+			throw new DataNotFoundException(messageSource.getMessage("project.name.not.found", null, Locale.ENGLISH));
+		}
+		
 		project.setEstimatedValue(project.getBuildingArea() * project.getRatePerUnit());
 		if (!projectInputDTO.getRegionId().isEmpty()) {
 		    project.setRegion(
@@ -254,8 +262,8 @@ public class ProjectServiceImpl implements ProjectService{
 				    .collect(Collectors.toSet());
 			project.setScopeOfPackages(scopePackages);
 		}
-		project.setCreatedAt(Date.valueOf(LocalDate.now()));
 		project.setUpdateAt(Date.valueOf(LocalDate.now()));
+		project.setCreatedAt(Date.valueOf(LocalDate.now()));
 		project.setCreatedBy(userService.findLoggedInUser().getId());
 		project.setCompanyId(userService.findLoggedInUser().getCompanyId());
 		project.setProjectStatus(statusDao.findByProcessUrl(request.getRequestURI()));
@@ -270,12 +278,12 @@ public class ProjectServiceImpl implements ProjectService{
 	private String generateProjectCode() {
 		final String chars = "0123456789";
 		Random random = new Random();
-		StringBuilder password = new StringBuilder();
+		StringBuilder code = new StringBuilder();
 		for(int i=0; i<3; i++) {
 			int index = random.nextInt(chars.length());
-            password.append(chars.charAt(index));
+            code.append(chars.charAt(index));
 		}
-		return password.toString();
+		return "PRJ - "+code.toString();
 	}
 
 	@Override
@@ -309,14 +317,59 @@ public class ProjectServiceImpl implements ProjectService{
 		}
 		
 	}
+	
+	@Override
+	public void editProject(ProjectInputDTO projectInputDTO, String projectId) {
+		Projects existingProject = findByProjectId(projectId);
+		if(existingProject == null) {
+			throw new DataNotFoundException(messageSource.getMessage("project.not.found", null, Locale.ENGLISH));
+		}
+		Projects project = projectInputDTO.getProject();
+		project.setId(existingProject.getId());
+		project.setCreatedAt(existingProject.getCreatedAt());
+		project.setCreatedBy(existingProject.getCreatedBy());
+		project.setCompanyId(existingProject.getCompanyId());
+		project.setProjectStatus(existingProject.getProjectStatus());
+		project.setArchieve(existingProject.isArchieve());
+		project.setProjectCode(existingProject.getProjectCode());
+		project.setEstimatedValue(project.getBuildingArea() * project.getRatePerUnit());
+		if (!projectInputDTO.getRegionId().isEmpty()) {
+		    project.setRegion(
+		        regionRepo.findById(projectInputDTO.getRegionId())
+		            .orElseThrow(() -> new DataNotFoundException(
+		                messageSource.getMessage("data.not.found", null, Locale.ENGLISH))));
+		}
+		if(!projectInputDTO.getSectorId().isEmpty()) {
+			project.setSector(sectorDao.findById(projectInputDTO.getSectorId())
+					.orElseThrow(() -> new DataNotFoundException(
+							messageSource.getMessage("data.not.found", null, Locale.ENGLISH))));
+		}
+		if(!projectInputDTO.getUomId().isEmpty()) {
+			project.setUom(uomDao.findById(projectInputDTO.getUomId())
+					.orElseThrow(() -> new DataNotFoundException(
+							messageSource.getMessage("data.not.found", null, Locale.ENGLISH))));
+		}
+		if(!projectInputDTO.getScopeOfPackageIds().isEmpty()) {
+			Set<ScopeOfPackage> scopePackages = projectInputDTO.getScopeOfPackageIds().stream()
+					.filter(id -> id != null && !id.trim().isEmpty())
+				    .map(id -> scopeOfPackDao.findById(id)
+				    		.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH))))
+				    .collect(Collectors.toSet());
+			project.setScopeOfPackages(scopePackages);
+		}
+		project.setUpdateAt(Date.valueOf(LocalDate.now()));
+		projectDao.save(project);
+		
+	}
+	
 	@Override
 	public String deleteProject(String projectId) {
 		Projects project=findByProjectId(projectId);
+		project.setArchieve(true);
 		if(project!=null) {
-			projectDao.delete(project);
-			return messageSource.getMessage("project.delete.success", null , Locale.ENGLISH);
+			projectDao.save(project);
 		}
-		return null;
+		return messageSource.getMessage("project.delete.success", null , Locale.ENGLISH);
 	}
 
 	@Override
@@ -639,11 +692,14 @@ public class ProjectServiceImpl implements ProjectService{
 	@Override
 	public List<BOQ> getAllBOQ(String projectId) {
 		List<BOQ> boqList = boqDao.findByProjectId(projectId);
+		if(boqList.isEmpty()) {
+			throw new DataNotFoundException(messageSource.getMessage("boq.not.found", null, Locale.ENGLISH));
+		}
 		return boqList;
 	}
 	
 	@Override
-	public void generateBoqExcel(String projectId, HttpServletResponse response) throws IOException {
+	public void generateBoqExcel(String projectId, HttpServletResponse response) throws IOException , DataNotFoundException{
 		response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 		List<BOQ> boqList = getAllBOQ(projectId);
 		excelService.generateBoqFile(boqList,response);
@@ -651,7 +707,7 @@ public class ProjectServiceImpl implements ProjectService{
 	}
 	
 	@Override
-	public void generateBoqPdf(String projectId, HttpServletResponse response) throws IOException, DocumentException {
+	public void generateBoqPdf(String projectId, HttpServletResponse response) throws IOException, DocumentException, DataNotFoundException {
 		response.setContentType("application/pdf");	
 		List<BOQ> boqList = getAllBOQ(projectId);
 		pdfService.generateBoqPdf(boqList, response);
@@ -736,4 +792,5 @@ public class ProjectServiceImpl implements ProjectService{
 		}
 		return projects;
 	}
+	
 }
