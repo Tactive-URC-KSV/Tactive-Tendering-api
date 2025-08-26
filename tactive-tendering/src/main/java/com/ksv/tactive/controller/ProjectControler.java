@@ -29,22 +29,15 @@ import com.ksv.tactive.dto.ProjectInfoDto;
 import com.ksv.tactive.dto.ProjectInputDTO;
 import com.ksv.tactive.dto.TemplateDto;
 import com.ksv.tactive.exception.DataNotFoundException;
-import com.ksv.tactive.exception.DuplicateEntryException;
 import com.ksv.tactive.exception.DuplicateProjectCodeException;
 import com.ksv.tactive.exception.ProjectNotFoundException;
 import com.ksv.tactive.project.entity.ApprovalDocuments;
 import com.ksv.tactive.project.entity.BOQ;
 import com.ksv.tactive.project.entity.FeasibilityStudy;
 import com.ksv.tactive.project.entity.FinancialFeasibility;
-import com.ksv.tactive.project.entity.ListOfApprovals;
-import com.ksv.tactive.project.entity.ProjectStatus;
 import com.ksv.tactive.project.entity.Projects;
-import com.ksv.tactive.project.entity.Region;
-import com.ksv.tactive.project.entity.ScopeOfPackage;
-import com.ksv.tactive.project.entity.Sector;
 import com.ksv.tactive.project.entity.TechnicalFeasibility;
 import com.ksv.tactive.project.entity.Template;
-import com.ksv.tactive.project.entity.UOM;
 import com.ksv.tactive.service.ProjectService;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -127,75 +120,7 @@ public class ProjectControler {
 					.body(e.getMessage());
 		}
 	}	
-	@PostMapping("/regions/addRegion")
-	public ResponseEntity<String> addRegion(@RequestBody Region region) {
-		try {
-			return ResponseEntity.status(HttpStatus.OK).body(projectService.addRegion(region));
-		} catch (DuplicateEntryException e) {
-			return ResponseEntity.status(HttpStatus.CONFLICT)
-					.body(e.getMessage());
-		}
-	}
 	
-	@GetMapping("/regions")
-	public ResponseEntity<?> getAllRegions(){
-		if(projectService.getAllRegions().isEmpty()) {
-			return ResponseEntity.status(HttpStatus.NO_CONTENT)
-					.body(messageSource.getMessage("data.not.found", null, Locale.ENGLISH));
-		}
-		return ResponseEntity.status(HttpStatus.OK).body(projectService.getAllRegions());
-	}
-	@PostMapping("/sector/addSector")
-	public ResponseEntity<String> addSector(@RequestBody Sector sector){
-		return ResponseEntity.status(HttpStatus.OK).body(projectService.addSector(sector));
-	}
-	
-	@PostMapping("/scope/addScope")
-	public ResponseEntity<String> addScope(@RequestBody ScopeOfPackage scope){
-		return ResponseEntity.status(HttpStatus.OK).body(projectService.addScope(scope));
-	}
-	
-	@PostMapping("/uom/addUom")
-	public ResponseEntity<String> addUOM(@RequestBody UOM uom){
-		return ResponseEntity.status(HttpStatus.OK).body(projectService.addUom(uom));
-	}
-	
-	@GetMapping("/uoms")
-    public ResponseEntity<List<UOM>> getAllUOMs() {
-        List<UOM> uoms = projectService.getAllUOMs();
-        return ResponseEntity.ok(uoms);
-    }
-
-    @GetMapping("/sectors")
-    public ResponseEntity<List<Sector>> getAllSectors() {
-        List<Sector> sectors = projectService.getAllSector();
-        return ResponseEntity.ok(sectors);
-    }
-
-    @GetMapping("/scopes")
-    public ResponseEntity<List<ScopeOfPackage>> getAllScopes() {
-        List<ScopeOfPackage> scopes = projectService.getAllScopes();
-        return ResponseEntity.ok(scopes);
-    }
-    
-    @GetMapping("/project-status")
-	public ResponseEntity<List<ProjectStatus>> getProjectStatus(){
-		return ResponseEntity.ok(projectService.getAllProjectStatus());
-	}
-    
-    @PostMapping("/project-status/add")
-    public ResponseEntity<String> addProjectStatus(@RequestBody ProjectStatus projectStatus) {
-		return ResponseEntity.status(HttpStatus.OK).body(projectService.addProjectStatus(projectStatus));
-    }
-    @PostMapping("/approvalDocuments/add")
-    public ResponseEntity<String> addListOfApprovals(@RequestBody ListOfApprovals listOfApprovals) {
-		return ResponseEntity.status(HttpStatus.OK).body(projectService.addListOfApprovals(listOfApprovals));
-    }
-    @GetMapping("/listOfApprovals")
-	public ResponseEntity<List<ListOfApprovals>> getAllListOfApprovals(){
-		return ResponseEntity.ok(projectService.getAllListOfApprovals());
-	}
-    
     
     @PostMapping("/feasibility/add/{projectId}")
     public ResponseEntity<String> addTechFeasbility(@RequestPart TechnicalFeasibility techFeasibility,
@@ -382,8 +307,15 @@ public class ProjectControler {
     
     @DeleteMapping("project/deleteBOQ/{projectId}")
     public ResponseEntity<?> deleteBOQ(@RequestBody List<String> boqCode, @PathVariable String projectId) {
-    	projectService.deleteBOQ(boqCode, projectId);
-    	return null;
+    	try {
+    		
+    		projectService.deleteBOQ(boqCode, projectId);
+    		return ResponseEntity.status(HttpStatus.OK).body(messageSource.getMessage("boq.delete.success", null, Locale.ENGLISH));
+    	}
+    	catch (DataNotFoundException e) {
+    		return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+    	}
+    	
     }
     
     @GetMapping("project/Boq/excel/{projectId}")
@@ -411,5 +343,18 @@ public class ProjectControler {
     	List<ProjectInfoDto> projects = projectService.getAllBoqUploadedProject();
     	return ResponseEntity.status(HttpStatus.OK).body(projects);
     }
+    
+    
+    @PostMapping("/activityGroup/add")
+    public ResponseEntity<?> addActivityGroup(@RequestBody String activityGroup) {
+		return ResponseEntity.status(HttpStatus.OK).body(projectService.addActivityGroup(activityGroup));
+	}
+    
+    
+    @GetMapping("/activityGroups")
+    public ResponseEntity<?> getAllActivityGroups() {
+    	return ResponseEntity.status(HttpStatus.OK).body(projectService.getAllActivityGroups());
+	}
+	
 		
 }

@@ -4,12 +4,15 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import lombok.Data;
 
+
 @Data
 @Entity
-public class ActivityType {
+public class ActivityGroup {
 	
 	@Id
 	private String id;
-	private String actType;
+	private String activityCode;
+	private String activityName;
+	
 
 }

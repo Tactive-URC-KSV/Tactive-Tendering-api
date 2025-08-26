@@ -1,5 +1,10 @@
 package com.ksv.tactive.project.entity;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -8,6 +13,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.Data;
 
@@ -25,7 +31,7 @@ public class BOQ {
 	private String boqCode;
 	private String boqName;
 
-	@ManyToOne(cascade = CascadeType.ALL)
+	@ManyToOne
 	@JoinColumn(name = "uom_id")
 	private UOM uom;
 	private int parentLevel;
@@ -43,12 +49,16 @@ public class BOQ {
 	private int wo;
 	private String qtyType;
 
-	@ManyToOne(cascade = CascadeType.ALL)
+	@ManyToOne
 	@JoinColumn(name = "project_id")
 	private Projects project;
 
-	@ManyToOne(cascade = CascadeType.ALL)
+	@ManyToOne
 	@JoinColumn(name = "parent_boq_id")
 	private BOQ parentBOQ;
+	
+	@JsonIgnore
+	@OneToMany(mappedBy = "parentBOQ", cascade = CascadeType.ALL, orphanRemoval = true)
+	private List<BOQ> children = new ArrayList<>();
 
 }

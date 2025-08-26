@@ -1,0 +1,42 @@
+[
+  {
+    "code": "M3",
+    "name": "Cubic Meter"
+  },
+  {
+    "code": "M2",
+    "name": "Square Meter"
+  },
+  {
+    "code": "M",
+    "name": "Meter"
+  },
+  {
+    "code": "KG",
+    "name": "Kilogram"
+  },
+  {
+    "code": "TON",
+    "name": "Tonne"
+  },
+  {
+    "code": "L",
+    "name": "Litre"
+  },
+  {
+    "code": "NOS",
+    "name": "Number"
+  },
+  {
+    "code": "BAG",
+    "name": "Bag"
+  },
+  {
+    "code": "SET",
+    "name": "Set"
+  },
+  {
+    "code": "HR",
+    "name": "Hour"
+  }
+]

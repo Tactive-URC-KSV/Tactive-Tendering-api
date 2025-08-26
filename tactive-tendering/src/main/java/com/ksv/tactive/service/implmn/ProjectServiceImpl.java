@@ -35,18 +35,17 @@ import com.ksv.tactive.dto.ProjectInfoDto;
 import com.ksv.tactive.dto.ProjectInputDTO;
 import com.ksv.tactive.dto.TemplateDto;
 import com.ksv.tactive.exception.DataNotFoundException;
-import com.ksv.tactive.exception.DuplicateEntryException;
 import com.ksv.tactive.exception.DuplicateProjectCodeException;
 import com.ksv.tactive.exception.FileNotSaveException;
 import com.ksv.tactive.exception.ProjectNotFoundException;
 import com.ksv.tactive.fileservice.ExcelFileService;
 import com.ksv.tactive.fileservice.PdfFileService;
+import com.ksv.tactive.project.dao.ActivityGroupDao;
 import com.ksv.tactive.project.dao.ApprovalsDao;
 import com.ksv.tactive.project.dao.BOQDao;
 import com.ksv.tactive.project.dao.BOQFileDao;
 import com.ksv.tactive.project.dao.FeasibilityStudyDao;
 import com.ksv.tactive.project.dao.FinancialFeasibilityDao;
-import com.ksv.tactive.project.dao.ListOfApprovalsDao;
 import com.ksv.tactive.project.dao.ProjectDao;
 import com.ksv.tactive.project.dao.ProjectDocumentDetailsDao;
 import com.ksv.tactive.project.dao.ProjectStatusDao;
@@ -57,22 +56,19 @@ import com.ksv.tactive.project.dao.TechnicalFeasibilityDao;
 import com.ksv.tactive.project.dao.TemplateDao;
 import com.ksv.tactive.project.dao.TemplateMappingDao;
 import com.ksv.tactive.project.dao.UOMDao;
+import com.ksv.tactive.project.entity.ActivityGroup;
 import com.ksv.tactive.project.entity.ApprovalDocuments;
 import com.ksv.tactive.project.entity.BOQ;
 import com.ksv.tactive.project.entity.BOQFile;
 import com.ksv.tactive.project.entity.FeasibilityStudy;
 import com.ksv.tactive.project.entity.FinancialFeasibility;
-import com.ksv.tactive.project.entity.ListOfApprovals;
 import com.ksv.tactive.project.entity.ProjectDocumentDetails;
 import com.ksv.tactive.project.entity.ProjectStatus;
 import com.ksv.tactive.project.entity.Projects;
-import com.ksv.tactive.project.entity.Region;
 import com.ksv.tactive.project.entity.ScopeOfPackage;
-import com.ksv.tactive.project.entity.Sector;
 import com.ksv.tactive.project.entity.TechnicalFeasibility;
 import com.ksv.tactive.project.entity.Template;
 import com.ksv.tactive.project.entity.TemplateMapping;
-import com.ksv.tactive.project.entity.UOM;
 import com.ksv.tactive.service.ProjectService;
 import com.ksv.tactive.service.UserService;
 
@@ -103,8 +99,7 @@ public class ProjectServiceImpl implements ProjectService{
 	@Autowired
 	private ScopeOfPackDao scopeOfPackDao;
 	
-	@Autowired
-	private ListOfApprovalsDao listOfApprovalsDao;
+	
 	
 	@Autowired
 	private UserService userService;
@@ -146,68 +141,9 @@ public class ProjectServiceImpl implements ProjectService{
 	@Autowired
 	private PdfFileService pdfService;
 
-	@Override
-	public String addSector(Sector sector) {
-		sector.setId(UUID.randomUUID().toString());
-		sectorDao.save(sector);
-		return messageSource.getMessage("data.save.success", null, Locale.ENGLISH);
-	}
-
-	@Override
-	public String addScope(ScopeOfPackage scope) {
-		scope.setId(UUID.randomUUID().toString());
-		scopeOfPackDao.save(scope);
-		return messageSource.getMessage("data.save.success", null, Locale.ENGLISH);
-	}
-
-	@Override
-	public String addUom(UOM uom) {
-		uom.setId(UUID.randomUUID().toString());
-		uomDao.save(uom);
-		return messageSource.getMessage("data.save.success", null, Locale.ENGLISH);
-	}
-	@Override
-	public List<Region> getAllRegions() {
-		return regionRepo.findAll();
-	}
-
-	@Override
-	public String addRegion(Region region) {
-		if(regionRepo.findByRegionName(region.getRegionName()) != null) {
-			throw new DuplicateEntryException(messageSource.getMessage("region.duplicate", null, Locale.ENGLISH));
-		}
-		region.setId(UUID.randomUUID().toString());
-		regionRepo.save(region);
-		return messageSource.getMessage("data.save.success", null, Locale.ENGLISH);
-	}
-
-	@Override
-	public List<UOM> getAllUOMs() {
-		return uomDao.findAll();
-	}
-
-	@Override
-	public List<Sector> getAllSector() {
-		return sectorDao.findAll();
-	}
-
-	@Override
-	public List<ScopeOfPackage> getAllScopes() {
-		return scopeOfPackDao.findAll();
-	}
-
-	@Override
-	public List<ProjectStatus> getAllProjectStatus() {
-		return statusDao.findAll();
-	}
-
-	@Override
-	public String addProjectStatus(ProjectStatus projectStatus) {
-		projectStatus.setId(UUID.randomUUID().toString());
-		statusDao.save(projectStatus);
-		return null;
-	}
-
+	@Autowired
+	private ActivityGroupDao activityGroupsDao;
+	
 	
 	@Override
 	public List<ProjectInfoDto> getAllProjects() {
@@ -372,18 +308,6 @@ public class ProjectServiceImpl implements ProjectService{
 		return messageSource.getMessage("project.delete.success", null , Locale.ENGLISH);
 	}
 
-	@Override
-	public String addListOfApprovals(ListOfApprovals listOfApprovals) {
-		listOfApprovals.setId(UUID.randomUUID().toString());
-		listOfApprovalsDao.save(listOfApprovals);
-		return messageSource.getMessage("data.save.success", null, Locale.ENGLISH);
-	}
-
-	@Override
-	public List<ListOfApprovals> getAllListOfApprovals() {
-		List<ListOfApprovals> listOfApprovals = listOfApprovalsDao.findAll();
-		return listOfApprovals;
-	}
 
 	@Override
 	public String saveTechFeasibility(TechnicalFeasibility techFeasibility) {
@@ -683,11 +607,6 @@ public class ProjectServiceImpl implements ProjectService{
 		return boqList;
 	}
 
-	@Override
-	public UOM findUomByCode(String uomCode) {
-		UOM uom = uomDao.findByUomCode(uomCode);
-		return uom;
-	}
 	
 	@Override
 	public List<BOQ> getAllBOQ(String projectId) {
@@ -801,6 +720,18 @@ public class ProjectServiceImpl implements ProjectService{
 			projects.add(projectInfo);
 		}
 		return projects;
+	}
+	
+	
+	@Override
+	public String addActivityGroup(String activityGroup) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
+	@Override
+	public List<ActivityGroup> getAllActivityGroups() {
+		return activityGroupsDao.findAll();
 	}
 	
 }

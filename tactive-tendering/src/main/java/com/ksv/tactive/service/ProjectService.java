@@ -14,19 +14,14 @@ import com.ksv.tactive.dto.ProjectInfoDto;
 import com.ksv.tactive.dto.ProjectInputDTO;
 import com.ksv.tactive.dto.TemplateDto;
 import com.ksv.tactive.exception.DataNotFoundException;
+import com.ksv.tactive.project.entity.ActivityGroup;
 import com.ksv.tactive.project.entity.ApprovalDocuments;
 import com.ksv.tactive.project.entity.BOQ;
 import com.ksv.tactive.project.entity.FeasibilityStudy;
 import com.ksv.tactive.project.entity.FinancialFeasibility;
-import com.ksv.tactive.project.entity.ListOfApprovals;
-import com.ksv.tactive.project.entity.ProjectStatus;
 import com.ksv.tactive.project.entity.Projects;
-import com.ksv.tactive.project.entity.Region;
-import com.ksv.tactive.project.entity.ScopeOfPackage;
-import com.ksv.tactive.project.entity.Sector;
 import com.ksv.tactive.project.entity.TechnicalFeasibility;
 import com.ksv.tactive.project.entity.Template;
-import com.ksv.tactive.project.entity.UOM;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -39,27 +34,10 @@ public interface ProjectService {
 	Projects findByProjectId(String projectId);
 	String deleteProject(String projectId);
 	String saveProjectFiles(String projectId, List<MultipartFile> file);
-	String addRegion(Region region);
-	List<Region> getAllRegions();
+	void editProject(ProjectInputDTO projectInputDTO, String projectId);
+	
 	List<ProjectInfoDto> getAllApprovedProjects();
 	List<ProjectInfoDto> getAllBoqUploadedProject();
-	
-	String addSector(Sector sector);
-	List<Sector> getAllSector();
-	
-	String addScope(ScopeOfPackage scope);
-	List<ScopeOfPackage> getAllScopes();
-	
-	String addUom(UOM uom);
-	List<UOM> getAllUOMs();
-	UOM findUomByCode(String uomCode);
-	
-	List<ProjectStatus> getAllProjectStatus();
-	String addProjectStatus(ProjectStatus projectStatus);
-	String addListOfApprovals(ListOfApprovals listOfApprovals);
-	
-	
-	List<ListOfApprovals> getAllListOfApprovals();
 	
 	String saveTechFeasibility(TechnicalFeasibility techFeasibility);
 	String saveFinancialFeasibility(FinancialFeasibility financialFeasibility);
@@ -83,14 +61,14 @@ public interface ProjectService {
 	double getParentTotalValue(List<BOQ> boqList, String parentCode);
 	void generateBoqExcel(String projectId, HttpServletResponse response) throws IOException, DataNotFoundException;
 	void generateBoqPdf(String projectId, HttpServletResponse response) throws IOException, DocumentException, DataNotFoundException;
-	
+	void deleteBOQ(List<String> boqCode, String projectId);
 	
 	String saveTemplate(Template template, Map<String, String> mapping);
 	List<Template> getAllTemplate();
 	TemplateDto getTemplateById(String templateId);
-	void editProject(ProjectInputDTO projectInputDTO, String projectId);
-	void deleteBOQ(List<String> boqCode, String projectId);
 	
+	String addActivityGroup(String activityGroup);
+	List<ActivityGroup> getAllActivityGroups();
 	
 	
 }
