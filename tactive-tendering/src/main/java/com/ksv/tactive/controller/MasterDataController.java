@@ -1,0 +1,123 @@
+package com.ksv.tactive.controller;
+
+import java.util.List;
+import java.util.Locale;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.MessageSource;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.ksv.tactive.exception.DuplicateEntryException;
+import com.ksv.tactive.project.entity.CostCodeType;
+import com.ksv.tactive.project.entity.ListOfApprovals;
+import com.ksv.tactive.project.entity.ProjectStatus;
+import com.ksv.tactive.project.entity.Region;
+import com.ksv.tactive.project.entity.ScopeOfPackage;
+import com.ksv.tactive.project.entity.Sector;
+import com.ksv.tactive.project.entity.UOM;
+import com.ksv.tactive.service.MasterService;
+
+@RestController
+@RequestMapping("/tactive")
+@CrossOrigin(origins = "*")
+public class MasterDataController {
+	
+	
+	@Autowired
+	private MasterService masterService;
+	
+	@Autowired
+	private MessageSource messageSource;
+	
+	@PostMapping("/regions/addRegion")
+	public ResponseEntity<String> addRegion(@RequestBody Region region) {
+		try {
+			return ResponseEntity.status(HttpStatus.OK).body(masterService.addRegion(region));
+		} catch (DuplicateEntryException e) {
+			return ResponseEntity.status(HttpStatus.CONFLICT)
+					.body(e.getMessage());
+		}
+	}
+	
+	@GetMapping("/regions")
+	public ResponseEntity<?> getAllRegions(){
+		if(masterService.getAllRegions().isEmpty()) {
+			return ResponseEntity.status(HttpStatus.NO_CONTENT)
+					.body(messageSource.getMessage("data.not.found", null, Locale.ENGLISH));
+		}
+		return ResponseEntity.status(HttpStatus.OK).body(masterService.getAllRegions());
+	}
+	@PostMapping("/sector/addSector")
+	public ResponseEntity<String> addSector(@RequestBody Sector sector){
+		return ResponseEntity.status(HttpStatus.OK).body(masterService.addSector(sector));
+	}
+	
+	@PostMapping("/scope/addScope")
+	public ResponseEntity<String> addScope(@RequestBody ScopeOfPackage scope){
+		return ResponseEntity.status(HttpStatus.OK).body(masterService.addScope(scope));
+	}
+	
+	@PostMapping("/uom/addUom")
+	public ResponseEntity<String> addUOM(@RequestBody UOM uom){
+		return ResponseEntity.status(HttpStatus.OK).body(masterService.addUom(uom));
+	}
+	
+	@GetMapping("/uoms")
+    public ResponseEntity<List<UOM>> getAllUOMs() {
+        List<UOM> uoms = masterService.getAllUOMs();
+        return ResponseEntity.ok(uoms);
+    }
+
+    @GetMapping("/sectors")
+    public ResponseEntity<List<Sector>> getAllSectors() {
+        List<Sector> sectors = masterService.getAllSector();
+        return ResponseEntity.ok(sectors);
+    }
+
+    @GetMapping("/scopes")
+    public ResponseEntity<List<ScopeOfPackage>> getAllScopes() {
+        List<ScopeOfPackage> scopes = masterService.getAllScopes();
+        return ResponseEntity.ok(scopes);
+    }
+    
+    @GetMapping("/project-status")
+	public ResponseEntity<List<ProjectStatus>> getProjectStatus(){
+		return ResponseEntity.ok(masterService.getAllProjectStatus());
+	}
+    
+    @PostMapping("/project-status/add")
+    public ResponseEntity<String> addProjectStatus(@RequestBody ProjectStatus projectStatus) {
+		return ResponseEntity.status(HttpStatus.OK).body(masterService.addProjectStatus(projectStatus));
+    }
+    @PostMapping("/approvalDocuments/add")
+    public ResponseEntity<String> addListOfApprovals(@RequestBody ListOfApprovals listOfApprovals) {
+		return ResponseEntity.status(HttpStatus.OK).body(masterService.addListOfApprovals(listOfApprovals));
+    }
+    @GetMapping("/listOfApprovals")
+	public ResponseEntity<List<ListOfApprovals>> getAllListOfApprovals(){
+		return ResponseEntity.ok(masterService.getAllListOfApprovals());
+	}
+    
+    @PostMapping("/costCodeType/add")
+    public ResponseEntity<?> addCostCodeType(@RequestBody CostCodeType costCodeType) {
+    	try {
+			return ResponseEntity.status(HttpStatus.OK).body(masterService.addCostCodeType(costCodeType));
+		} catch (DuplicateEntryException e) {
+			return ResponseEntity.status(HttpStatus.CONFLICT)
+					.body(e.getMessage());
+		}
+    }	
+    
+    @GetMapping("/costCodeTypes")
+    public ResponseEntity<?> getAllCostCodeTypes() {
+		return ResponseEntity.status(HttpStatus.OK).body(masterService.getAllCostCodeTypes());
+	}
+
+}
