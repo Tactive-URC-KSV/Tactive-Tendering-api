@@ -743,7 +743,6 @@ public class ProjectServiceImpl implements ProjectService{
 			return messageSource.getMessage("activity.group.save.success", null, Locale.ENGLISH);
 		}
 		return messageSource.getMessage("activity.group.duplicate", null, Locale.ENGLISH);
-		
 	}
 	
 	@Override
