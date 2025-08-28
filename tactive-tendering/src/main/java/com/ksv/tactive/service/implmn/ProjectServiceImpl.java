@@ -105,8 +105,6 @@ public class ProjectServiceImpl implements ProjectService{
 	@Autowired
 	private ScopeOfPackDao scopeOfPackDao;
 	
-	
-	
 	@Autowired
 	private UserService userService;
 	
@@ -155,7 +153,6 @@ public class ProjectServiceImpl implements ProjectService{
 	
 	@Autowired
 	private CostCodeDao costCodeActivityDao;
-	
 	
 	@Override
 	public List<ProjectInfoDto> getAllProjects() {
@@ -797,5 +794,10 @@ public class ProjectServiceImpl implements ProjectService{
 				.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
 		costCodeActivityDao.delete(costCode);
 		return messageSource.getMessage("cost.code.delete.success", null, Locale.ENGLISH);
+	}
+	
+	@Override
+	public List<CostCodeActivity> getCostCodeActivityByType(String projectId, String costCodeTypeId) {
+		return costCodeActivityDao.findByProjectIdAndCostCodeTypeId(projectId, costCodeTypeId);
 	}
 }

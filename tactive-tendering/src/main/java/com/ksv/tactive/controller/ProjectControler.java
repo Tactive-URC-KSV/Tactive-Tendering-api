@@ -35,6 +35,7 @@ import com.ksv.tactive.exception.ProjectNotFoundException;
 import com.ksv.tactive.project.entity.ActivityGroup;
 import com.ksv.tactive.project.entity.ApprovalDocuments;
 import com.ksv.tactive.project.entity.BOQ;
+import com.ksv.tactive.project.entity.CostCodeActivity;
 import com.ksv.tactive.project.entity.FeasibilityStudy;
 import com.ksv.tactive.project.entity.FinancialFeasibility;
 import com.ksv.tactive.project.entity.Projects;
@@ -372,5 +373,19 @@ public class ProjectControler {
     public ResponseEntity<?> deleteCostCodeActivity(@PathVariable String costCodeId ){
 		return ResponseEntity.status(HttpStatus.OK).body(projectService.deleteCostCode(costCodeId));
 	}
-		
+    
+    @GetMapping("costCodeActivity/{projectId}/{costCodeTypeId}/{activityGroupId}")
+    public ResponseEntity<?> getCostCodeActivityByType(@PathVariable String projectId, @PathVariable String costCodeTypeId, @PathVariable String activityGroupId){
+    	List<CostCodeActivity> costCode = projectService.getCostCodeActivityByType(projectId, costCodeTypeId);
+    	if(!costCode.isEmpty()) {
+    		costCode = costCode.stream()
+    				.filter(cost -> cost.getActivityGroup().getId().equals(activityGroupId))
+    				.toList();
+    		return ResponseEntity.status(HttpStatus.OK).body(costCode);
+    	}
+    	return ResponseEntity.status(HttpStatus.CONFLICT).body(messageSource.getMessage("cost.code.not.found", null, Locale.ENGLISH));
+    }
+    
+
+    
 }

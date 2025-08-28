@@ -18,6 +18,7 @@ import com.ksv.tactive.exception.DataNotFoundException;
 import com.ksv.tactive.project.entity.ActivityGroup;
 import com.ksv.tactive.project.entity.ApprovalDocuments;
 import com.ksv.tactive.project.entity.BOQ;
+import com.ksv.tactive.project.entity.CostCodeActivity;
 import com.ksv.tactive.project.entity.FeasibilityStudy;
 import com.ksv.tactive.project.entity.FinancialFeasibility;
 import com.ksv.tactive.project.entity.Projects;
@@ -72,6 +73,7 @@ public interface ProjectService {
 	List<ActivityGroup> getAllActivityGroups();
 	String saveCostCode(String projectId, List<CostCodeDto> costCodeDto);
 	String deleteCostCode(String costCodeId);
+	List<CostCodeActivity> getCostCodeActivityByType(String projectId, String costCodeTypeId);
 	
 	
 }
