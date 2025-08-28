@@ -15,6 +15,5 @@ public class CostCodeDto {
 	private int boqId;
 	private String costCodeTypeId;
 	private String activityGroupId;
-	private String projectId;
-
+	
 }

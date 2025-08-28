@@ -3,140 +3,140 @@
 		"activityCode": "CC001",
 		"activityName": "Earthwork Excavation",
 		"costCodeType": {
-			"costCodeName": "Direct Cost"
+			"costCodeName": "Direct cost"
 		}
 	},
 	{
 		"activityCode": "CC002",
 		"activityName": "Plain Cement Concrete (PCC)",
 		"costCodeType": {
-			"costCodeName": "Direct Cost"
+			"costCodeName": "Direct cost"
 		}
 	},
 	{
 		"activityCode": "CC003",
 		"activityName": "Reinforced Cement Concrete (RCC)",
 		"costCodeType": {
-			"costCodeName": "Direct Cost"
+			"costCodeName": "Direct cost"
 		}
 	},
 	{
 		"activityCode": "CC004",
 		"activityName": "Brickwork Masonry",
 		"costCodeType": {
-			"costCodeName": "Direct Cost"
+			"costCodeName": "Direct cost"
 		}
 	},
 	{
 		"activityCode": "CC005",
 		"activityName": "Plastering",
 		"costCodeType": {
-			"costCodeName": "Direct Cost"
+			"costCodeName": "Direct cost"
 		}
 	},
 	{
 		"activityCode": "CC006",
 		"activityName": "Flooring (Tile/Stone)",
 		"costCodeType": {
-			"costCodeName": "Direct Cost"
+			"costCodeName": "Direct cost"
 		}
 	},
 	{
 		"activityCode": "CC007",
 		"activityName": "Painting and Finishing",
 		"costCodeType": {
-			"costCodeName": "Direct Cost"
+			"costCodeName": "Direct cost"
 		}
 	},
 	{
 		"activityCode": "CC008",
 		"activityName": "Structural Steel Works",
 		"costCodeType": {
-			"costCodeName": "Direct Cost"
+			"costCodeName": "Direct cost"
 		}
 	},
 	{
 		"activityCode": "CC009",
 		"activityName": "Formwork / Shuttering",
 		"costCodeType": {
-			"costCodeName": "Direct Cost"
+			"costCodeName": "Direct cost"
 		}
 	},
 	{
 		"activityCode": "CC010",
 		"activityName": "Woodwork / Carpentry",
 		"costCodeType": {
-			"costCodeName": "Direct Cost"
+			"costCodeName": "Direct cost"
 		}
 	},
 	{
 		"activityCode": "CC011",
 		"activityName": "Waterproofing",
 		"costCodeType": {
-			"costCodeName": "Direct Cost"
+			"costCodeName": "Direct cost"
 		}
 	},
 	{
 		"activityCode": "CC012",
 		"activityName": "Electrical Installation",
 		"costCodeType": {
-			"costCodeName": "Direct Cost"
+			"costCodeName": "Direct cost"
 		}
 	},
 	{
 		"activityCode": "CC013",
 		"activityName": "Plumbing & Sanitary Works",
 		"costCodeType": {
-			"costCodeName": "Direct Cost"
+			"costCodeName": "Direct cost"
 		}
 	},
 	{
 		"activityCode": "CC014",
 		"activityName": "Roadwork / Paving",
 		"costCodeType": {
-			"costCodeName": "Direct Cost"
+			"costCodeName": "Direct cost"
 		}
 	},
 	{
 		"activityCode": "CC015",
 		"activityName": "Boundary Wall Construction",
 		"costCodeType": {
-			"costCodeName": "Direct Cost"
+			"costCodeName": "Direct cost"
 		}
 	},
 	{
 		"activityCode": "CC016",
 		"activityName": "Roofing",
 		"costCodeType": {
-			"costCodeName": "Direct Cost"
+			"costCodeName": "Direct cost"
 		}
 	},
 	{
 		"activityCode": "CC017",
 		"activityName": "Glazing & Windows",
 		"costCodeType": {
-			"costCodeName": "Direct Cost"
+			"costCodeName": "Direct cost"
 		}
 	},
 	{
 		"activityCode": "CC018",
 		"activityName": "False Ceiling",
 		"costCodeType": {
-			"costCodeName": "Direct Cost"
+			"costCodeName": "Direct cost"
 		}
 	},
 	{
 		"activityCode": "CC019",
 		"activityName": "Landscaping",
 		"costCodeType": {
-			"costCodeName": "Direct Cost"
+			"costCodeName": "Direct cost"
 		}
 	},
 	{
 		"activityCode": "CC020",
 		"activityName": "Miscellaneous Works",
 		"costCodeType": {
-			"costCodeName": "Direct Cost"
+			"costCodeName": "Direct cost"
 		}
 	}
 ]
