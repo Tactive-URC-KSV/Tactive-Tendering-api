@@ -30,6 +30,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.itextpdf.text.DocumentException;
+import com.ksv.tactive.dto.CostCodeDto;
 import com.ksv.tactive.dto.FeasibilityApprovalDocuDTO;
 import com.ksv.tactive.dto.ProjectInfoDto;
 import com.ksv.tactive.dto.ProjectInputDTO;
@@ -44,6 +45,8 @@ import com.ksv.tactive.project.dao.ActivityGroupDao;
 import com.ksv.tactive.project.dao.ApprovalsDao;
 import com.ksv.tactive.project.dao.BOQDao;
 import com.ksv.tactive.project.dao.BOQFileDao;
+import com.ksv.tactive.project.dao.CostCodeDao;
+import com.ksv.tactive.project.dao.CostCodeTypeDao;
 import com.ksv.tactive.project.dao.FeasibilityStudyDao;
 import com.ksv.tactive.project.dao.FinancialFeasibilityDao;
 import com.ksv.tactive.project.dao.ProjectDao;
@@ -60,6 +63,8 @@ import com.ksv.tactive.project.entity.ActivityGroup;
 import com.ksv.tactive.project.entity.ApprovalDocuments;
 import com.ksv.tactive.project.entity.BOQ;
 import com.ksv.tactive.project.entity.BOQFile;
+import com.ksv.tactive.project.entity.CostCodeActivity;
+import com.ksv.tactive.project.entity.CostCodeType;
 import com.ksv.tactive.project.entity.FeasibilityStudy;
 import com.ksv.tactive.project.entity.FinancialFeasibility;
 import com.ksv.tactive.project.entity.ProjectDocumentDetails;
@@ -69,6 +74,7 @@ import com.ksv.tactive.project.entity.ScopeOfPackage;
 import com.ksv.tactive.project.entity.TechnicalFeasibility;
 import com.ksv.tactive.project.entity.Template;
 import com.ksv.tactive.project.entity.TemplateMapping;
+import com.ksv.tactive.project.entity.UOM;
 import com.ksv.tactive.service.ProjectService;
 import com.ksv.tactive.service.UserService;
 
@@ -143,6 +149,12 @@ public class ProjectServiceImpl implements ProjectService{
 
 	@Autowired
 	private ActivityGroupDao activityGroupsDao;
+	
+	@Autowired
+	private CostCodeTypeDao costCodeTypeDao;
+	
+	@Autowired
+	private CostCodeDao costCodeActivityDao;
 	
 	
 	@Override
@@ -734,4 +746,52 @@ public class ProjectServiceImpl implements ProjectService{
 		return activityGroupsDao.findAll();
 	}
 	
+	@Override
+	public String saveCostCode(String projectId, List<CostCodeDto> costCodeDto) {
+		if(costCodeDto == null || costCodeDto.isEmpty()) {
+			throw new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH));
+		}
+		Projects project = findByProjectId(projectId);
+		for(CostCodeDto costCode : costCodeDto) {
+			CostCodeActivity costCodeAct = new CostCodeActivity();
+			costCodeAct.setId(UUID.randomUUID().toString());
+			if(!costCode.getActivityGroupId().isEmpty()) {
+				ActivityGroup activityGroup = activityGroupsDao.findById(costCode.getActivityGroupId())
+						.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
+				costCodeAct.setActivityGroup(activityGroup);
+			}
+			if(!costCode.getCostCodeTypeId().isEmpty()) {
+				CostCodeType costCodeType = costCodeTypeDao.findById(costCode.getCostCodeTypeId())
+						.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
+				costCodeAct.setCostCodeType(costCodeType);
+			}
+			if(!costCode.getUomId().isEmpty()) {
+				UOM uom = uomDao.findById(costCode.getUomId())
+						.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
+				costCodeAct.setUom(uom);
+			}
+			if(costCode.getBoqId() != 0) {
+				BOQ boq = boqDao.findById(costCode.getBoqId())
+						.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
+				costCodeAct.setBoq(boq);
+			}
+			costCodeAct.setProject(project);
+			costCodeAct.setActivityCode(costCode.getActivityCode());
+			costCodeAct.setActivityName(costCode.getActivityName());
+			costCodeAct.setMappingType(costCode.getMappingType());
+			costCodeAct.setQuantity(costCode.getQuantity());
+			costCodeAct.setRate(costCode.getRate());
+			costCodeAct.setAmount(costCode.getQuantity() * costCode.getRate());
+			costCodeActivityDao.save(costCodeAct);
+			
+		}
+		return messageSource.getMessage("cost.code.save.success", null, Locale.ENGLISH);
+	}
+	@Override
+	public String deleteCostCode(String costCodeId) {
+		CostCodeActivity costCode = costCodeActivityDao.findById(costCodeId)
+				.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
+		costCodeActivityDao.delete(costCode);
+		return messageSource.getMessage("cost.code.delete.success", null, Locale.ENGLISH);
+	}
 }

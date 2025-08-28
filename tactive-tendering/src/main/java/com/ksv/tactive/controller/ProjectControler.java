@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.itextpdf.text.DocumentException;
+import com.ksv.tactive.dto.CostCodeDto;
 import com.ksv.tactive.dto.FeasibilityApprovalDocuDTO;
 import com.ksv.tactive.dto.ProjectInfoDto;
 import com.ksv.tactive.dto.ProjectInputDTO;
@@ -356,5 +357,19 @@ public class ProjectControler {
     	return ResponseEntity.status(HttpStatus.OK).body(projectService.getAllActivityGroups());
 	}
 	
+    @PostMapping("costCode/save/{projectId}")
+    public ResponseEntity<?> saveCostCodeActivity(@PathVariable String projectId, @RequestBody List<CostCodeDto> costCodeDto ){
+    	try {
+    		return ResponseEntity.status(HttpStatus.OK).body(projectService.saveCostCode(projectId, costCodeDto));
+    	}
+    	catch (DataNotFoundException e) {
+			return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+		}
+    }
+    
+    @DeleteMapping("costCode/delete/{costCodeId}")
+    public ResponseEntity<?> deleteCostCodeActivity(@PathVariable String costCodeId ){
+		return ResponseEntity.status(HttpStatus.OK).body(projectService.deleteCostCode(costCodeId));
+	}
 		
 }

@@ -12,7 +12,9 @@ import org.springframework.transaction.annotation.Transactional;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ksv.tactive.project.dao.ActivityGroupDao;
+import com.ksv.tactive.project.dao.CostCodeTypeDao;
 import com.ksv.tactive.project.entity.ActivityGroup;
+import com.ksv.tactive.project.entity.CostCodeType;
 
 @Component
 public class ActivityGroupLoader implements MasterDataLoader<ActivityGroup> {
@@ -22,6 +24,8 @@ public class ActivityGroupLoader implements MasterDataLoader<ActivityGroup> {
     private ObjectMapper objectMapper;
     @Autowired
     private ActivityGroupDao activityGroupDao;
+    @Autowired
+    private CostCodeTypeDao costCodeTypeDao;
 
     @Transactional
     @Override
@@ -34,7 +38,9 @@ public class ActivityGroupLoader implements MasterDataLoader<ActivityGroup> {
             List<ActivityGroup> costCodes = objectMapper.readValue(inputStream, new TypeReference<>() {});
             if (activityGroupDao.count() == 0) {
                 for (ActivityGroup costCode : costCodes) {
+                	CostCodeType costCodeType = findCostCodeTypeByName(costCode.getCostCodeType().getCostCodeName());
                     costCode.setId(UUID.randomUUID().toString());
+                    costCode.setCostCodeType(costCodeType);
                     activityGroupDao.save(costCode);
                 }
                 logger.info("Loaded {} ActivityGroup records", costCodes.size());
@@ -43,4 +49,15 @@ public class ActivityGroupLoader implements MasterDataLoader<ActivityGroup> {
             }
         }
     }
+    private CostCodeType findCostCodeTypeByName(String name) {
+    	CostCodeType costCodeType = costCodeTypeDao.findByCostCodeName(name);
+    	if (costCodeType == null) {
+			costCodeType = new CostCodeType();
+			costCodeType.setId(UUID.randomUUID().toString());
+			costCodeType.setCostCodeName(name);
+			costCodeTypeDao.save(costCodeType);
+		}
+		return costCodeType;
+		
+	} 
 }

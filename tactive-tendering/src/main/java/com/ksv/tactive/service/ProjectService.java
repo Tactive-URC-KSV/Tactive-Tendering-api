@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.itextpdf.text.DocumentException;
+import com.ksv.tactive.dto.CostCodeDto;
 import com.ksv.tactive.dto.FeasibilityApprovalDocuDTO;
 import com.ksv.tactive.dto.ProjectInfoDto;
 import com.ksv.tactive.dto.ProjectInputDTO;
@@ -69,6 +70,8 @@ public interface ProjectService {
 	
 	String addActivityGroup(String activityGroup);
 	List<ActivityGroup> getAllActivityGroups();
+	String saveCostCode(String projectId, List<CostCodeDto> costCodeDto);
+	String deleteCostCode(String costCodeId);
 	
 	
 }
