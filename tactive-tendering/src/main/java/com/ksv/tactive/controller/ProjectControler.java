@@ -32,6 +32,7 @@ import com.ksv.tactive.dto.TemplateDto;
 import com.ksv.tactive.exception.DataNotFoundException;
 import com.ksv.tactive.exception.DuplicateProjectCodeException;
 import com.ksv.tactive.exception.ProjectNotFoundException;
+import com.ksv.tactive.project.entity.ActivityGroup;
 import com.ksv.tactive.project.entity.ApprovalDocuments;
 import com.ksv.tactive.project.entity.BOQ;
 import com.ksv.tactive.project.entity.FeasibilityStudy;
@@ -347,7 +348,7 @@ public class ProjectControler {
     
     
     @PostMapping("/activityGroup/add")
-    public ResponseEntity<?> addActivityGroup(@RequestBody String activityGroup) {
+    public ResponseEntity<?> addActivityGroup(@RequestBody ActivityGroup activityGroup) {
 		return ResponseEntity.status(HttpStatus.OK).body(projectService.addActivityGroup(activityGroup));
 	}
     
