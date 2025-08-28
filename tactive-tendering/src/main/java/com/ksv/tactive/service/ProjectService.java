@@ -68,7 +68,7 @@ public interface ProjectService {
 	List<Template> getAllTemplate();
 	TemplateDto getTemplateById(String templateId);
 	
-	String addActivityGroup(String activityGroup);
+	String addActivityGroup(ActivityGroup activityGroup);
 	List<ActivityGroup> getAllActivityGroups();
 	String saveCostCode(String projectId, List<CostCodeDto> costCodeDto);
 	String deleteCostCode(String costCodeId);

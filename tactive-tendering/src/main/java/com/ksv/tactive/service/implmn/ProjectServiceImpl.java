@@ -736,9 +736,13 @@ public class ProjectServiceImpl implements ProjectService{
 	
 	
 	@Override
-	public String addActivityGroup(String activityGroup) {
-		// TODO Auto-generated method stub
-		return null;
+	public String addActivityGroup(ActivityGroup activityGroup) {
+		if(activityGroupsDao.findByActivityName(activityGroup.getActivityName()) == null) {
+			activityGroup.setId(UUID.randomUUID().toString());
+			activityGroupsDao.save(activityGroup);
+			return messageSource.getMessage("activity.group.save.success", null, Locale.ENGLISH);
+		}
+		return messageSource.getMessage("activity.group.duplicate", null, Locale.ENGLISH);
 	}
 	
 	@Override
