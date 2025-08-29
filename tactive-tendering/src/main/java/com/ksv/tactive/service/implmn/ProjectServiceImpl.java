@@ -30,6 +30,8 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.itextpdf.text.DocumentException;
+import com.itextpdf.text.log.Logger;
+import com.itextpdf.text.log.LoggerFactory;
 import com.ksv.tactive.dto.CostCodeDto;
 import com.ksv.tactive.dto.FeasibilityApprovalDocuDTO;
 import com.ksv.tactive.dto.ProjectInfoDto;
@@ -86,6 +88,8 @@ public class ProjectServiceImpl implements ProjectService{
 	
 	@Value("${file.upload.path}")
 	private String uploadDir;
+	
+	private static final Logger logger = LoggerFactory.getLogger(ProjectServiceImpl.class);
 	
 	@Autowired
 	private MessageSource messageSource;
@@ -756,6 +760,8 @@ public class ProjectServiceImpl implements ProjectService{
 		}
 		Projects project = findByProjectId(projectId);
 		for(CostCodeDto costCode : costCodeDto) {
+			logger.info(costCode.getCostCodeTypeId());
+			logger.info(costCode.getActivityGroupId());
 			CostCodeActivity costCodeAct = new CostCodeActivity();
 			costCodeAct.setId(UUID.randomUUID().toString());
 			if(!costCode.getActivityGroupId().isEmpty()) {
