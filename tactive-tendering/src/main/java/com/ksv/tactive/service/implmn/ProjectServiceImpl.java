@@ -495,6 +495,7 @@ public class ProjectServiceImpl implements ProjectService{
 				.collect(Collectors.toList());
 		List<ProjectInfoDto> approvedProjects = projectId.stream()
 				.map(id -> projectDao.findAllProjectInfoById(id))
+				.filter(project -> !project.isArchieve())
 				.collect(Collectors.toList());
 		return approvedProjects.stream()
 				.filter(project -> project !=null)
@@ -726,6 +727,7 @@ public class ProjectServiceImpl implements ProjectService{
 				.collect(Collectors.toSet());
 		for(String id : projectIds) {
 			ProjectInfoDto projectInfo = projectDao.findAllProjectInfoById(id);
+			if(projectInfo.isArchieve()) continue;
 			projects.add(projectInfo);
 		}
 		return projects;
@@ -797,7 +799,7 @@ public class ProjectServiceImpl implements ProjectService{
 	}
 	
 	@Override
-	public List<CostCodeActivity> getCostCodeActivityByType(String projectId, String costCodeTypeId) {
-		return costCodeActivityDao.findByProjectIdAndCostCodeTypeId(projectId, costCodeTypeId);
+	public List<CostCodeActivity> getCostCodeActivityByType(String projectId) {
+		return costCodeActivityDao.findByProjectId(projectId);
 	}
 }
