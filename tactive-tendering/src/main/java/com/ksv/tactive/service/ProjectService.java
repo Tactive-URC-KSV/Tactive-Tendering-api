@@ -73,7 +73,7 @@ public interface ProjectService {
 	List<ActivityGroup> getAllActivityGroups();
 	String saveCostCode(String projectId, List<CostCodeDto> costCodeDto);
 	String deleteCostCode(String costCodeId);
-	List<CostCodeActivity> getCostCodeActivityByType(String projectId, String costCodeTypeId);
+	List<CostCodeActivity> getCostCodeActivityByType(String projectId);
 	
 	
 }

@@ -163,6 +163,13 @@ public class ProjectControler {
 		}
 	}
     
+    @PostMapping("/project/addDrawings/{projectId}")
+    public ResponseEntity<?> addDrawings(@PathVariable String projectId,
+    		@RequestPart(required = true) List<MultipartFile> drawings){
+    	projectService.saveProjectFiles(projectId, drawings);
+		return ResponseEntity.status(HttpStatus.OK).body("Files Uploaded");
+    }
+    
     @GetMapping("/project/approved/projects")
     public ResponseEntity<?> getApprovedProjects() {
     	List<ProjectInfoDto> approvedProjects = projectService.getAllApprovedProjects();
@@ -374,13 +381,10 @@ public class ProjectControler {
 		return ResponseEntity.status(HttpStatus.OK).body(projectService.deleteCostCode(costCodeId));
 	}
     
-    @GetMapping("costCodeActivity/{projectId}/{costCodeTypeId}/{activityGroupId}")
-    public ResponseEntity<?> getCostCodeActivityByType(@PathVariable String projectId, @PathVariable String costCodeTypeId, @PathVariable String activityGroupId){
-    	List<CostCodeActivity> costCode = projectService.getCostCodeActivityByType(projectId, costCodeTypeId);
+    @GetMapping("costCodeActivity/{projectId}")
+    public ResponseEntity<?> getCostCodeActivityByType(@PathVariable String projectId){
+    	List<CostCodeActivity> costCode = projectService.getCostCodeActivityByType(projectId);
     	if(!costCode.isEmpty()) {
-    		costCode = costCode.stream()
-    				.filter(cost -> cost.getActivityGroup().getId().equals(activityGroupId))
-    				.toList();
     		return ResponseEntity.status(HttpStatus.OK).body(costCode);
     	}
     	return ResponseEntity.status(HttpStatus.CONFLICT).body(messageSource.getMessage("cost.code.not.found", null, Locale.ENGLISH));

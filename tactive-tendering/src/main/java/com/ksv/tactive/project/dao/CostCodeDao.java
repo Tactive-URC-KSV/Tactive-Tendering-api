@@ -10,6 +10,6 @@ import com.ksv.tactive.project.entity.CostCodeActivity;
 @Repository
 public interface CostCodeDao extends JpaRepository<CostCodeActivity, String>{
 
-	List<CostCodeActivity> findByProjectIdAndCostCodeTypeId(String projectId, String costCodeTypeId);
+	List<CostCodeActivity> findByProjectId(String projectId);
 
 }
