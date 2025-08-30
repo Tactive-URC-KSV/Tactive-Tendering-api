@@ -166,7 +166,7 @@ public class ProjectControler {
     @PostMapping("/project/addDrawings/{projectId}")
     public ResponseEntity<?> addDrawings(@PathVariable String projectId,
     		@RequestPart(required = true) List<MultipartFile> drawings){
-    	projectService.saveProjectFiles(projectId, drawings);
+    	projectService.saveProjectDrawings(projectId, drawings);
 		return ResponseEntity.status(HttpStatus.OK).body("Files Uploaded");
     }
     

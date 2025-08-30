@@ -49,6 +49,8 @@ public interface ProjectService {
 	String updateFeasibilityStudyStatus(String projectId, boolean status, String comments, HttpServletRequest request);
 	FeasibilityStudy findFeasibilityStudy(String projectId);
 	
+	void saveProjectDrawings(String projectId, List<MultipartFile> drawings);
+	
 	List<ApprovalDocuments> getApprovalDocData(String techId);
 	//Map<ApprovalDocuments, Resource> getApprovalDocs(List<ApprovalDocuments> approvalDoc);
 	
@@ -74,6 +76,7 @@ public interface ProjectService {
 	String saveCostCode(String projectId, List<CostCodeDto> costCodeDto);
 	String deleteCostCode(String costCodeId);
 	List<CostCodeActivity> getCostCodeActivityByType(String projectId);
+	
 	
 	
 }

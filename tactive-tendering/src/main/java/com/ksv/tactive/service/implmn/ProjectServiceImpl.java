@@ -471,6 +471,39 @@ public class ProjectServiceImpl implements ProjectService{
 		return approvalDoc;
 	}
 	
+	@Override
+	public void saveProjectDrawings(String projectId, List<MultipartFile> drawings) {
+		Projects project = findByProjectId(projectId);
+		Path directory=Paths.get(uploadDir,
+				project.getProjectName()
+				.trim()
+				.replaceAll("\\s+", "_")                    
+			    .replaceAll("[^a-zA-Z0-9-_\\.]", ""))
+				.toAbsolutePath().normalize();
+		Path targetDir = directory.resolve("drawings");
+		try {
+			Files.createDirectories(targetDir);
+			for(MultipartFile file : drawings) {
+				Path targetLocation = targetDir.resolve(StringUtils.cleanPath(file.getOriginalFilename()));
+				Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
+				
+				ProjectDocumentDetails projectDocuments = new ProjectDocumentDetails();
+				projectDocuments.setId(UUID.randomUUID().toString());
+				projectDocuments.setDocumentPath(targetLocation.toString());
+				projectDocuments.setDocumentName(StringUtils.cleanPath(file.getOriginalFilename()));
+				projectDocuments.setDocumentType(file.getContentType());
+				projectDocuments.setProject(project);
+				
+				documentDetailsDao.save(projectDocuments);
+			}
+			
+		} catch (IOException e) {
+			throw new FileNotSaveException(messageSource.getMessage("file.upload.failure", null, Locale.ENGLISH));
+			
+		}
+		
+	}
+	
 //	@Override
 //	public Map<ApprovalDocuments,Resource> getApprovalDocs(List<ApprovalDocuments> approvalDoc) {
 //		Map<ApprovalDocuments, Resource> approvalDocMap = new HashMap<>();
