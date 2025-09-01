@@ -1,42 +1,97 @@
 [
   {
-    "code": "M3",
-    "name": "Cubic Meter"
+    "uomName": "Cubic Meter",
+    "uomCode": "Cum",
+    "isActive": true
   },
   {
-    "code": "M2",
-    "name": "Square Meter"
+    "uomName": "Number",
+    "uomCode": "Nos",
+    "isActive": true
   },
   {
-    "code": "M",
-    "name": "Meter"
+    "uomName": "Square Meter",
+    "uomCode": "Sqm",
+    "isActive": true
   },
   {
-    "code": "KG",
-    "name": "Kilogram"
+    "uomName": "Meter",
+    "uomCode": "m",
+    "isActive": true
   },
   {
-    "code": "TON",
-    "name": "Tonne"
+    "uomName": "Kilogram",
+    "uomCode": "kg",
+    "isActive": true
   },
   {
-    "code": "L",
-    "name": "Litre"
+    "uomName": "Tonne",
+    "uomCode": "t",
+    "isActive": true
   },
   {
-    "code": "NOS",
-    "name": "Number"
+    "uomName": "Running Meter",
+    "uomCode": "Rm",
+    "isActive": true
   },
   {
-    "code": "BAG",
-    "name": "Bag"
+    "uomName": "Cubic Foot",
+    "uomCode": "Cft",
+    "isActive": true
   },
   {
-    "code": "SET",
-    "name": "Set"
+    "uomName": "Square Foot",
+    "uomCode": "Sft",
+    "isActive": true
   },
   {
-    "code": "HR",
-    "name": "Hour"
+    "uomName": "Foot",
+    "uomCode": "ft",
+    "isActive": true
+  },
+  {
+    "uomName": "Liter",
+    "uomCode": "L",
+    "isActive": true
+  },
+  {
+    "uomName": "Millimeter",
+    "uomCode": "mm",
+    "isActive": true
+  },
+  {
+    "uomName": "Centimeter",
+    "uomCode": "cm",
+    "isActive": true
+  },
+  {
+    "uomName": "Inch",
+    "uomCode": "in",
+    "isActive": true
+  },
+  {
+    "uomName": "Yard",
+    "uomCode": "yd",
+    "isActive": true
+  },
+  {
+    "uomName": "Square Yard",
+    "uomCode": "Syd",
+    "isActive": true
+  },
+  {
+    "uomName": "Acre",
+    "uomCode": "acre",
+    "isActive": true
+  },
+  {
+    "uomName": "Hectare",
+    "uomCode": "ha",
+    "isActive": true
+  },
+  {
+    "uomName": "Quintal",
+    "uomCode": "q",
+    "isActive": true
   }
 ]
