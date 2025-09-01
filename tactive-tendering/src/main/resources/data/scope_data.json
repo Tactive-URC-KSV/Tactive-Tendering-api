@@ -1,0 +1,122 @@
+[
+  {
+    "scope": "Earth Work",
+    "isActive": true
+  },
+  {
+    "scope": "Concrete Work",
+    "isActive": true
+  },
+  {
+    "scope": "Masonry Work",
+    "isActive": true
+  },
+  {
+    "scope": "Structural Steel Work",
+    "isActive": true
+  },
+  {
+    "scope": "Piling Work",
+    "isActive": true
+  },
+  {
+    "scope": "Formwork",
+    "isActive": true
+  },
+  {
+    "scope": "Reinforcement Work",
+    "isActive": true
+  },
+  {
+    "scope": "Plastering",
+    "isActive": true
+  },
+  {
+    "scope": "Flooring",
+    "isActive": true
+  },
+  {
+    "scope": "Painting",
+    "isActive": true
+  },
+  {
+    "scope": "Roofing",
+    "isActive": true
+  },
+  {
+    "scope": "Waterproofing",
+    "isActive": true
+  },
+  {
+    "scope": "Carpentry",
+    "isActive": true
+  },
+  {
+    "scope": "Electrical Installation",
+    "isActive": true
+  },
+  {
+    "scope": "Plumbing",
+    "isActive": true
+  },
+  {
+    "scope": "HVAC Installation",
+    "isActive": true
+  },
+  {
+    "scope": "Road Paving",
+    "isActive": true
+  },
+  {
+    "scope": "Drainage Work",
+    "isActive": true
+  },
+  {
+    "scope": "Landscaping",
+    "isActive": true
+  },
+  {
+    "scope": "Cladding",
+    "isActive": true
+  },
+  {
+    "scope": "Tiling",
+    "isActive": true
+  },
+  {
+    "scope": "False Ceiling",
+    "isActive": true
+  },
+  {
+    "scope": "Fire Protection",
+    "isActive": true
+  },
+  {
+    "scope": "Demolition",
+    "isActive": true
+  },
+  {
+    "scope": "Site Preparation",
+    "isActive": true
+  },
+  {
+    "scope": "Scaffolding",
+    "isActive": true
+  },
+  {
+    "scope": "Grouting",
+    "isActive": true
+  },
+  {
+    "scope": "Pavement Marking",
+    "isActive": true
+  },
+  {
+    "scope": "Railway Track Work",
+    "isActive": true
+  },
+  {
+    "scope": "Tunneling",
+    "isActive": true
+  }
+]

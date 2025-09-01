@@ -1,0 +1,30 @@
+[
+	{
+		"status": "Feasibility Study",
+		"processUrl": "/tactive/project/createProject"
+	},
+	{
+		"status": "Internal Estimation",
+		"processUrl": "/tactive/feasibility/approve"
+	},
+	{
+		"status": "Tender floating",
+		"processUrl": "/tactive"
+	},
+	{
+		"status": "Offer Received",
+		"processUrl": "/tactive"
+	},
+	{
+		"status": "Negotiation",
+		"processUrl": "/tactive"
+	},
+	{
+		"status": "Project awarded",
+		"processUrl": "/tactive"
+	},
+	{
+        "status": "Cancelled",
+        "processUrl": "/tactive/feasibility/reject"
+    }
+]
