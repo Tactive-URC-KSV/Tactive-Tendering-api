@@ -1,9 +1,13 @@
 package com.ksv.tactive.project.entity;
 
+import java.util.Set;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Data;
@@ -31,9 +35,13 @@ public class CostCodeActivity {
 	@JoinColumn(name = "uom_id")
 	private UOM uom;
 	
-	@ManyToOne
-	@JoinColumn(name="boq_id")
-	private BOQ boq;
+	@ManyToMany
+	@JoinTable(
+		    name = "activity_boq",
+		    joinColumns = @JoinColumn(name = "activity_id"),
+		    inverseJoinColumns = @JoinColumn(name = "boq_id")
+		)
+	private Set<BOQ>  boq;
 	
 	@ManyToOne
 	@JoinColumn(name="cost_code_type_id")

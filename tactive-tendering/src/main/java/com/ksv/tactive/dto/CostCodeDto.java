@@ -1,5 +1,7 @@
 package com.ksv.tactive.dto;
 
+import java.util.List;
+
 import lombok.Data;
 
 @Data
@@ -12,7 +14,7 @@ public class CostCodeDto {
 	private double amount;
 	private String mappingType;
 	private String uomId;
-	private int boqId;
+	private List<Integer> boqId;
 	private String costCodeTypeId;
 	private String activityGroupId;
 	

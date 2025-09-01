@@ -812,11 +812,12 @@ public class ProjectServiceImpl implements ProjectService{
 						.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
 				costCodeAct.setUom(uom);
 			}
-			if(costCode.getBoqId() != 0) {
-				BOQ boq = boqDao.findById(costCode.getBoqId())
-						.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
-				costCodeAct.setBoq(boq);
-			}
+			Set<BOQ> boqList = costCode.getBoqId().stream()
+					.filter(id -> id != 0 )
+				    .map(id -> boqDao.findById(id)
+				    		.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH))))
+				    .collect(Collectors.toSet());
+			costCodeAct.setBoq(boqList);
 			costCodeAct.setProject(project);
 			costCodeAct.setActivityCode(costCode.getActivityCode());
 			costCodeAct.setActivityName(costCode.getActivityName());
