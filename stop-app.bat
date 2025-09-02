@@ -1,22 +1,10 @@
 @echo off
-REM -----------------------------
-REM Stop Spring Boot application
-REM -----------------------------
+echo Terminating all java.exe processes...
 
-SET JAR_NAME=tactive.jar
+taskkill /F /IM java.exe >nul 2>&1
 
-echo Stopping Spring Boot application...
-
-for /f "skip=1 tokens=2 delims=," %%a in ('wmic process where "CommandLine like '%%tactive.jar%%'" get ProcessId /format:csv') do (
-    if not "%%a"=="" (
-        echo Found process PID: %%a
-        taskkill /F /PID %%a
-        goto :done
-    )
+IF %ERRORLEVEL% EQU 0 (
+    echo All java.exe processes terminated successfully.
+) ELSE (
+    echo No java.exe processes found or an error occurred.
 )
-
-echo No running process found for %JAR_NAME%.
-
-:done
-echo Application stopped.
-pause
