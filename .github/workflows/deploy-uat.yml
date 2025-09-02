@@ -1,3 +1,4 @@
+
 name: Deploy Spring Boot UAT (Windows Server)
 
 on:
@@ -29,7 +30,7 @@ jobs:
            # 4. Copy JAR to Windows Server using SCP (E: drive)
       - name: Upload JAR via SCP
         run: |
-          sshpass -p "${{ secrets.SERVER_PASS }}" scp -o StrictHostKeyChecking=no -P ${{ secrets.SERVER_PORT }} tactive-tendering/target/*.jar ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:"E://APP//Application//TactiveKSV//tactive.jar"
+          sshpass -p "${{ secrets.SERVER_PASS }}" scp -o StrictHostKeyChecking=no -P ${{ secrets.SERVER_PORT }} tactive-tendering/target/*.jar ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:"E:\\APP\\Application\\TactiveKSV\\tactive.jar"
 
       - name: Upload start-app.bat
         run: |
