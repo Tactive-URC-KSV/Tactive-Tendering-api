@@ -21,36 +21,23 @@ jobs:
           distribution: temurin
           java-version: 21
 
-      # 3. Build the app (Maven) from subdirectory
+      # 3. Build the app (Maven)
       - name: Build JAR
         run: mvn clean package -DskipTests
-        working-directory: ./tactive-tendering   
 
-      # 4. Copy JAR to Windows Server
-      - name: Upload JAR
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          password: ${{ secrets.SERVER_PASS }}
-          port: ${{ secrets.SERVER_PORT }}
-          source: "tactive-tendering/target/*.jar"
-          target: "E:/APP/Application/TactiveKSV/"   
+      # 4. Copy JAR to Windows Server using SCP (E: drive)
+      - name: Upload JAR via SCP
+        run: |
+          scp -P ${{ secrets.SERVER_PORT }} target/*.jar ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:"E:/APP/Application/TactiveKSV/tactive.jar"
+        env:
+          SSHPASS: ${{ secrets.SERVER_PASS }}
 
-      # 5. Restart app on Windows Server
-      - name: Restart Spring Boot App
-        uses: appleboy/ssh-action@v0.1.10
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          password: ${{ secrets.SERVER_PASS }}
-          port: ${{ secrets.SERVER_PORT }}
-          script: |
-            echo "Stopping old app..."
-            powershell -Command "Get-Process java -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue"
-
-            echo "Renaming latest JAR to tactive.jar..."
-            powershell -Command "Copy-Item -Path 'E:/APP/Application/TactiveKSV/*.jar' -Destination 'E:/APP/Application/TactiveKSV/tactive.jar' -Force"
-
-            echo "Starting new app..."
-            powershell -Command "Start-Process -FilePath 'java' -ArgumentList '-jar E:/APP/Application/TactiveKSV/tactive.jar --spring.config.additional-location=file:E:/APP/Application/TactiveKSV/config/' -RedirectStandardOutput 'E:/APP/Application/TactiveKSV/logs/app.log' -RedirectStandardError 'E:/APP/Application/TactiveKSV/logs/app-error.log' -WindowStyle Hidden"
+      # 5. Stop old app and start new app via SSH (E: drive)
+      - name: Restart Spring Boot App via SSH
+        run: |
+          ssh -p ${{ secrets.SERVER_PORT }} ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "
+            powershell -Command 'Get-Process java -ErrorAction SilentlyContinue | Stop-Process -Force'
+            powershell -Command 'Start-Process java -ArgumentList \"-jar E:/APP/Application/TactiveKSV/tactive.jar --spring.config.additional-location=file:E:/APP/Application/TactiveKSV/config/ > E:/APP/Application/TactiveKSV/logs/app.log 2>&1\" -WindowStyle Hidden'
+          "
+        env:
+          SSHPASS: ${{ secrets.SERVER_PASS }}
