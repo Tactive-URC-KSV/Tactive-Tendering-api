@@ -3,16 +3,16 @@ REM -----------------------------
 REM Stop Spring Boot application
 REM -----------------------------
 
-REM Path to your JAR (so we only stop this app, not all Java apps)
 SET JAR_NAME=tactive.jar
 
 echo Stopping Spring Boot application...
 
-REM Find the PID of the process running this JAR
-for /f "tokens=2" %%a in ('tasklist /FI "IMAGENAME eq java.exe" /v ^| findstr /i %JAR_NAME%') do (
-    echo Found process PID: %%a
-    taskkill /F /PID %%a
-    goto :done
+for /f "skip=1 tokens=2 delims=," %%a in ('wmic process where "CommandLine like '%%tactive.jar%%'" get ProcessId /format:csv') do (
+    if not "%%a"=="" (
+        echo Found process PID: %%a
+        taskkill /F /PID %%a
+        goto :done
+    )
 )
 
 echo No running process found for %JAR_NAME%.
