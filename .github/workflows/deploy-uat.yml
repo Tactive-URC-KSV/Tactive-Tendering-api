@@ -21,9 +21,10 @@ jobs:
           distribution: temurin
           java-version: 21
 
-      # 3. Build the app (Maven)
+      # 3. Build the app (Maven) from subdirectory
       - name: Build JAR
         run: mvn clean package -DskipTests
+        working-directory: ./tactive-tendering   
 
       # 4. Copy JAR to Windows Server
       - name: Upload JAR
@@ -33,8 +34,8 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           password: ${{ secrets.SERVER_PASS }}
           port: ${{ secrets.SERVER_PORT }}
-          source: "target/*.jar"
-          target: "/C:/APP/Application/TactiveKSV/tactive.jar"
+          source: "tactive-tendering/target/*.jar"
+          target: "C:/APP/Application/TactiveKSV/"   
 
       # 5. Restart app on Windows Server
       - name: Restart Spring Boot App
@@ -48,5 +49,8 @@ jobs:
             echo "Stopping old app..."
             powershell -Command "Get-Process java -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue"
 
+            echo "Renaming latest JAR to tactive.jar..."
+            powershell -Command "Copy-Item -Path 'C:/APP/Application/TactiveKSV/*.jar' -Destination 'C:/APP/Application/TactiveKSV/tactive.jar' -Force"
+
             echo "Starting new app..."
-            powershell -Command "Start-Process -FilePath 'java' -ArgumentList '-jar C:/APP/Application/TactiveKSV/tactive.jar --spring.config.additional-location=file:C:/APP/Application/TactiveKSV/config/ > C:/APP/Application/TactiveKSV/logs/app.log 2>&1' -WindowStyle Hidden"
+            powershell -Command "Start-Process -FilePath 'java' -ArgumentList '-jar C:/APP/Application/TactiveKSV/tactive.jar --spring.config.additional-location=file:C:/APP/Application/TactiveKSV/config/' -RedirectStandardOutput 'C:/APP/Application/TactiveKSV/logs/app.log' -RedirectStandardError 'C:/APP/Application/TactiveKSV/logs/app-error.log' -WindowStyle Hidden"
