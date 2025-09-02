@@ -29,6 +29,7 @@ jobs:
       - name: Upload JAR via SCP
         run: |
           scp -P ${{ secrets.SERVER_PORT }} tactive-tendering/target/*.jar ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:"E:/APP/Application/TactiveKSV/tactive.jar"
+
         env:
           SSHPASS: ${{ secrets.SERVER_PASS }}
 
