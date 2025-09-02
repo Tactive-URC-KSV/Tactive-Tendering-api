@@ -35,7 +35,7 @@ jobs:
           password: ${{ secrets.SERVER_PASS }}
           port: ${{ secrets.SERVER_PORT }}
           source: "tactive-tendering/target/*.jar"
-          target: "C:/APP/Application/TactiveKSV/"   
+          target: "E:/APP/Application/TactiveKSV/"   
 
       # 5. Restart app on Windows Server
       - name: Restart Spring Boot App
@@ -50,7 +50,7 @@ jobs:
             powershell -Command "Get-Process java -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue"
 
             echo "Renaming latest JAR to tactive.jar..."
-            powershell -Command "Copy-Item -Path 'C:/APP/Application/TactiveKSV/*.jar' -Destination 'C:/APP/Application/TactiveKSV/tactive.jar' -Force"
+            powershell -Command "Copy-Item -Path 'E:/APP/Application/TactiveKSV/*.jar' -Destination 'E:/APP/Application/TactiveKSV/tactive.jar' -Force"
 
             echo "Starting new app..."
-            powershell -Command "Start-Process -FilePath 'java' -ArgumentList '-jar C:/APP/Application/TactiveKSV/tactive.jar --spring.config.additional-location=file:C:/APP/Application/TactiveKSV/config/' -RedirectStandardOutput 'C:/APP/Application/TactiveKSV/logs/app.log' -RedirectStandardError 'C:/APP/Application/TactiveKSV/logs/app-error.log' -WindowStyle Hidden"
+            powershell -Command "Start-Process -FilePath 'java' -ArgumentList '-jar E:/APP/Application/TactiveKSV/tactive.jar --spring.config.additional-location=file:E:/APP/Application/TactiveKSV/config/' -RedirectStandardOutput 'E:/APP/Application/TactiveKSV/logs/app.log' -RedirectStandardError 'E:/APP/Application/TactiveKSV/logs/app-error.log' -WindowStyle Hidden"
