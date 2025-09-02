@@ -35,7 +35,11 @@ jobs:
         run: |
           sshpass -p "${{ secrets.SERVER_PASS }}" scp -o StrictHostKeyChecking=no -P ${{ secrets.SERVER_PORT }} \
           start-app.bat ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:"E:/APP/Application/TactiveKSV/start-app.bat"
-
+          
+      - name: Restart Spring Boot App
+        run: |
+          sshpass -p "${{ secrets.SERVER_PASS }}" ssh -o StrictHostKeyChecking=no -p ${{ secrets.SERVER_PORT }} \
+          ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "E:/APP/Application/TactiveKSV/start-app.bat"
    
 
     
