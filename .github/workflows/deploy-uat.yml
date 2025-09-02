@@ -21,24 +21,17 @@ jobs:
           distribution: temurin
           java-version: 21
 
-      # 3. Build the app (Maven)
+      # 3. Build the app (Maven) from subdirectory
       - name: Build JAR
         run: mvn clean package -DskipTests
+        working-directory: ./tactive-tendering   
 
-      # 4. Copy JAR to Windows Server using SCP (E: drive)
+           # 4. Copy JAR to Windows Server using SCP (E: drive)
       - name: Upload JAR via SCP
         run: |
-          scp -P ${{ secrets.SERVER_PORT }} tactive-tendering/target/*.jar ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:"E:/APP/Application/TactiveKSV/tactive.jar"
-
+          scp -P ${{ secrets.SERVER_PORT }} target/*.jar ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:"E:/APP/Application/TactiveKSV/tactive.jar"
         env:
           SSHPASS: ${{ secrets.SERVER_PASS }}
+   
 
-      # 5. Stop old app and start new app via SSH (E: drive)
-      - name: Restart Spring Boot App via SSH
-        run: |
-          ssh -p ${{ secrets.SERVER_PORT }} ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "
-            powershell -Command 'Get-Process java -ErrorAction SilentlyContinue | Stop-Process -Force'
-            powershell -Command 'Start-Process java -ArgumentList \"-jar E:/APP/Application/TactiveKSV/tactive.jar --spring.config.additional-location=file:E:/APP/Application/TactiveKSV/config/ > E:/APP/Application/TactiveKSV/logs/app.log 2>&1\" -WindowStyle Hidden'
-          "
-        env:
-          SSHPASS: ${{ secrets.SERVER_PASS }}
+    
