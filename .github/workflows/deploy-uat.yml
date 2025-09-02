@@ -1,3 +1,4 @@
+
 name: Deploy Spring Boot UAT (Windows Server)
 
 on:
@@ -26,10 +27,30 @@ jobs:
         run: mvn clean package -DskipTests
         working-directory: ./tactive-tendering   
 
-           # 4. Copy JAR to Windows Server using SCP (E: drive)
+     # 4. Copy JAR to Windows Server using SCP (E: drive)
+      - name: Upload stop-app.bat
+        run: |
+          sshpass -p "${{ secrets.SERVER_PASS }}" scp -o StrictHostKeyChecking=no -P ${{ secrets.SERVER_PORT }} \
+          stop-app.bat ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:"E:/APP/Application/TactiveKSV/stop-app.bat"
+      - name: Stop Spring Boot App
+        run: |
+          sshpass -p "${{ secrets.SERVER_PASS }}" ssh -o StrictHostKeyChecking=no -p ${{ secrets.SERVER_PORT }} \
+          ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "E:/APP/Application/TactiveKSV/stop-app.bat"
+   
+          
       - name: Upload JAR via SCP
         run: |
           sshpass -p "${{ secrets.SERVER_PASS }}" scp -o StrictHostKeyChecking=no -P ${{ secrets.SERVER_PORT }} tactive-tendering/target/*.jar ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:"E:/APP/Application/TactiveKSV/tactive.jar"
+
+      - name: Upload start-app.bat
+        run: |
+          sshpass -p "${{ secrets.SERVER_PASS }}" scp -o StrictHostKeyChecking=no -P ${{ secrets.SERVER_PORT }} \
+          start-app.bat ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:"E:/APP/Application/TactiveKSV/start-app.bat"
+          
+      - name: Restart Spring Boot App
+        run: |
+          sshpass -p "${{ secrets.SERVER_PASS }}" ssh -o StrictHostKeyChecking=no -p ${{ secrets.SERVER_PORT }} \
+          ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "E:/APP/Application/TactiveKSV/start-app.bat"
    
 
     
