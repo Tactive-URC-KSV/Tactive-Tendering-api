@@ -167,7 +167,7 @@ public class ProjectControler {
     public ResponseEntity<?> addDrawings(@PathVariable String projectId,
     		@RequestPart(required = true) List<MultipartFile> drawings){
     	projectService.saveProjectDrawings(projectId, drawings);
-		return ResponseEntity.status(HttpStatus.OK).body("Files Uploaded");
+		return ResponseEntity.status(HttpStatus.OK).body(messageSource.getMessage("drawings.upload.success", null, Locale.ENGLISH));
     }
     
     @GetMapping("/project/approved/projects")

@@ -15,6 +15,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import com.ksv.tactive.exception.AuthorizationException;
 import com.ksv.tactive.filter.JwtFilter;
 
 @Configuration
@@ -23,6 +24,9 @@ public class SecurityConfig {
 	
 	@Autowired
 	private JwtFilter jwtFilter;
+	
+	@Autowired
+	private AuthorizationException authException;
 
 	@Bean
 	SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -34,9 +38,10 @@ public class SecurityConfig {
 		return http.csrf(AbstractHttpConfigurer::disable)
 				.authorizeHttpRequests(requests -> requests
 						.requestMatchers("/tactive/login").permitAll()
-						.anyRequest().permitAll())
+						.anyRequest().authenticated())
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.httpBasic(Customizer.withDefaults())
+				.exceptionHandling(exception -> exception.authenticationEntryPoint(authException))
 				.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
 				.build();
 	}

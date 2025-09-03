@@ -70,26 +70,39 @@ public class MasterDataController {
 	}
 	
 	@GetMapping("/uoms")
-    public ResponseEntity<List<UOM>> getAllUOMs() {
+    public ResponseEntity<?> getAllUOMs() {
         List<UOM> uoms = masterService.getAllUOMs();
-        return ResponseEntity.ok(uoms);
+        if(uoms.isEmpty()) {
+        	return ResponseEntity.status(HttpStatus.NO_CONTENT).body(messageSource.getMessage("data.not.found", null, Locale.ENGLISH));
+        }
+        return ResponseEntity.status(HttpStatus.OK).body(uoms);
     }
 
     @GetMapping("/sectors")
-    public ResponseEntity<List<Sector>> getAllSectors() {
+    public ResponseEntity<?> getAllSectors() {
         List<Sector> sectors = masterService.getAllSector();
-        return ResponseEntity.ok(sectors);
+        if(sectors.isEmpty()) {
+        	return ResponseEntity.status(HttpStatus.NO_CONTENT).body(messageSource.getMessage("data.not.found", null, Locale.ENGLISH));
+        }
+        return ResponseEntity.status(HttpStatus.OK).body(sectors);
     }
 
     @GetMapping("/scopes")
-    public ResponseEntity<List<ScopeOfPackage>> getAllScopes() {
+    public ResponseEntity<?> getAllScopes() {
         List<ScopeOfPackage> scopes = masterService.getAllScopes();
-        return ResponseEntity.ok(scopes);
+        if(scopes.isEmpty()) {
+        	return ResponseEntity.status(HttpStatus.NO_CONTENT).body(messageSource.getMessage("data.not.found", null, Locale.ENGLISH));
+        }
+        return ResponseEntity.status(HttpStatus.OK).body(scopes);
     }
     
     @GetMapping("/project-status")
-	public ResponseEntity<List<ProjectStatus>> getProjectStatus(){
-		return ResponseEntity.ok(masterService.getAllProjectStatus());
+	public ResponseEntity<?> getProjectStatus(){
+    	List<ProjectStatus> status = masterService.getAllProjectStatus();
+        if(status.isEmpty()) {
+        	return ResponseEntity.status(HttpStatus.NO_CONTENT).body(messageSource.getMessage("data.not.found", null, Locale.ENGLISH));
+        }
+        return ResponseEntity.status(HttpStatus.OK).body(status);
 	}
     
     @PostMapping("/project-status/add")
@@ -101,8 +114,12 @@ public class MasterDataController {
 		return ResponseEntity.status(HttpStatus.OK).body(masterService.addListOfApprovals(listOfApprovals));
     }
     @GetMapping("/listOfApprovals")
-	public ResponseEntity<List<ListOfApprovals>> getAllListOfApprovals(){
-		return ResponseEntity.ok(masterService.getAllListOfApprovals());
+	public ResponseEntity<?> getAllListOfApprovals(){
+    	List<ListOfApprovals> approvals = masterService.getAllListOfApprovals();
+        if(approvals.isEmpty()) {
+        	return ResponseEntity.status(HttpStatus.NO_CONTENT).body(messageSource.getMessage("data.not.found", null, Locale.ENGLISH));
+        }
+        return ResponseEntity.status(HttpStatus.OK).body(approvals);
 	}
     
     @PostMapping("/costCodeType/add")
@@ -117,7 +134,11 @@ public class MasterDataController {
     
     @GetMapping("/costCodeTypes")
     public ResponseEntity<?> getAllCostCodeTypes() {
-		return ResponseEntity.status(HttpStatus.OK).body(masterService.getAllCostCodeTypes());
+    	List<CostCodeType> costCodeType = masterService.getAllCostCodeTypes();
+        if(costCodeType.isEmpty()) {
+        	return ResponseEntity.status(HttpStatus.NO_CONTENT).body(messageSource.getMessage("data.not.found", null, Locale.ENGLISH));
+        }
+        return ResponseEntity.status(HttpStatus.OK).body(costCodeType);
 	}
 
 }
