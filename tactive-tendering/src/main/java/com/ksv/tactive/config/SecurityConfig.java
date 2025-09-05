@@ -21,16 +21,12 @@ import com.ksv.tactive.filter.JwtFilter;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
-	
 	@Autowired
 	private JwtFilter jwtFilter;
-	
 	@Autowired
 	private AuthorizationException authException;
-
 	@Bean
 	SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-		
 		AuthenticationManagerBuilder authBuilder = http.getSharedObject(AuthenticationManagerBuilder.class);
         authBuilder.userDetailsService(userDetailsService()).passwordEncoder(bCryptPasswordEncoder());
         

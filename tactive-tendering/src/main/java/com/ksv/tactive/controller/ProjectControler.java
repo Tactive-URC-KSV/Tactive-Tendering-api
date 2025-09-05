@@ -10,7 +10,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -49,7 +48,6 @@ import jakarta.servlet.http.HttpServletResponse;
 
 @RestController
 @RequestMapping("/tactive")
-@CrossOrigin(origins = "*")
 public class ProjectControler {
 	
 	@Autowired
@@ -58,6 +56,7 @@ public class ProjectControler {
 	@Autowired
 	private ProjectService projectService;
 
+	
 	@GetMapping("project/allProjects")
 	public ResponseEntity<?> getAllProjects() {
 		List<ProjectInfoDto> projects = projectService.getAllProjects();
@@ -66,6 +65,7 @@ public class ProjectControler {
 		}
 		return ResponseEntity.status(HttpStatus.OK).body(projects);
 	}
+	
 	
 	@PostMapping("project/createProject")
 	public ResponseEntity<?> createProject(@RequestBody ProjectInputDTO projectInputDTO,
@@ -80,6 +80,7 @@ public class ProjectControler {
 		}
 	}
 	
+	
 	@PostMapping("project/saveProjectFiles/{projectId}")
 	public ResponseEntity<?> saveProjectFiles(@RequestPart(required = false) List<MultipartFile> files,
 			@PathVariable String projectId) {
@@ -87,6 +88,7 @@ public class ProjectControler {
 		return ResponseEntity.status(HttpStatus.CREATED).body("Files Uploaded");
 
 	}
+	
 	
 	@GetMapping("project/viewProjectInfo/{projectId}")
 	public ResponseEntity<?>  findProjectById(@PathVariable String projectId){
@@ -98,6 +100,7 @@ public class ProjectControler {
 					.body(e.getMessage());
 		}
 	}
+	
 	
 	@PutMapping("project/updateProject/{projectId}")
 	public ResponseEntity<?> updateProject(@RequestBody ProjectInputDTO projectInputDTO,
@@ -112,6 +115,7 @@ public class ProjectControler {
 					.body(e.getMessage());
 		}
 	}
+	
 	
 	@DeleteMapping("project/deleteProject/{projectId}")
 	public ResponseEntity<String> deleteProject(@PathVariable String projectId){
