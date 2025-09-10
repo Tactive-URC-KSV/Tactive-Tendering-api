@@ -73,7 +73,9 @@ public interface ProjectService {
 	
 	String addActivityGroup(ActivityGroup activityGroup);
 	List<ActivityGroup> getAllActivityGroups();
-	String saveCostCode(String projectId, List<CostCodeDto> costCodeDto);
+	String saveCostCodeOneToOne(List<CostCodeDto> costCodeDto);
+	String saveCostCodeOneToMany(List<CostCodeDto> costCodeDto);
+	String saveCostCodeManyToOne(List<CostCodeDto> costCodeDto);
 	String deleteCostCode(String costCodeId);
 	List<CostCodeActivity> getCostCodeActivityByType(String projectId);
 	
