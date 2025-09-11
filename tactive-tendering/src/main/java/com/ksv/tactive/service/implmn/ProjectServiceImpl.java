@@ -11,6 +11,7 @@ import java.sql.SQLIntegrityConstraintViolationException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -30,8 +31,6 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.itextpdf.text.DocumentException;
-import com.itextpdf.text.log.Logger;
-import com.itextpdf.text.log.LoggerFactory;
 import com.ksv.tactive.dto.CostCodeDto;
 import com.ksv.tactive.dto.FeasibilityApprovalDocuDTO;
 import com.ksv.tactive.dto.ProjectInfoDto;
@@ -89,7 +88,7 @@ public class ProjectServiceImpl implements ProjectService{
 	@Value("${file.upload.path}")
 	private String uploadDir;
 	
-	private static final Logger logger = LoggerFactory.getLogger(ProjectServiceImpl.class);
+//	private static final Logger logger = LoggerFactory.getLogger(ProjectServiceImpl.class);
 	
 	@Autowired
 	private MessageSource messageSource;
@@ -787,14 +786,12 @@ public class ProjectServiceImpl implements ProjectService{
 	}
 	
 	@Override
-	public String saveCostCode(String projectId, List<CostCodeDto> costCodeDto) {
+	public String saveCostCodeOneToOne(List<CostCodeDto> costCodeDto) {
 		if(costCodeDto == null || costCodeDto.isEmpty()) {
 			throw new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH));
 		}
-		Projects project = findByProjectId(projectId);
+		Projects project = findByProjectId(costCodeDto.get(0).getProjectId());
 		for(CostCodeDto costCode : costCodeDto) {
-			logger.info(costCode.getCostCodeTypeId());
-			logger.info(costCode.getActivityGroupId());
 			CostCodeActivity costCodeAct = new CostCodeActivity();
 			costCodeAct.setId(UUID.randomUUID().toString());
 			if(!costCode.getActivityGroupId().isEmpty()) {
@@ -830,6 +827,168 @@ public class ProjectServiceImpl implements ProjectService{
 		}
 		return messageSource.getMessage("cost.code.save.success", null, Locale.ENGLISH);
 	}
+	
+	@Override
+	public String saveCostCodeOneToMany(List<CostCodeDto> costCodeDto) {
+		if (costCodeDto == null || costCodeDto.isEmpty()) {
+	        throw new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH));
+	    }
+
+	    Projects project = findByProjectId(costCodeDto.get(0).getProjectId());
+
+	    for (CostCodeDto dto : costCodeDto) {
+	        CostCodeActivity costCodeAct = new CostCodeActivity();
+	        costCodeAct.setId(UUID.randomUUID().toString());
+
+	        if (dto.getActivityGroupId() != null && !dto.getActivityGroupId().isEmpty()) {
+	            ActivityGroup activityGroup = activityGroupsDao.findById(dto.getActivityGroupId())
+	                    .orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
+	            costCodeAct.setActivityGroup(activityGroup);
+	        }
+
+	        if (dto.getCostCodeTypeId() != null && !dto.getCostCodeTypeId().isEmpty()) {
+	            CostCodeType costCodeType = costCodeTypeDao.findById(dto.getCostCodeTypeId())
+	                    .orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
+	            costCodeAct.setCostCodeType(costCodeType);
+	        }
+
+	        if (dto.getUomId() != null && !dto.getUomId().isEmpty()) {
+	            UOM uom = uomDao.findById(dto.getUomId())
+	                    .orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
+	            costCodeAct.setUom(uom);
+	        }
+
+	        Set<BOQ> boqSet = dto.getBoqId().stream()
+	                .filter(id -> id != 0)
+	                .map(id -> boqDao.findById(id)
+	                        .orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH))))
+	                .collect(Collectors.toSet());
+
+	        costCodeAct.setBoq(boqSet);
+	        costCodeAct.setProject(project);
+	        costCodeAct.setActivityCode(dto.getActivityCode());
+	        costCodeAct.setActivityName(dto.getActivityName());
+	        costCodeAct.setMappingType(dto.getMappingType());
+
+	        if (dto.getSplitType() != null) {
+	            int boqCount = boqSet.size();
+
+	            switch (dto.getSplitType().toLowerCase()) {
+	                case "quantity": {
+	                    double splitQty = dto.getQuantity() / boqCount;
+	                    costCodeAct.setQuantity(splitQty);
+	                    costCodeAct.setRate(dto.getRate());
+	                    costCodeAct.setAmount(splitQty * dto.getRate());
+	                    break;
+	                }
+	                case "amount": {
+	                    double splitAmount = dto.getAmount() / boqCount;
+	                    costCodeAct.setAmount(splitAmount);
+	                    costCodeAct.setRate(dto.getRate());
+	                    double derivedQty = splitAmount / dto.getRate();
+	                    costCodeAct.setQuantity(derivedQty);
+	                    break;
+	                }
+	                case "rate": {
+	                    double splitRate = dto.getRate() / boqCount;
+	                    costCodeAct.setRate(splitRate);
+	                    costCodeAct.setAmount(dto.getAmount());
+	                    double derivedQty = dto.getAmount() / splitRate;
+	                    costCodeAct.setQuantity(derivedQty);
+	                    break;
+	                }
+	                default:
+	                    throw new IllegalArgumentException("Invalid split type: " + dto.getSplitType());
+	            }
+	        }
+	        costCodeActivityDao.save(costCodeAct);
+	    }
+
+	    return messageSource.getMessage("cost.code.save.success", null, Locale.ENGLISH);
+	}
+	
+	@Override
+	public String saveCostCodeManyToOne(List<CostCodeDto> costCodeDto) {
+		if (costCodeDto == null || costCodeDto.isEmpty()) {
+	        throw new DataNotFoundException(
+	            messageSource.getMessage("data.not.found", null, Locale.ENGLISH)
+	        );
+	    }
+
+	    Projects project = findByProjectId(costCodeDto.get(0).getProjectId());
+
+	    List<BOQ> allBoqs = costCodeDto.stream()
+	            .flatMap(dto -> dto.getBoqId().stream())
+	            .filter(id -> id != 0)
+	            .map(id -> boqDao.findById(id)
+	                    .orElseThrow(() -> new DataNotFoundException(
+	                        messageSource.getMessage("data.not.found", null, Locale.ENGLISH)
+	                    )))
+	            .collect(Collectors.toList());
+
+	    if (allBoqs.isEmpty()) {
+	        throw new DataNotFoundException("No BOQs found for mapping");
+	    }
+
+	    Set<String> uomIds = allBoqs.stream()
+	            .map(b -> b.getUom().getId())
+	            .collect(Collectors.toSet());
+
+	    if (uomIds.size() > 1) {
+	        throw new IllegalArgumentException("All BOQs must have the same UOM for many-to-one mapping");
+	    }
+
+	    double totalQty = allBoqs.stream()
+	            .mapToDouble(BOQ::getQuantity)
+	            .sum();
+
+	    double avgRate = allBoqs.stream()
+	            .mapToDouble(BOQ::getTotalRate)
+	            .average()
+	            .orElse(0.0);
+
+	    double totalAmount = totalQty * avgRate;
+
+	    UOM commonUom = allBoqs.get(0).getUom();
+
+	    CostCodeActivity costCodeAct = new CostCodeActivity();
+	    costCodeAct.setId(UUID.randomUUID().toString());
+
+	    CostCodeDto firstDto = costCodeDto.get(0);
+
+	    if (firstDto.getActivityGroupId() != null && !firstDto.getActivityGroupId().isEmpty()) {
+	        ActivityGroup activityGroup = activityGroupsDao.findById(firstDto.getActivityGroupId())
+	                .orElseThrow(() -> new DataNotFoundException(
+	                    messageSource.getMessage("data.not.found", null, Locale.ENGLISH)
+	                ));
+	        costCodeAct.setActivityGroup(activityGroup);
+	    }
+
+	    if (firstDto.getCostCodeTypeId() != null && !firstDto.getCostCodeTypeId().isEmpty()) {
+	        CostCodeType costCodeType = costCodeTypeDao.findById(firstDto.getCostCodeTypeId())
+	                .orElseThrow(() -> new DataNotFoundException(
+	                    messageSource.getMessage("data.not.found", null, Locale.ENGLISH)
+	                ));
+	        costCodeAct.setCostCodeType(costCodeType);
+	    }
+
+	    
+	    costCodeAct.setUom(commonUom);
+	    costCodeAct.setQuantity(totalQty);
+	    costCodeAct.setRate(avgRate);
+	    costCodeAct.setAmount(totalAmount);
+
+	    costCodeAct.setBoq(new HashSet<>(allBoqs));
+	    costCodeAct.setProject(project);
+	    costCodeAct.setActivityCode(firstDto.getActivityCode());
+	    costCodeAct.setActivityName(firstDto.getActivityName());
+	    costCodeAct.setMappingType(firstDto.getMappingType());
+	    
+	    costCodeActivityDao.save(costCodeAct);
+
+	    return messageSource.getMessage("cost.code.save.success", null, Locale.ENGLISH);
+	}
+	
 	@Override
 	public String deleteCostCode(String costCodeId) {
 		CostCodeActivity costCode = costCodeActivityDao.findById(costCodeId)

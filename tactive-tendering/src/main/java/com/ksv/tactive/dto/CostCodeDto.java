@@ -17,5 +17,8 @@ public class CostCodeDto {
 	private List<Integer> boqId;
 	private String costCodeTypeId;
 	private String activityGroupId;
+	private String projectId;
+	private String splitType;
+	private double splitPercentage;
 	
 }

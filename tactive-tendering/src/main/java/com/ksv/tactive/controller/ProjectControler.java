@@ -370,12 +370,32 @@ public class ProjectControler {
     	return ResponseEntity.status(HttpStatus.OK).body(projectService.getAllActivityGroups());
 	}
 	
-    @PostMapping("costCode/save/{projectId}")
-    public ResponseEntity<?> saveCostCodeActivity(@PathVariable String projectId, @RequestBody List<CostCodeDto> costCodeDto ){
+    @PostMapping("costCode/saveOneToOne")
+    public ResponseEntity<?> saveCostCodeActivityOneToOne(@RequestBody List<CostCodeDto> costCodeDto ){
     	try {
-    		return ResponseEntity.status(HttpStatus.OK).body(projectService.saveCostCode(projectId, costCodeDto));
+    		return ResponseEntity.status(HttpStatus.OK).body(projectService.saveCostCodeOneToOne(costCodeDto));
     	}
     	catch (DataNotFoundException e) {
+			return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+		}
+    }
+    
+    @PostMapping("costCode/saveOneToMany")
+    public ResponseEntity<?> saveCostCodeActivityOneToMany(@RequestBody List<CostCodeDto> costCodeDto ){
+		try {
+			return ResponseEntity.status(HttpStatus.OK).body(projectService.saveCostCodeOneToMany(costCodeDto));
+		}
+		catch (DataNotFoundException e) {
+			return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+		}
+    }
+    
+    @PostMapping("costCode/saveManyToOne")
+    public ResponseEntity<?> saveCostCodeActivityManyToOne(@RequestBody List<CostCodeDto> costCodeDto ){
+		try {
+			return ResponseEntity.status(HttpStatus.OK).body(projectService.saveCostCodeManyToOne(costCodeDto));
+		}
+		catch (DataNotFoundException e) {
 			return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
 		}
     }
