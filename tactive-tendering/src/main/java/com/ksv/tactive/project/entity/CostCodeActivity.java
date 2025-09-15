@@ -2,6 +2,8 @@ package com.ksv.tactive.project.entity;
 
 import java.util.Set;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
@@ -35,6 +37,7 @@ public class CostCodeActivity {
 	@JoinColumn(name = "uom_id")
 	private UOM uom;
 	
+	@JsonBackReference
 	@ManyToMany
 	@JoinTable(
 		    name = "activity_boq",
@@ -51,6 +54,7 @@ public class CostCodeActivity {
 	@JoinColumn(name = "activity_group_id")
 	private ActivityGroup activityGroup;
 	
+	@JsonBackReference
 	@ManyToOne
 	@JoinColumn(name = "project_id")
 	private Projects project;
