@@ -33,7 +33,7 @@ public class SecurityConfig {
         
 		return http.csrf(AbstractHttpConfigurer::disable)
 				.authorizeHttpRequests(requests -> requests
-						.requestMatchers("/tactive/login").permitAll()
+						.requestMatchers("/tactive/login","/swagger-ui/**").permitAll()
 						.anyRequest().authenticated())
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.httpBasic(Customizer.withDefaults())
@@ -58,4 +58,5 @@ public class SecurityConfig {
 	AuthenticationManager authenticationManager(HttpSecurity http	) throws Exception {
 	    return  http.getSharedObject(AuthenticationManagerBuilder.class).build();
 	}
+	
 }
