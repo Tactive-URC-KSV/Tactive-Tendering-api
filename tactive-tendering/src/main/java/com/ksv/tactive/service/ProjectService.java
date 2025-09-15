@@ -40,6 +40,7 @@ public interface ProjectService {
 	
 	List<ProjectInfoDto> getAllApprovedProjects();
 	List<ProjectInfoDto> getAllBoqUploadedProject();
+	List<ProjectInfoDto> getAllCostCodeUpdatedProject();
 	
 	String saveTechFeasibility(TechnicalFeasibility techFeasibility);
 	String saveFinancialFeasibility(FinancialFeasibility financialFeasibility);
@@ -77,7 +78,9 @@ public interface ProjectService {
 	String saveCostCodeOneToMany(List<CostCodeDto> costCodeDto);
 	String saveCostCodeManyToOne(List<CostCodeDto> costCodeDto);
 	String deleteCostCode(String costCodeId);
-	List<CostCodeActivity> getCostCodeActivityByType(String projectId);
+	List<CostCodeActivity> getCostCodeActivityByProject(String projectId);
+	double getTotalAmountByCostCodeType(String costCodeTypeId, String projectId);
+	
 	
 	
 	

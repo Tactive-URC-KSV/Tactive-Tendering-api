@@ -3,6 +3,7 @@ package com.ksv.tactive.project.entity;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.persistence.CascadeType;
@@ -49,6 +50,7 @@ public class BOQ {
 	private int wo;
 	private String qtyType;
 
+	@JsonBackReference
 	@ManyToOne
 	@JoinColumn(name = "project_id")
 	private Projects project;
@@ -57,6 +59,7 @@ public class BOQ {
 	@JoinColumn(name = "parent_boq_id")
 	private BOQ parentBOQ;
 	
+	@JsonBackReference
 	@JsonIgnore
 	@OneToMany(mappedBy = "parentBOQ", cascade = CascadeType.ALL, orphanRemoval = true)
 	private List<BOQ> children = new ArrayList<>();

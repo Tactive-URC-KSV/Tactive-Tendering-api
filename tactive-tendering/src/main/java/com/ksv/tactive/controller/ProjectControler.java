@@ -405,14 +405,39 @@ public class ProjectControler {
 		return ResponseEntity.status(HttpStatus.OK).body(projectService.deleteCostCode(costCodeId));
 	}
     
+    @GetMapping("project/costCodeUpdatedProjects")
+    public ResponseEntity<?> getAllCostCodeUpdatedProjects(){
+		List<ProjectInfoDto> projects = projectService.getAllCostCodeUpdatedProject();
+		return ResponseEntity.status(HttpStatus.OK).body(projects);
+	}
+    
     @GetMapping("costCodeActivity/{projectId}")
     public ResponseEntity<?> getCostCodeActivityByType(@PathVariable String projectId){
-    	List<CostCodeActivity> costCode = projectService.getCostCodeActivityByType(projectId);
+    	List<CostCodeActivity> costCode = projectService.getCostCodeActivityByProject(projectId);
     	if(!costCode.isEmpty()) {
     		return ResponseEntity.status(HttpStatus.OK).body(costCode);
     	}
     	return ResponseEntity.status(HttpStatus.CONFLICT).body(messageSource.getMessage("cost.code.not.found", null, Locale.ENGLISH));
     }
+    @GetMapping("costCodeActivity/totalAmount/{costCodeTypeId}/{projectId}")
+    public ResponseEntity<?> getTotalAmountByCostCodeType(@PathVariable String costCodeTypeId, @PathVariable String projectId){
+		double totalAmount = projectService.getTotalAmountByCostCodeType(costCodeTypeId, projectId);
+		return ResponseEntity.status(HttpStatus.OK).body(totalAmount);
+	}
+    @GetMapping("costCodeActivity/{costCodeTypeId}/{projectId}")
+    public ResponseEntity<?> getCostCodeActivityByTypeAndProject(@PathVariable String costCodeTypeId, @PathVariable String projectId){
+		List<CostCodeActivity> costCode = projectService.getCostCodeActivityByProject(projectId);
+		if(!costCode.isEmpty()) {
+			List<CostCodeActivity> filteredList = costCode.stream()
+					.filter(c -> c.getCostCodeType().getId().equals(costCodeTypeId))
+					.toList();
+			if(!filteredList.isEmpty()) {
+				return ResponseEntity.status(HttpStatus.OK).body(filteredList);
+			}
+			return ResponseEntity.status(HttpStatus.CONFLICT).body(messageSource.getMessage("cost.code.type.not.found", null, Locale.ENGLISH));
+		}
+		return ResponseEntity.status(HttpStatus.CONFLICT).body(messageSource.getMessage("cost.code.not.found", null, Locale.ENGLISH));
+	}
     
 
     
