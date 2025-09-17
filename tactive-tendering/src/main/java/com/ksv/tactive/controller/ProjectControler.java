@@ -8,6 +8,7 @@ import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -322,12 +323,14 @@ public class ProjectControler {
     @DeleteMapping("project/deleteBOQ/{projectId}")
     public ResponseEntity<?> deleteBOQ(@RequestBody List<String> boqCode, @PathVariable String projectId) {
     	try {
-    		
     		projectService.deleteBOQ(boqCode, projectId);
     		return ResponseEntity.status(HttpStatus.OK).body(messageSource.getMessage("boq.delete.success", null, Locale.ENGLISH));
     	}
     	catch (DataNotFoundException e) {
     		return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+    	}
+    	catch (DataIntegrityViolationException e) {
+			return ResponseEntity.status(HttpStatus.CONFLICT).body(messageSource.getMessage("boq.delete.error", null, Locale.ENGLISH));
     	}
     	
     }
