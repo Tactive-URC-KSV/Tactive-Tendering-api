@@ -26,6 +26,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -664,7 +665,7 @@ public class ProjectServiceImpl implements ProjectService{
 	}
 	
 	@Override
-	public void deleteBOQ(List<String> boqCode, String projectId) {
+	public void deleteBOQ(List<String> boqCode, String projectId) throws DataIntegrityViolationException{
 		for(String code : boqCode) {
 			BOQ boq = boqDao.findByBoqCodeAndProjectId(code, projectId);
 			if(boq != null) {
@@ -819,27 +820,34 @@ public class ProjectServiceImpl implements ProjectService{
 	        act.setBoq(boqSet);
 
 	        if (dto.getSplitType() != null) {
-	            double count = dto.getSplitPercentage();
 	            switch (dto.getSplitType().toLowerCase()) {
 	                case "quantity":
-	                    double q = dto.getQuantity() * (count/100);
+	                    double q = dto.getQuantity() * (dto.getQtySplitPercentage()/100);
 	                    act.setQuantity(q);
 	                    act.setRate(dto.getRate());
 	                    act.setAmount(q * dto.getRate());
 	                    break;
 	                case "amount":
-	                    double a = dto.getAmount() * (count/100);
+	                    double a = dto.getAmount() * (dto.getAmountSplitPercentage()/100);
 	                    act.setAmount(a);
 	                    act.setRate(act.getAmount());
 	                    act.setQuantity(1);
 	                    act.setUom(new UOM());
 	                    break;
 	                case "rate":
-	                    double r = dto.getRate() * (count/100);
+	                    double r = dto.getRate() * (dto.getRateSplitPercentage()/100);
 	                    act.setRate(r);
 	                    act.setQuantity(dto.getQuantity());
 	                    act.setAmount(r * dto.getQuantity());
 	                    break;
+	                case "qty_rate":
+	                    double qty = dto.getQuantity() * (dto.getQtySplitPercentage()/100);
+	                    double rate = dto.getRate() * (dto.getRateSplitPercentage()/100);
+	                    act.setQuantity(qty);
+	                    act.setRate(rate);
+	                    act.setAmount(qty * rate);
+	                    break;
+	                    
 	            }
 	        }
 	        costCodeActivityDao.save(act);

@@ -5,6 +5,7 @@ import java.sql.SQLIntegrityConstraintViolationException;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -66,7 +67,7 @@ public interface ProjectService {
 	double getParentTotalValue(List<BOQ> boqList, String parentCode);
 	void generateBoqExcel(String projectId, HttpServletResponse response) throws IOException, DataNotFoundException;
 	void generateBoqPdf(String projectId, HttpServletResponse response) throws IOException, DocumentException, DataNotFoundException;
-	void deleteBOQ(List<String> boqCode, String projectId);
+	void deleteBOQ(List<String> boqCode, String projectId) throws DataIntegrityViolationException;
 	
 	String saveTemplate(Template template, Map<String, String> mapping);
 	List<Template> getAllTemplate();
