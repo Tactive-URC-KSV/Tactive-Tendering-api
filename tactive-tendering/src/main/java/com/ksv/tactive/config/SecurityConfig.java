@@ -33,7 +33,7 @@ public class SecurityConfig {
         
 		return http.csrf(AbstractHttpConfigurer::disable)
 				.authorizeHttpRequests(requests -> requests
-						.requestMatchers("/tactive/login","/swagger-ui/**").permitAll()
+						.requestMatchers("/tactive/login","/swagger-ui/**", "/v3/api-docs/**").permitAll()
 						.anyRequest().authenticated())
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.httpBasic(Customizer.withDefaults())

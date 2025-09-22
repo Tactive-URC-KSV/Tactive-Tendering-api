@@ -138,5 +138,5 @@ public class MasterDataController {
         }
         return ResponseEntity.status(HttpStatus.OK).body(costCodeType);
 	}
-
+    
 }
