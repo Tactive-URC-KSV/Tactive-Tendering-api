@@ -414,6 +414,16 @@ public class ProjectControler {
 		return ResponseEntity.status(HttpStatus.OK).body(projects);
 	}
     
+    @GetMapping("costCodeActivity/costCode/{costCodeId}")
+    public ResponseEntity<?> getCostCodeActivityById(@PathVariable String costCodeId){
+		try {
+			CostCodeActivity costCode = projectService.getCostCodeActivityById(costCodeId);
+			return ResponseEntity.status(HttpStatus.OK).body(costCode);
+		}catch (DataNotFoundException e) {
+			return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+		}
+	}
+    
     @GetMapping("costCodeActivity/{projectId}")
     public ResponseEntity<?> getCostCodeActivityByType(@PathVariable String projectId){
     	List<CostCodeActivity> costCode = projectService.getCostCodeActivityByProject(projectId);

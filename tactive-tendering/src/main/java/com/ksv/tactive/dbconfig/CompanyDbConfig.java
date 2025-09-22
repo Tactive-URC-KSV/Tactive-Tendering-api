@@ -46,7 +46,6 @@ public class CompanyDbConfig {
         Map<String, Object> properties = new HashMap<>();
         properties.put("hibernate.dialect", "org.hibernate.dialect.PostgreSQLDialect");
         properties.put("hibernate.hbm2ddl.auto", "update");
-        properties.put("hibernate.show_sql", "true");
         return builder
                 .dataSource(dataSource)
                 .packages("com.ksv.tactive.company.entity")

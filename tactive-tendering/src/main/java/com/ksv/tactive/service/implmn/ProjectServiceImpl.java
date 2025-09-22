@@ -847,7 +847,6 @@ public class ProjectServiceImpl implements ProjectService{
 	                    act.setRate(rate);
 	                    act.setAmount(qty * rate);
 	                    break;
-	                    
 	            }
 	        }
 	        costCodeActivityDao.save(act);
@@ -958,6 +957,12 @@ public class ProjectServiceImpl implements ProjectService{
 	@Override
 	public List<CostCodeActivity> getCostCodeActivityByProject(String projectId) {
 		return costCodeActivityDao.findByProjectId(projectId);
+	}
+	
+	@Override
+	public CostCodeActivity getCostCodeActivityById(String costCodeId) {
+		return costCodeActivityDao.findById(costCodeId)
+				.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
 	}
 	
 	@Override
