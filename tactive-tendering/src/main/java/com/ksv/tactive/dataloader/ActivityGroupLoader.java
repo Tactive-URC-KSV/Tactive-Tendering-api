@@ -36,17 +36,17 @@ public class ActivityGroupLoader implements MasterDataLoader<ActivityGroup> {
                 throw new IOException("Resource file 'standard-costcodes.json' not found");
             }
             List<ActivityGroup> costCodes = objectMapper.readValue(inputStream, new TypeReference<>() {});
-            if (activityGroupDao.count() == 0) {
+            
                 for (ActivityGroup costCode : costCodes) {
+                	if(activityGroupDao.findByActivityNameIgnoreCase(costCode.getActivityName()) != null) {
+						continue;
+					}
                 	CostCodeType costCodeType = findCostCodeTypeByName(costCode.getCostCodeType().getCostCodeName());
                     costCode.setId(UUID.randomUUID().toString());
                     costCode.setCostCodeType(costCodeType);
                     activityGroupDao.save(costCode);
                 }
-                logger.info("Loaded {} ActivityGroup records", costCodes.size());
-            } else {
-                logger.info("Skipping data load; ActivityGroup table is not empty");
-            }
+                
         }
     }
     private CostCodeType findCostCodeTypeByName(String name) {

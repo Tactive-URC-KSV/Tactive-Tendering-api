@@ -38,15 +38,15 @@ public class RegionLoader implements MasterDataLoader<Region>{
 				throw new IOException("Resource file 'regions.json' not found");
 			}
 			List<Region> regions = objectMapper.readValue(inputStream, new TypeReference<>() {});
-			if (regionDao.count() == 0) {
+			
 				for (Region region : regions) {
+					if (regionDao.findByRegionNameIgnoreCase(region.getRegionName()) != null) {
+						continue;
+					}
 					region.setId(UUID.randomUUID().toString());
 					regionDao.save(region);
 				}
-				logger.info("Loaded {} Region records", regions.size());
-			} else {
-				logger.info("Skipping data load; Region table is not empty");
-			}
+				
 		}
 		
 	}

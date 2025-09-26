@@ -36,15 +36,15 @@ public class ApprovalDocLoader implements MasterDataLoader<ListOfApprovals>{
 				throw new IOException("Resource file 'approval-documents.json' not found");
 			}
 			List<ListOfApprovals> approvals = objectMapper.readValue(inputStream, new TypeReference<>() {});
-			if (approvalDao.count() == 0) {
+			
 				for (ListOfApprovals approval : approvals) {
+					if (approvalDao.findByDocumentName(approval.getDocumentName()) != null) {
+						continue;
+					}
 					approval.setId(java.util.UUID.randomUUID().toString());
 					approvalDao.save(approval);
 				}
-				logger.info("Loaded {} Approval Document records", approvals.size());
-			} else {
-				logger.info("Skipping data load; Approval Document table is not empty");
-			}
+				
 		}
 		
 	}

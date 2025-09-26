@@ -8,4 +8,6 @@ import com.ksv.tactive.project.entity.Sector;
 @Repository
 public interface SectorDao extends JpaRepository<Sector, String>{
 
+	Sector findBySectorNameIgnoreCase(String sectorName);
+
 }

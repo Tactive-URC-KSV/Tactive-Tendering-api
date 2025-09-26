@@ -9,5 +9,9 @@ import com.ksv.tactive.project.entity.Region;
 public interface RegionDao extends JpaRepository<Region, String>{
 
 	Region findByRegionName(String regionName);
+
+	Region findByRegionNameIgnoreCase(String regionName);
+
+	
 	
 }

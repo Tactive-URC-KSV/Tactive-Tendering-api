@@ -39,15 +39,15 @@ public class ProjectStatusLoader implements MasterDataLoader<ProjectStatus>{
 				throw new IOException("Resource file 'project-status.json' not found");
 			}
 			List<ProjectStatus> projectStatuses = objectMapper.readValue(inputStream, new TypeReference<>() {});
-			if(projectStatusDao.count() == 0) {
+			
 				for(ProjectStatus projectStatus : projectStatuses) {
+					if(projectStatusDao.findByStatusIgnoreCase(projectStatus.getStatus()) != null) {
+						continue;
+					}
 					projectStatus.setId(UUID.randomUUID().toString());
 					projectStatusDao.save(projectStatus);
 				}
-				logger.info("Loaded {} ProjectStatus records", projectStatuses.size());
-			}else {
-				logger.info("Skipping data load; ProjectStatus table is not empty");
-			}
+				
 		}
 		
 	}

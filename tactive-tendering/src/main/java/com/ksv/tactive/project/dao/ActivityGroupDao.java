@@ -9,5 +9,7 @@ import com.ksv.tactive.project.entity.ActivityGroup;
 public interface ActivityGroupDao extends JpaRepository<ActivityGroup, String>{
 
 	ActivityGroup findByActivityName(String activityGroup);
+
+	ActivityGroup findByActivityNameIgnoreCase(String activityName);
 	
 }

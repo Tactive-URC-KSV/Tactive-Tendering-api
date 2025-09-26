@@ -8,4 +8,6 @@ import com.ksv.tactive.project.entity.ListOfApprovals;
 @Repository
 public interface ListOfApprovalsDao extends JpaRepository<ListOfApprovals, String>{
 
+	ListOfApprovals findByDocumentName(String documentName);
+
 }

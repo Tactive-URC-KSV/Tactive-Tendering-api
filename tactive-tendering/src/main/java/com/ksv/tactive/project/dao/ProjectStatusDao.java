@@ -10,6 +10,10 @@ public interface ProjectStatusDao extends JpaRepository<ProjectStatus, String> {
 
 	
 	ProjectStatus findByProcessUrl(String url);
+
+	ProjectStatus findByStatus(String status);
+
+	ProjectStatus findByStatusIgnoreCase(String status);
 	
 
 }
