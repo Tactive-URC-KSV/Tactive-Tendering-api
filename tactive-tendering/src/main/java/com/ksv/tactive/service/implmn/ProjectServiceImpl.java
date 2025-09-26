@@ -371,7 +371,6 @@ public class ProjectServiceImpl implements ProjectService{
 	                if (dto.getDocumentName().equalsIgnoreCase(doc)) {
 	                    approvalDocuments.setDocumentName(dto.getDocumentName());
 	                    approvalDocuments.setComments(dto.getComment());
-	                    System.err.println(dto.isApproved());
 	                    approvalDocuments.setApproved(dto.isApproved());
 	                    break; 
 	                }
@@ -832,7 +831,12 @@ public class ProjectServiceImpl implements ProjectService{
 	                    act.setAmount(a);
 	                    act.setRate(act.getAmount());
 	                    act.setQuantity(1);
-	                    act.setUom(new UOM());
+	                    for(UOM uom : uomDao.findAll()) {
+	                    	if(uom.getUomCode().equalsIgnoreCase("ls")) {
+	                    		act.setUom(uom);
+	                    		break;
+	                    	}
+	                    }
 	                    break;
 	                case "rate":
 	                    double r = dto.getRate() * (dto.getRateSplitPercentage()/100);
@@ -847,7 +851,6 @@ public class ProjectServiceImpl implements ProjectService{
 	                    act.setRate(rate);
 	                    act.setAmount(qty * rate);
 	                    break;
-	                    
 	            }
 	        }
 	        costCodeActivityDao.save(act);
@@ -874,7 +877,7 @@ public class ProjectServiceImpl implements ProjectService{
 	    if (allBoqs.isEmpty()) throw new DataNotFoundException("No BOQs found for mapping");
 
 	    Set<String> uoms = allBoqs.stream().map(b -> b.getUom().getId()).collect(Collectors.toSet());
-	    if (uoms.size() > 1) throw new IllegalArgumentException("All BOQs must have the same UOM");
+	    
 
 	    double qty = allBoqs.stream().mapToDouble(BOQ::getQuantity).sum();
 	    double rate = allBoqs.stream().mapToDouble(BOQ::getTotalRate).average().orElse(0.0);
@@ -882,7 +885,18 @@ public class ProjectServiceImpl implements ProjectService{
 
 	    CostCodeDto first = dtos.get(0);
 	    CostCodeActivity act = mapCommonFields(first, project);
-	    act.setUom(allBoqs.get(0).getUom());
+	    if (uoms.size() > 1) {
+	    	for(UOM uom : uomDao.findAll()) {
+	    		if(uom.getUomCode().equalsIgnoreCase("ls")) {
+	    			act.setUom(uom);
+	    			break;
+	    		}
+	    	}
+	    			
+	    }
+	    else {
+	    	act.setUom(allBoqs.get(0).getUom());
+	    }
 	    act.setBoq(new HashSet<>(allBoqs));
 	    act.setQuantity(qty);
 	    act.setRate(rate);
@@ -958,6 +972,12 @@ public class ProjectServiceImpl implements ProjectService{
 	@Override
 	public List<CostCodeActivity> getCostCodeActivityByProject(String projectId) {
 		return costCodeActivityDao.findByProjectId(projectId);
+	}
+	
+	@Override
+	public CostCodeActivity getCostCodeActivityById(String costCodeId) {
+		return costCodeActivityDao.findById(costCodeId)
+				.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
 	}
 	
 	@Override

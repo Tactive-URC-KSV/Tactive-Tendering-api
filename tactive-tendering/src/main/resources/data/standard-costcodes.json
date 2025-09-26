@@ -138,5 +138,47 @@
 		"costCodeType": {
 			"costCodeName": "Direct cost"
 		}
+	},
+	{
+	  "activityCode": "IC1001",
+	  "activityName": "Site Office Setup",
+	  "costCodeType": {
+	    "costCodeName": "In-Direct cost"
+	  }
+	},
+	{
+	  "activityCode": "IC2001",
+	  "activityName": "Project Management Salaries",
+	  "costCodeType": {
+	    "costCodeName": "In-Direct cost"
+	  }
+	},
+	{
+	  "activityCode": "IC3001",
+	  "activityName": "Equipment Mobilization & Demobilization",
+	  "costCodeType": {
+	    "costCodeName": "In-Direct cost"
+	  }
+	},
+	{
+	  "activityCode": "PR6001",
+	  "activityName": "Contractor’s Profit",
+	  "costCodeType": {
+	    "costCodeName": "Profit"
+	  }
+	},
+	{
+	  "activityCode": "PR6003",
+	  "activityName": "Escalation Margin",
+	  "costCodeType": {
+	    "costCodeName": "Profit"
+	  }
+	},
+	{
+	  "activityCode": "PR6002",
+	  "activityName": "Risk Premium",
+	  "costCodeType": {
+	    "costCodeName": "Profit"
+	  }
 	}
 ]

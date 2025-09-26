@@ -81,6 +81,7 @@ public interface ProjectService {
 	String deleteCostCode(String costCodeId);
 	List<CostCodeActivity> getCostCodeActivityByProject(String projectId);
 	double getTotalAmountByCostCodeType(String costCodeTypeId, String projectId);
+	CostCodeActivity getCostCodeActivityById(String costCodeId);
 	
 	
 	
