@@ -831,7 +831,12 @@ public class ProjectServiceImpl implements ProjectService{
 	                    act.setAmount(a);
 	                    act.setRate(act.getAmount());
 	                    act.setQuantity(1);
-	                    act.setUom(new UOM());
+	                    for(UOM uom : uomDao.findAll()) {
+	                    	if(uom.getUomCode().equalsIgnoreCase("ls")) {
+	                    		act.setUom(uom);
+	                    		break;
+	                    	}
+	                    }
 	                    break;
 	                case "rate":
 	                    double r = dto.getRate() * (dto.getRateSplitPercentage()/100);
