@@ -38,15 +38,15 @@ public class UomLoader implements MasterDataLoader<UOM> {
 			}
 			List<UOM> uoms = objectMapper.readValue(inputStream, new TypeReference<>() {
 			});
-			if (uomDao.count() == 0) {
-				for (UOM uom : uoms) {
-					uom.setId(UUID.randomUUID().toString());
-					uomDao.save(uom);
+
+			for (UOM uom : uoms) {
+				if (uomDao.findByUomCodeIgnoreCase(uom.getUomCode()) != null) {
+					continue;
 				}
-				logger.info("Loaded {} UOM records", uoms.size());
-			} else {
-				logger.info("Skipping data load; UOM table is not empty");
+				uom.setId(UUID.randomUUID().toString());
+				uomDao.save(uom);
 			}
+
 		}
 
 	}

@@ -37,15 +37,15 @@ public class SectorLoader implements MasterDataLoader<Sector>{
 				throw new IOException("Resource file 'sectors.json' not found");
 			}
 			List<Sector> sectors = objectMapper.readValue(inputStream, new TypeReference<>() {});
-			if (sectorDao.count() == 0) {
+			
 				for (Sector sector : sectors) {
+					if(sectorDao.findBySectorNameIgnoreCase(sector.getSectorName()) != null) {
+						continue;
+					}
 					sector.setId(UUID.randomUUID().toString());
 					sectorDao.save(sector);
 				}
-				logger.info("Loaded {} Sector records", sectors.size());
-			}else {
-				logger.info("Skipping data load; Sector table is not empty");
-			}
+				
 		}
 		
 	}

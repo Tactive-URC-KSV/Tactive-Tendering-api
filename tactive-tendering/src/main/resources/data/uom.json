@@ -93,5 +93,10 @@
     "uomName": "Quintal",
     "uomCode": "q",
     "isActive": true
-  }
+  },
+  {
+      "uomName": "Lump Sum",
+      "uomCode": "LS",
+      "isActive": true
+    }
 ]

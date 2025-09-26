@@ -38,15 +38,15 @@ public class ScopeLoader implements MasterDataLoader<ScopeOfPackage> {
 				throw new IOException("Resource file 'standard-costcodes.json' not found");
 			}
 			List<ScopeOfPackage>  scope= objectMapper.readValue(inputStream, new TypeReference<>() {});
-			if (scopeOfPackDao.count() == 0) {
+			
 				for (ScopeOfPackage sc : scope) {
+					if (scopeOfPackDao.findByScopeIgnoreCase(sc.getScope()) != null) {
+						continue;
+					}
 					sc.setId(UUID.randomUUID().toString());
 					scopeOfPackDao.save(sc);
 				}
-				logger.info("Loaded {} Scope of Package records", scope.size());
-			} else {
-				logger.info("Skipping data load; Scope of Package table is not empty");
-			}
+				
 			
 		}
 	}
