@@ -5,9 +5,14 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 
 import com.ksv.tactive.project.entity.CostCodeType;
+import com.ksv.tactive.project.entity.Currency;
 import com.ksv.tactive.project.entity.ListOfApprovals;
 import com.ksv.tactive.project.entity.ProjectStatus;
+import com.ksv.tactive.project.entity.QuantityType;
 import com.ksv.tactive.project.entity.Region;
+import com.ksv.tactive.project.entity.Resources;
+import com.ksv.tactive.project.entity.ResourceNature;
+import com.ksv.tactive.project.entity.ResourceType;
 import com.ksv.tactive.project.entity.ScopeOfPackage;
 import com.ksv.tactive.project.entity.Sector;
 import com.ksv.tactive.project.entity.UOM;
@@ -37,5 +42,12 @@ public interface MasterService {
 
 	String addCostCodeType(CostCodeType costCodeType);
 	List<CostCodeType> getAllCostCodeTypes();
+	
+	List<ResourceType> getAllResourceTypes();
+	List<Resources> getAllResources();
+	List<QuantityType> getAllQuantityTypes();
+	List<ResourceNature> getAllResourceNatures();
+	List<Currency> getAllCurrencies();
+	String addResourceNature(ResourceNature resourceNature);
 
 }

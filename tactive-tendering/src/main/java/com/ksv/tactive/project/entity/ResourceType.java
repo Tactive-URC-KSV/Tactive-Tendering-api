@@ -12,6 +12,6 @@ public class ResourceType {
 	@Id
 	@Column(length = 36)
 	private String id;
-	private String resouceTypeName;
+	private String resourceTypeName;
 
 }

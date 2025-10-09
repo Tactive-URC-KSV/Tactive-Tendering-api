@@ -43,12 +43,12 @@ public class CurrencyLoader implements MasterDataLoader<Currency> {
 			}
 			List<com.ksv.tactive.company.entity.Currency> companyCurrency = currencies.stream()
 					.map(dto -> new com.ksv.tactive.company.entity.Currency(UUID.randomUUID().toString(),
-							dto.getCurrencyCode(), dto.getCurrencyName(), dto.getSymbol(), dto.isActive()))
+							dto.getCurrencyName(), dto.getCurrencyCode(), dto.getSymbol(), dto.isActive()))
 					.toList();
 			comCurrencyDao.saveAll(companyCurrency);
 			List<com.ksv.tactive.project.entity.Currency> projectCurrency = currencies.stream()
 					.map(dto -> new com.ksv.tactive.project.entity.Currency(UUID.randomUUID().toString(),
-							dto.getCurrencyCode(), dto.getCurrencyName(), dto.getSymbol(), dto.isActive()))
+							dto.getCurrencyName(), dto.getCurrencyCode(), dto.getSymbol(), dto.isActive()))
 					.toList();
 			prjCurrencyDao.saveAll(projectCurrency);
 

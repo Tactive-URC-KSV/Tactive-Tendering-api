@@ -8,4 +8,8 @@ import com.ksv.tactive.project.entity.QuantityType;
 @Repository
 public interface QuantityTypeDao extends JpaRepository<QuantityType, String>{
 
+	QuantityType findByQuantityTypeIgnoreCase(String quantityType);
+
+	
+
 }

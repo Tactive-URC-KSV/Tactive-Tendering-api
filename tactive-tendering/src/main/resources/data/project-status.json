@@ -8,7 +8,7 @@
 		"processUrl": "/tactive/feasibility/approve"
 	},
 	{
-		"status": "Tender floating",
+		"status": "Tender Floating",
 		"processUrl": "/tactive"
 	},
 	{
@@ -20,7 +20,7 @@
 		"processUrl": "/tactive"
 	},
 	{
-		"status": "Project awarded",
+		"status": "Project Awarded",
 		"processUrl": "/tactive"
 	},
 	{

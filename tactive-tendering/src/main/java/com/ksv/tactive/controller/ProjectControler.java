@@ -29,6 +29,7 @@ import com.ksv.tactive.dto.FeasibilityApprovalDocuDTO;
 import com.ksv.tactive.dto.ProjectInfoDto;
 import com.ksv.tactive.dto.ProjectInputDTO;
 import com.ksv.tactive.dto.TemplateDto;
+import com.ksv.tactive.dto.TenderResourceDto;
 import com.ksv.tactive.exception.DataNotFoundException;
 import com.ksv.tactive.exception.DuplicateProjectCodeException;
 import com.ksv.tactive.exception.ProjectNotFoundException;
@@ -41,6 +42,7 @@ import com.ksv.tactive.project.entity.FinancialFeasibility;
 import com.ksv.tactive.project.entity.Projects;
 import com.ksv.tactive.project.entity.TechnicalFeasibility;
 import com.ksv.tactive.project.entity.Template;
+import com.ksv.tactive.project.entity.TenderEstimation;
 import com.ksv.tactive.service.ProjectService;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -357,8 +359,13 @@ public class ProjectControler {
     
     @GetMapping("project/getAllBoqUploadedProject")
     public ResponseEntity<?> getAllBoqProjects(){
-    	List<ProjectInfoDto> projects = projectService.getAllBoqUploadedProject();
-    	return ResponseEntity.status(HttpStatus.OK).body(projects);
+    	try {
+    		List<ProjectInfoDto> projects = projectService.getAllBoqUploadedProject();
+    		return ResponseEntity.status(HttpStatus.OK).body(projects);
+    	}
+    	catch (DataNotFoundException e) {
+    		return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+    	}
     }
     
     
@@ -425,7 +432,7 @@ public class ProjectControler {
 	}
     
     @GetMapping("costCodeActivity/{projectId}")
-    public ResponseEntity<?> getCostCodeActivityByType(@PathVariable String projectId){
+    public ResponseEntity<?> getCostCodeActivityByProject(@PathVariable String projectId){
     	List<CostCodeActivity> costCode = projectService.getCostCodeActivityByProject(projectId);
     	if(!costCode.isEmpty()) {
     		return ResponseEntity.status(HttpStatus.OK).body(costCode);
@@ -452,6 +459,28 @@ public class ProjectControler {
 		return ResponseEntity.status(HttpStatus.CONFLICT).body(messageSource.getMessage("cost.code.not.found", null, Locale.ENGLISH));
 	}
     
-
+    @PostMapping("tenderEstimation/addResources")
+    public ResponseEntity<?> addResourcesToTender(@RequestBody TenderResourceDto tenderResourceDto){
+    	try {
+    		return ResponseEntity.status(HttpStatus.OK).body(projectService.addResourcesToTender(tenderResourceDto));
+    	}catch (DataNotFoundException e) {
+			return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+    	}
+    }
+    
+    @GetMapping("tenderEstimation/estimatedResources/{costCodeId}")
+    public ResponseEntity<?> getEstimatedResourcesByCostCode(@PathVariable String costCodeId){
+		try {
+			List<TenderEstimation> estimatedResources = projectService.getEstimatedResourcesByCostCode(costCodeId);
+			if(estimatedResources.isEmpty()) {
+				return ResponseEntity.status(HttpStatus.NO_CONTENT).body(messageSource.getMessage("tender.resource.not.found", null, Locale.ENGLISH));
+			}
+			return ResponseEntity.status(HttpStatus.OK).body(estimatedResources);
+		}catch (DataNotFoundException e) {
+			return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+		}
+    }
+    
+    
     
 }

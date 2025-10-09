@@ -15,6 +15,7 @@ import com.ksv.tactive.dto.FeasibilityApprovalDocuDTO;
 import com.ksv.tactive.dto.ProjectInfoDto;
 import com.ksv.tactive.dto.ProjectInputDTO;
 import com.ksv.tactive.dto.TemplateDto;
+import com.ksv.tactive.dto.TenderResourceDto;
 import com.ksv.tactive.exception.DataNotFoundException;
 import com.ksv.tactive.project.entity.ActivityGroup;
 import com.ksv.tactive.project.entity.ApprovalDocuments;
@@ -25,6 +26,7 @@ import com.ksv.tactive.project.entity.FinancialFeasibility;
 import com.ksv.tactive.project.entity.Projects;
 import com.ksv.tactive.project.entity.TechnicalFeasibility;
 import com.ksv.tactive.project.entity.Template;
+import com.ksv.tactive.project.entity.TenderEstimation;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -83,6 +85,8 @@ public interface ProjectService {
 	double getTotalAmountByCostCodeType(String costCodeTypeId, String projectId);
 	CostCodeActivity getCostCodeActivityById(String costCodeId);
 	
+	String addResourcesToTender(TenderResourceDto tenderResourceDto);
+	List<TenderEstimation> getEstimatedResourcesByCostCode(String costCodeId);
 	
 	
 	

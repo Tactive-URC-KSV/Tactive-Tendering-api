@@ -21,7 +21,6 @@ import lombok.Data;
 	    name = "cost_code_activity",
 	    indexes = { @Index(name = "idx_cost_code_activity_project_id", columnList = "project_id") }
 	)
-
 public class CostCodeActivity {
 
 	@Id
@@ -58,4 +57,7 @@ public class CostCodeActivity {
 	@ManyToOne
 	@JoinColumn(name = "project_id")
 	private Projects project;
+	
+	private double resourceRate;
+	private double resourceAmount;
 }

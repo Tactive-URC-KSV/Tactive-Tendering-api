@@ -18,9 +18,12 @@ public interface ProjectDao extends JpaRepository<Projects, String> {
 	
 	@Query("SELECT new com.ksv.tactive.dto.ProjectInfoDto(" +
 		       "p.id, p.projectCode, p.projectName, p.startDate, p.endDate, " +
-		       "p.sector.sectorName, p.region.regionName, p.estimatedValue, p.projectStatus.status, p.createdAt,p.archieve) " +
-		       "FROM Projects p")
-	List<ProjectInfoDto> findAllProjectInfo();
+		       "s.sectorName, r.regionName, p.estimatedValue, ps.status, p.createdAt, p.archieve) " +
+		       "FROM Projects p " +
+		       "LEFT JOIN p.sector s " +
+		       "LEFT JOIN p.region r " +
+		       "LEFT JOIN p.projectStatus ps")
+		List<ProjectInfoDto> findAllProjectInfo();
 	
 	@Query("SELECT new com.ksv.tactive.dto.ProjectInfoDto("
 			+ "p.id, p.projectCode, p.projectName, p.startDate, p.endDate, "
