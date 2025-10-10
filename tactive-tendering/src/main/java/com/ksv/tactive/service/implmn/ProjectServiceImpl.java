@@ -37,6 +37,7 @@ import com.ksv.tactive.dto.FeasibilityApprovalDocuDTO;
 import com.ksv.tactive.dto.ProjectInfoDto;
 import com.ksv.tactive.dto.ProjectInputDTO;
 import com.ksv.tactive.dto.TemplateDto;
+import com.ksv.tactive.dto.TenderResourceDto;
 import com.ksv.tactive.exception.DataNotFoundException;
 import com.ksv.tactive.exception.DuplicateProjectCodeException;
 import com.ksv.tactive.exception.FileNotSaveException;
@@ -51,15 +52,21 @@ import com.ksv.tactive.project.dao.CostCodeDao;
 import com.ksv.tactive.project.dao.CostCodeTypeDao;
 import com.ksv.tactive.project.dao.FeasibilityStudyDao;
 import com.ksv.tactive.project.dao.FinancialFeasibilityDao;
+import com.ksv.tactive.project.dao.ProjectCurrencyDao;
 import com.ksv.tactive.project.dao.ProjectDao;
 import com.ksv.tactive.project.dao.ProjectDocumentDetailsDao;
 import com.ksv.tactive.project.dao.ProjectStatusDao;
+import com.ksv.tactive.project.dao.QuantityTypeDao;
 import com.ksv.tactive.project.dao.RegionDao;
+import com.ksv.tactive.project.dao.ResourceDao;
+import com.ksv.tactive.project.dao.ResourceNatureDao;
+import com.ksv.tactive.project.dao.ResourceTypeDao;
 import com.ksv.tactive.project.dao.ScopeOfPackDao;
 import com.ksv.tactive.project.dao.SectorDao;
 import com.ksv.tactive.project.dao.TechnicalFeasibilityDao;
 import com.ksv.tactive.project.dao.TemplateDao;
 import com.ksv.tactive.project.dao.TemplateMappingDao;
+import com.ksv.tactive.project.dao.TenderEstimationDao;
 import com.ksv.tactive.project.dao.UOMDao;
 import com.ksv.tactive.project.entity.ActivityGroup;
 import com.ksv.tactive.project.entity.ApprovalDocuments;
@@ -67,15 +74,21 @@ import com.ksv.tactive.project.entity.BOQ;
 import com.ksv.tactive.project.entity.BOQFile;
 import com.ksv.tactive.project.entity.CostCodeActivity;
 import com.ksv.tactive.project.entity.CostCodeType;
+import com.ksv.tactive.project.entity.Currency;
 import com.ksv.tactive.project.entity.FeasibilityStudy;
 import com.ksv.tactive.project.entity.FinancialFeasibility;
 import com.ksv.tactive.project.entity.ProjectDocumentDetails;
 import com.ksv.tactive.project.entity.ProjectStatus;
 import com.ksv.tactive.project.entity.Projects;
+import com.ksv.tactive.project.entity.QuantityType;
+import com.ksv.tactive.project.entity.ResourceNature;
+import com.ksv.tactive.project.entity.ResourceType;
+import com.ksv.tactive.project.entity.Resources;
 import com.ksv.tactive.project.entity.ScopeOfPackage;
 import com.ksv.tactive.project.entity.TechnicalFeasibility;
 import com.ksv.tactive.project.entity.Template;
 import com.ksv.tactive.project.entity.TemplateMapping;
+import com.ksv.tactive.project.entity.TenderEstimation;
 import com.ksv.tactive.project.entity.UOM;
 import com.ksv.tactive.service.ProjectService;
 import com.ksv.tactive.service.UserService;
@@ -157,6 +170,25 @@ public class ProjectServiceImpl implements ProjectService{
 	
 	@Autowired
 	private CostCodeDao costCodeActivityDao;
+	
+	@Autowired
+	private ResourceTypeDao resourceTypeDao;
+	
+	@Autowired
+	private ResourceDao resourceDao;
+	
+	@Autowired
+	private ResourceNatureDao resourceNatureDao;
+	
+	@Autowired
+	private QuantityTypeDao quantityTypeDao;
+	
+	@Autowired
+	private ProjectCurrencyDao projectCurrencyDao;
+	
+	@Autowired
+	private TenderEstimationDao tenderEstDao;
+	
 	
 	@Override
 	public List<ProjectInfoDto> getAllProjects() {
@@ -758,7 +790,7 @@ public class ProjectServiceImpl implements ProjectService{
 	@Override
 	public List<ProjectInfoDto> getAllBoqUploadedProject() {
 		List<ProjectInfoDto> projects = new ArrayList<>();
-		Set<String> projectIds = boqFileDao.findAll().stream()
+		Set<String> projectIds = boqDao.findAll().stream()
 				.map(boq -> boq.getProject().getId())
 				.collect(Collectors.toSet());
 		for(String id : projectIds) {
@@ -989,5 +1021,116 @@ public class ProjectServiceImpl implements ProjectService{
 					.sum();
 		}
 		return 0;
+	}
+	
+	@Override
+	public String addResourcesToTender(TenderResourceDto tenderResourceDto) {
+		TenderEstimation tenderEst = new TenderEstimation();
+		tenderEst.setId(UUID.randomUUID().toString());
+		tenderEst.setDocNumber(tenderResourceDto.getDocNumber());
+		if(tenderResourceDto.getProjectId() != null && !tenderResourceDto.getProjectId().isEmpty()) {
+			Projects project = findByProjectId(tenderResourceDto.getProjectId());
+			tenderEst.setProject(project);
+		}
+		if(tenderResourceDto.getResourceId() != null && !tenderResourceDto.getResourceId().isEmpty()) {
+			Resources resource = resourceDao.findById(tenderResourceDto.getResourceId())
+					.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
+			tenderEst.setResource(resource);
+			if(tenderResourceDto.getRate() == resource.getUnitRate()) {
+				tenderEst.setRate(resource.getUnitRate());
+			}
+			else {
+				tenderEst.setRate(tenderResourceDto.getRate());
+			}
+		}
+		if(tenderResourceDto.getQuantityTypeId() != null && !tenderResourceDto.getQuantityTypeId().isEmpty()) {
+			QuantityType qtyType = quantityTypeDao.findById(tenderResourceDto.getQuantityTypeId())
+					.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
+			tenderEst.setQuantityType(qtyType);
+		}
+		tenderEst.setCoEfficient(tenderResourceDto.getCoEfficient());
+		if(tenderResourceDto.getResourceNatureId() != null && !tenderResourceDto.getResourceNatureId().isEmpty()) {
+			ResourceNature resourceNature = resourceNatureDao.findById(tenderResourceDto.getResourceNatureId())
+					.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
+			tenderEst.setResourceNature(resourceNature);
+		}
+		if(tenderResourceDto.getResourceTypeId() != null && !tenderResourceDto.getResourceTypeId().isEmpty()) {
+			ResourceType resourceType = resourceTypeDao.findById(tenderResourceDto.getResourceTypeId())
+					.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
+			tenderEst.setResourceType(resourceType);
+		}
+		if(tenderResourceDto.getUomId() != null && !tenderResourceDto.getUomId().isEmpty()) {
+			UOM uom = uomDao.findById(tenderResourceDto.getUomId())
+					.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
+			tenderEst.setUom(uom);
+		}
+		if(tenderResourceDto.getActivityGroupId() != null && !tenderResourceDto.getActivityGroupId().isEmpty()) {
+			Set<ActivityGroup> activityGroups = new HashSet<>();
+			for(String id : tenderResourceDto.getActivityGroupId()) {
+				ActivityGroup activityGroup = activityGroupsDao.findById(id)
+						.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
+				activityGroups.add(activityGroup);
+			}
+			tenderEst.setActivityGroup(activityGroups);
+		}
+		if(tenderResourceDto.getResourceNatureId() != null && !tenderResourceDto.getResourceNatureId().isEmpty()) {
+			ResourceNature resourceNature = resourceNatureDao.findById(tenderResourceDto.getResourceNatureId())
+					.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
+			tenderEst.setResourceNature(resourceNature);
+		}
+		tenderEst.setCalculatedQuantity(tenderResourceDto.getCalculatedQuantity());
+		if(tenderResourceDto.getWastePercentage() != 0) {
+			double wasteQty = (tenderResourceDto.getCalculatedQuantity() * tenderResourceDto.getWastePercentage()) / 100;
+			tenderEst.setWastePercentage(tenderResourceDto.getWastePercentage());
+			tenderEst.setWasteQuantity(wasteQty);
+		}
+		else if(tenderResourceDto.getWasteQuantity() != 0) {
+			double wastePerc = (tenderResourceDto.getWasteQuantity() / tenderResourceDto.getCalculatedQuantity()) * 100;
+			tenderEst.setWasteQuantity(tenderResourceDto.getWasteQuantity());
+			tenderEst.setWastePercentage(wastePerc);
+		}
+		tenderEst.setNetQuantity(tenderResourceDto.getCalculatedQuantity() + tenderEst.getWasteQuantity());
+		if(tenderResourceDto.getAdditionalRate() !=0 || tenderResourceDto.getShippingPrice() !=0) {
+			double shippingPrice = tenderResourceDto.getShippingPrice() !=0 ? tenderResourceDto.getShippingPrice()/tenderResourceDto.getNetQuantity() : 0;
+			tenderEst.setCostUnitRate(shippingPrice + tenderResourceDto.getAdditionalRate() + tenderEst.getRate());
+			tenderEst.setAdditionalRate(tenderResourceDto.getAdditionalRate());
+			tenderEst.setShippingPrice(tenderResourceDto.getShippingPrice());
+		}
+		else {
+			tenderEst.setCostUnitRate(tenderEst.getRate());
+			
+		}
+		if(tenderResourceDto.getCurrencyId() != null && !tenderResourceDto.getCurrencyId().isEmpty()) {
+			Currency currency = projectCurrencyDao.findById(tenderResourceDto.getCurrencyId())
+					.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
+			tenderEst.setCurrency(currency);
+			tenderEst.setExchangeRate(tenderResourceDto.getExchangeRate());
+		}else {
+			tenderEst.setExchangeRate(1);
+		}
+		tenderEst.setTotalCostCompanyCurrency(tenderEst.getNetQuantity() * tenderEst.getCostUnitRate());
+		tenderEst.setResourceTotalCost(tenderEst.getTotalCostCompanyCurrency() * tenderEst.getExchangeRate());
+		tenderEst.setRateLock(tenderResourceDto.isRateLock());
+		if(tenderResourceDto.getCostCodeActivityId() != null && !tenderResourceDto.getCostCodeActivityId().isEmpty()) {
+			Set<CostCodeActivity> costCodes = new HashSet<>();
+			for(String id : tenderResourceDto.getCostCodeActivityId()) {
+				CostCodeActivity costCode = getCostCodeActivityById(id);
+				costCode.setResourceRate(costCode.getResourceRate() + tenderEst.getCostUnitRate());
+				costCode.setResourceAmount(costCode.getResourceAmount() + tenderEst.getTotalCostCompanyCurrency());
+				costCodeActivityDao.save(costCode);
+				costCodes.add(costCode);
+			}
+			tenderEst.setCostCodeActivity(costCodes);
+		}
+		TenderEstimation savedTender = tenderEstDao.save(tenderEst);
+		if(savedTender != null) {
+			return messageSource.getMessage("tender.resource.save.success", null, Locale.ENGLISH);
+		}
+		return messageSource.getMessage("tender.resource.save.failure", null, Locale.ENGLISH);
+	}
+	@Override
+	public List<TenderEstimation> getEstimatedResourcesByCostCode(String costCodeId) {
+		List<TenderEstimation> tenderEst = tenderEstDao.findByCostCodeActivityId(costCodeId);
+		return tenderEst;
 	}
 }

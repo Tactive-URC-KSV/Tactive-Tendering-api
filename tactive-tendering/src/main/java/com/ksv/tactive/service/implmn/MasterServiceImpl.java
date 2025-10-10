@@ -11,15 +11,25 @@ import org.springframework.stereotype.Service;
 import com.ksv.tactive.exception.DuplicateEntryException;
 import com.ksv.tactive.project.dao.CostCodeTypeDao;
 import com.ksv.tactive.project.dao.ListOfApprovalsDao;
+import com.ksv.tactive.project.dao.ProjectCurrencyDao;
 import com.ksv.tactive.project.dao.ProjectStatusDao;
+import com.ksv.tactive.project.dao.QuantityTypeDao;
 import com.ksv.tactive.project.dao.RegionDao;
+import com.ksv.tactive.project.dao.ResourceNatureDao;
+import com.ksv.tactive.project.dao.ResourceDao;
+import com.ksv.tactive.project.dao.ResourceTypeDao;
 import com.ksv.tactive.project.dao.ScopeOfPackDao;
 import com.ksv.tactive.project.dao.SectorDao;
 import com.ksv.tactive.project.dao.UOMDao;
 import com.ksv.tactive.project.entity.CostCodeType;
+import com.ksv.tactive.project.entity.Currency;
 import com.ksv.tactive.project.entity.ListOfApprovals;
 import com.ksv.tactive.project.entity.ProjectStatus;
+import com.ksv.tactive.project.entity.QuantityType;
 import com.ksv.tactive.project.entity.Region;
+import com.ksv.tactive.project.entity.Resources;
+import com.ksv.tactive.project.entity.ResourceNature;
+import com.ksv.tactive.project.entity.ResourceType;
 import com.ksv.tactive.project.entity.ScopeOfPackage;
 import com.ksv.tactive.project.entity.Sector;
 import com.ksv.tactive.project.entity.UOM;
@@ -51,6 +61,21 @@ public class MasterServiceImpl implements MasterService{
 	
 	@Autowired
 	private CostCodeTypeDao costCodeTypeDao;
+	
+	@Autowired
+	private ResourceTypeDao resourceTypeDao;
+	
+	@Autowired
+	private ResourceDao resourceDao;
+	
+	@Autowired
+	private QuantityTypeDao quantityTypeDao;
+	
+	@Autowired
+	private ResourceNatureDao resouceNatureDao;
+	
+	@Autowired
+	private ProjectCurrencyDao currencyDao;
 	
 	@Override
 	public String addSector(Sector sector) {
@@ -149,7 +174,39 @@ public class MasterServiceImpl implements MasterService{
 		return costCodeTypeDao.findAll();
 	}
 	
-
+	@Override
+	public List<ResourceType> getAllResourceTypes() {
+		return resourceTypeDao.findAll();
+	}
+	
+	@Override
+	public List<Resources> getAllResources() {
+		return resourceDao.findAll();
+	}
+	
+	@Override
+	public List<QuantityType> getAllQuantityTypes() {
+		return quantityTypeDao.findAll();
+	}
+	
+	@Override
+	public List<ResourceNature> getAllResourceNatures() {
+		return resouceNatureDao.findAll();
+	}
+	
+	@Override
+	public List<Currency> getAllCurrencies() {
+		return currencyDao.findAll();
+	}
+	@Override
+	public String addResourceNature(ResourceNature resourceNature) {
+		if(resouceNatureDao.findByNatureIgnoreCase(resourceNature.getNature()) != null) {
+			throw new DuplicateEntryException(messageSource.getMessage("resourcenature.duplicate", null, Locale.ENGLISH));
+		}
+		resourceNature.setId(UUID.randomUUID().toString());
+		resouceNatureDao.save(resourceNature);
+		return null;
+	}
 
 
 }

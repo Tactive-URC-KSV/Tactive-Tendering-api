@@ -8,4 +8,6 @@ import com.ksv.tactive.project.entity.ResourceType;
 @Repository
 public interface ResourceTypeDao extends JpaRepository<ResourceType, String>{
 
+	ResourceType findByResourceTypeNameIgnoreCase(String resouceTypeName);
+
 }

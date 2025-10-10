@@ -1,0 +1,3079 @@
+[
+  {
+    "resourceCode": "MAT-CEM-01",
+    "resourceName": "Cement",
+    "unitRate": 530.46,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Bag",
+      "uomCode": "BAG",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "MAT-SAN-02",
+    "resourceName": "Sand",
+    "unitRate": 564.13,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Cubic Meter",
+      "uomCode": "CUM",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "MAT-STEREI-03",
+    "resourceName": "Steel Reinforcement",
+    "unitRate": 3888.78,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Tonne",
+      "uomCode": "TON",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "MAT-CLABRI-04",
+    "resourceName": "Clay Bricks",
+    "unitRate": 3395.1,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Piece",
+      "uomCode": "PC",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "MAT-CON-05",
+    "resourceName": "Concrete",
+    "unitRate": 3070.25,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Cubic Meter",
+      "uomCode": "CUM",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "MAT-STE-06",
+    "resourceName": "Steel",
+    "unitRate": 1291.3,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Tonne",
+      "uomCode": "TON",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "MAT-WOO-07",
+    "resourceName": "Wood",
+    "unitRate": 643.0,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Cubic Meter",
+      "uomCode": "CUM",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "MAT-STO-08",
+    "resourceName": "Stone",
+    "unitRate": 3570.54,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Cubic Meter",
+      "uomCode": "CUM",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "MAT-BRI-09",
+    "resourceName": "Brick",
+    "unitRate": 548.29,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Piece",
+      "uomCode": "PC",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "MAT-MAS-10",
+    "resourceName": "Masonry",
+    "unitRate": 647.74,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Cubic Meter",
+      "uomCode": "CUM",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "MAT-BAM-11",
+    "resourceName": "Bamboo",
+    "unitRate": 3897.8,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Piece",
+      "uomCode": "PC",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "MAT-CONFOA-12",
+    "resourceName": "Construction Foam",
+    "unitRate": 1061.01,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Piece",
+      "uomCode": "PC",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "MAT-GLA-13",
+    "resourceName": "Glass",
+    "unitRate": 4669.46,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Square Meter",
+      "uomCode": "SQM",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "MAT-ALU-14",
+    "resourceName": "Aluminum",
+    "unitRate": 1046.63,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Tonne",
+      "uomCode": "TON",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "MAT-ADO-15",
+    "resourceName": "Adobe",
+    "unitRate": 2503.34,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Piece",
+      "uomCode": "PC",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "MAT-GLABRI-16",
+    "resourceName": "Glass Brick",
+    "unitRate": 135.88,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Piece",
+      "uomCode": "PC",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "MAT-TERCOT-17",
+    "resourceName": "Terra Cotta",
+    "unitRate": 206.9,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Square Meter",
+      "uomCode": "SQM",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "MAT-ARTSTO-18",
+    "resourceName": "Artificial Stone",
+    "unitRate": 1663.83,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Square Meter",
+      "uomCode": "SQM",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "MAT-CINBLO-19",
+    "resourceName": "Cinder Block",
+    "unitRate": 1594.34,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Piece",
+      "uomCode": "PC",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "MAT-CONBLO-20",
+    "resourceName": "Concrete Block",
+    "unitRate": 2811.7,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Piece",
+      "uomCode": "PC",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "MAT-NOXBLO-21",
+    "resourceName": "Noxer Block",
+    "unitRate": 3098.58,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Piece",
+      "uomCode": "PC",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "MAT-URB-22",
+    "resourceName": "Urbanite",
+    "unitRate": 3266.29,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Cubic Meter",
+      "uomCode": "CUM",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "MAT-ENGWOO-23",
+    "resourceName": "Engineered Wood",
+    "unitRate": 2040.39,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Cubic Meter",
+      "uomCode": "CUM",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "MAT-FIB-24",
+    "resourceName": "Fiberglass",
+    "unitRate": 4974.76,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Square Meter",
+      "uomCode": "SQM",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "MAT-CARFIB-25",
+    "resourceName": "Carbon Fiber",
+    "unitRate": 896.78,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Square Meter",
+      "uomCode": "SQM",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "MAT-TRAWOO-26",
+    "resourceName": "Transparent Wood",
+    "unitRate": 3077.11,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Cubic Meter",
+      "uomCode": "CUM",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "MAT-SEN-27",
+    "resourceName": "SensiTiles",
+    "unitRate": 4040.17,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Piece",
+      "uomCode": "PC",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "MAT-SELCON-28",
+    "resourceName": "Self-Healing Concrete",
+    "unitRate": 256.43,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Cubic Meter",
+      "uomCode": "CUM",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "MAT-AER-29",
+    "resourceName": "Aerogel",
+    "unitRate": 2632.74,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Square Meter",
+      "uomCode": "SQM",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "MAT-RIC-30",
+    "resourceName": "Richlite",
+    "unitRate": 4017.62,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Square Meter",
+      "uomCode": "SQM",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "MAT-LIQGRA-31",
+    "resourceName": "Liquid Granite",
+    "unitRate": 3806.9,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Cubic Meter",
+      "uomCode": "CUM",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "MAT-COLROL-32",
+    "resourceName": "Cold Rolled Steel Framing",
+    "unitRate": 4053.64,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Tonne",
+      "uomCode": "TON",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "MAT-COMEAR-33",
+    "resourceName": "Compressed Earth Block",
+    "unitRate": 2848.66,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Piece",
+      "uomCode": "PC",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "MAT-MUDBRI-34",
+    "resourceName": "Mud Brick",
+    "unitRate": 3285.09,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Piece",
+      "uomCode": "PC",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "MAT-RAMEAR-35",
+    "resourceName": "Rammed Earth",
+    "unitRate": 1633.8,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Cubic Meter",
+      "uomCode": "CUM",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "MAT-MOR-36",
+    "resourceName": "Mortar",
+    "unitRate": 2083.41,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Bag",
+      "uomCode": "BAG",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "MAT-GRO-37",
+    "resourceName": "Grout",
+    "unitRate": 3032.22,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Bag",
+      "uomCode": "BAG",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "MAT-PLA-38",
+    "resourceName": "Plastics",
+    "unitRate": 2830.78,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Tonne",
+      "uomCode": "TON",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "MAT-COM-39",
+    "resourceName": "Composites",
+    "unitRate": 4660.16,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Tonne",
+      "uomCode": "TON",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "MAT-GYP-40",
+    "resourceName": "Gypsum",
+    "unitRate": 1704.68,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Bag",
+      "uomCode": "BAG",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "MAT-PLY-41",
+    "resourceName": "Plywood",
+    "unitRate": 1178.39,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Square Meter",
+      "uomCode": "SQM",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "MAT-TIM-42",
+    "resourceName": "Timber",
+    "unitRate": 3817.58,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Cubic Meter",
+      "uomCode": "CUM",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "MAT-REB-43",
+    "resourceName": "Rebar",
+    "unitRate": 3460.09,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Tonne",
+      "uomCode": "TON",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "MAT-LIM-44",
+    "resourceName": "Lime",
+    "unitRate": 200.57,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Bag",
+      "uomCode": "BAG",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "MAT-PLA-45",
+    "resourceName": "Plaster",
+    "unitRate": 4767.32,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Bag",
+      "uomCode": "BAG",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "MAT-PAI-46",
+    "resourceName": "Paint",
+    "unitRate": 2928.24,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Liter",
+      "uomCode": "LTR",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "MAT-TIL-47",
+    "resourceName": "Tiles",
+    "unitRate": 2695.31,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Square Meter",
+      "uomCode": "SQM",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "MAT-CER-48",
+    "resourceName": "Ceramics",
+    "unitRate": 1261.3,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Square Meter",
+      "uomCode": "SQM",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "MAT-INS-49",
+    "resourceName": "Insulation",
+    "unitRate": 1906.44,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Square Meter",
+      "uomCode": "SQM",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "MAT-BIT-50",
+    "resourceName": "Bitumen",
+    "unitRate": 286.8,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Tonne",
+      "uomCode": "TON",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "MAT-ASP-51",
+    "resourceName": "Asphalt",
+    "unitRate": 1405.36,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Tonne",
+      "uomCode": "TON",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "MAT-ROOSHI-52",
+    "resourceName": "Roofing Shingles",
+    "unitRate": 4385.91,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Square Meter",
+      "uomCode": "SQM",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "MAT-COP-53",
+    "resourceName": "Copper",
+    "unitRate": 2993.01,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Tonne",
+      "uomCode": "TON",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "MAT-PVCPIP-54",
+    "resourceName": "PVC Pipes",
+    "unitRate": 4764.41,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Piece",
+      "uomCode": "PC",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "MAT-HDP-55",
+    "resourceName": "HDPE",
+    "unitRate": 4245.36,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Tonne",
+      "uomCode": "TON",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "MAT-FIBCEM-56",
+    "resourceName": "Fiber Cement",
+    "unitRate": 2812.59,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Square Meter",
+      "uomCode": "SQM",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "MAT-ACR-57",
+    "resourceName": "Acrylic",
+    "unitRate": 4905.3,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Square Meter",
+      "uomCode": "SQM",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "MAT-EPO-58",
+    "resourceName": "Epoxy",
+    "unitRate": 2176.77,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Liter",
+      "uomCode": "LTR",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "MAT-SEA-59",
+    "resourceName": "Sealants",
+    "unitRate": 4559.85,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Liter",
+      "uomCode": "LTR",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "MAT-ADH-60",
+    "resourceName": "Adhesives",
+    "unitRate": 4634.09,
+    "resourceType": {
+      "resourceTypeName": "Material"
+    },
+    "uom": {
+      "uomName": "Liter",
+      "uomCode": "LTR",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "EQP-CONMIX-01",
+    "resourceName": "Concrete Mixer",
+    "unitRate": 2746.91,
+    "resourceType": {
+      "resourceTypeName": "Machinery"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "EQP-TOWCRA-02",
+    "resourceName": "Tower Crane",
+    "unitRate": 3761.85,
+    "resourceType": {
+      "resourceTypeName": "Machinery"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "EQP-BOOLIF-03",
+    "resourceName": "Boom Lift",
+    "unitRate": 3755.68,
+    "resourceType": {
+      "resourceTypeName": "Machinery"
+    },
+    "uom": {
+      "uomName": "Day",
+      "uomCode": "DAY",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "EQP-SCILIF-04",
+    "resourceName": "Scissor Lift",
+    "unitRate": 4859.42,
+    "resourceType": {
+      "resourceTypeName": "Machinery"
+    },
+    "uom": {
+      "uomName": "Day",
+      "uomCode": "DAY",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "EQP-FOR-05",
+    "resourceName": "Forklift",
+    "unitRate": 789.64,
+    "resourceType": {
+      "resourceTypeName": "Machinery"
+    },
+    "uom": {
+      "uomName": "Day",
+      "uomCode": "DAY",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "EQP-SINMAN-06",
+    "resourceName": "Single Man Lift",
+    "unitRate": 1663.81,
+    "resourceType": {
+      "resourceTypeName": "Machinery"
+    },
+    "uom": {
+      "uomName": "Day",
+      "uomCode": "DAY",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "EQP-TEL-07",
+    "resourceName": "Telehandler",
+    "unitRate": 2902.36,
+    "resourceType": {
+      "resourceTypeName": "Machinery"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "EQP-BUL-08",
+    "resourceName": "Bulldozer",
+    "unitRate": 4338.96,
+    "resourceType": {
+      "resourceTypeName": "Machinery"
+    },
+    "uom": {
+      "uomName": "Day",
+      "uomCode": "DAY",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "EQP-WHETRA-09",
+    "resourceName": "Wheel Tractor-Scraper",
+    "unitRate": 101.88,
+    "resourceType": {
+      "resourceTypeName": "Machinery"
+    },
+    "uom": {
+      "uomName": "Day",
+      "uomCode": "DAY",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "EQP-SKISTE-10",
+    "resourceName": "Skid Steer Loader",
+    "unitRate": 4981.81,
+    "resourceType": {
+      "resourceTypeName": "Machinery"
+    },
+    "uom": {
+      "uomName": "Day",
+      "uomCode": "DAY",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "EQP-BACLOA-11",
+    "resourceName": "Backhoe Loader",
+    "unitRate": 1279.39,
+    "resourceType": {
+      "resourceTypeName": "Machinery"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "EQP-EXC-12",
+    "resourceName": "Excavator",
+    "unitRate": 810.07,
+    "resourceType": {
+      "resourceTypeName": "Machinery"
+    },
+    "uom": {
+      "uomName": "Day",
+      "uomCode": "DAY",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "EQP-FELBUN-13",
+    "resourceName": "Feller Buncher",
+    "unitRate": 4234.27,
+    "resourceType": {
+      "resourceTypeName": "Machinery"
+    },
+    "uom": {
+      "uomName": "Day",
+      "uomCode": "DAY",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "EQP-HAR-14",
+    "resourceName": "Harvester",
+    "unitRate": 800.56,
+    "resourceType": {
+      "resourceTypeName": "Machinery"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "EQP-TRE-15",
+    "resourceName": "Trencher",
+    "unitRate": 2504.0,
+    "resourceType": {
+      "resourceTypeName": "Machinery"
+    },
+    "uom": {
+      "uomName": "Day",
+      "uomCode": "DAY",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "EQP-ARTHAU-16",
+    "resourceName": "Articulated Hauler",
+    "unitRate": 2568.6,
+    "resourceType": {
+      "resourceTypeName": "Machinery"
+    },
+    "uom": {
+      "uomName": "Day",
+      "uomCode": "DAY",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "EQP-OFFTRU-17",
+    "resourceName": "Off-Highway Truck",
+    "unitRate": 2046.25,
+    "resourceType": {
+      "resourceTypeName": "Machinery"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "EQP-ASPPAV-18",
+    "resourceName": "Asphalt Paver",
+    "unitRate": 4367.4,
+    "resourceType": {
+      "resourceTypeName": "Machinery"
+    },
+    "uom": {
+      "uomName": "Day",
+      "uomCode": "DAY",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "EQP-COLPLA-19",
+    "resourceName": "Cold Planer",
+    "unitRate": 3870.87,
+    "resourceType": {
+      "resourceTypeName": "Machinery"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "EQP-MOTGRA-20",
+    "resourceName": "Motor Grader",
+    "unitRate": 2730.61,
+    "resourceType": {
+      "resourceTypeName": "Machinery"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "EQP-COM-21",
+    "resourceName": "Compactor",
+    "unitRate": 3799.91,
+    "resourceType": {
+      "resourceTypeName": "Machinery"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "EQP-DRUROL-22",
+    "resourceName": "Drum Roller",
+    "unitRate": 3247.63,
+    "resourceType": {
+      "resourceTypeName": "Machinery"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "EQP-COMTRA-23",
+    "resourceName": "Compact Track Loader",
+    "unitRate": 3024.01,
+    "resourceType": {
+      "resourceTypeName": "Machinery"
+    },
+    "uom": {
+      "uomName": "Day",
+      "uomCode": "DAY",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "EQP-MULLOA-24",
+    "resourceName": "Multi-Terrain Loader",
+    "unitRate": 4812.57,
+    "resourceType": {
+      "resourceTypeName": "Machinery"
+    },
+    "uom": {
+      "uomName": "Day",
+      "uomCode": "DAY",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "EQP-SKI-25",
+    "resourceName": "Skidder",
+    "unitRate": 466.83,
+    "resourceType": {
+      "resourceTypeName": "Machinery"
+    },
+    "uom": {
+      "uomName": "Day",
+      "uomCode": "DAY",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "EQP-FOR-26",
+    "resourceName": "Forwarder",
+    "unitRate": 3397.7,
+    "resourceType": {
+      "resourceTypeName": "Machinery"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "EQP-STUGRI-27",
+    "resourceName": "Stump Grinder",
+    "unitRate": 4917.58,
+    "resourceType": {
+      "resourceTypeName": "Machinery"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "EQP-SNO-28",
+    "resourceName": "Snowblower",
+    "unitRate": 1368.67,
+    "resourceType": {
+      "resourceTypeName": "Machinery"
+    },
+    "uom": {
+      "uomName": "Day",
+      "uomCode": "DAY",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "EQP-ASPCUT-29",
+    "resourceName": "Asphalt Cutter",
+    "unitRate": 2489.53,
+    "resourceType": {
+      "resourceTypeName": "Machinery"
+    },
+    "uom": {
+      "uomName": "Day",
+      "uomCode": "DAY",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "EQP-COLPLA-30",
+    "resourceName": "Cold Planer",
+    "unitRate": 3119.48,
+    "resourceType": {
+      "resourceTypeName": "Machinery"
+    },
+    "uom": {
+      "uomName": "Day",
+      "uomCode": "DAY",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "EQP-TRE-31",
+    "resourceName": "Trencher",
+    "unitRate": 1996.73,
+    "resourceType": {
+      "resourceTypeName": "Machinery"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "EQP-CLABUC-32",
+    "resourceName": "Clamshell Bucket",
+    "unitRate": 2685.76,
+    "resourceType": {
+      "resourceTypeName": "Machinery"
+    },
+    "uom": {
+      "uomName": "Day",
+      "uomCode": "DAY",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "EQP-COMEXC-33",
+    "resourceName": "Compact Excavator",
+    "unitRate": 3817.93,
+    "resourceType": {
+      "resourceTypeName": "Machinery"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "EQP-CONPUM-34",
+    "resourceName": "Concrete Pump",
+    "unitRate": 2050.6,
+    "resourceType": {
+      "resourceTypeName": "Machinery"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "EQP-CRA-35",
+    "resourceName": "Crane",
+    "unitRate": 1544.59,
+    "resourceType": {
+      "resourceTypeName": "Machinery"
+    },
+    "uom": {
+      "uomName": "Day",
+      "uomCode": "DAY",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "EQP-CRAEXC-36",
+    "resourceName": "Crawler Excavator",
+    "unitRate": 309.82,
+    "resourceType": {
+      "resourceTypeName": "Machinery"
+    },
+    "uom": {
+      "uomName": "Day",
+      "uomCode": "DAY",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "EQP-BACLOA-37",
+    "resourceName": "Backhoe/Front Loader",
+    "unitRate": 2412.06,
+    "resourceType": {
+      "resourceTypeName": "Machinery"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "EQP-COMTRA-38",
+    "resourceName": "Compressor Trailer",
+    "unitRate": 1170.62,
+    "resourceType": {
+      "resourceTypeName": "Machinery"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "EQP-CONSAW-39",
+    "resourceName": "Concrete Saw",
+    "unitRate": 2099.64,
+    "resourceType": {
+      "resourceTypeName": "Machinery"
+    },
+    "uom": {
+      "uomName": "Day",
+      "uomCode": "DAY",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "EQP-WATTRU-40",
+    "resourceName": "Water Truck",
+    "unitRate": 4161.25,
+    "resourceType": {
+      "resourceTypeName": "Machinery"
+    },
+    "uom": {
+      "uomName": "Day",
+      "uomCode": "DAY",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "EQP-1-TTRU-41",
+    "resourceName": "1-Ton Truck",
+    "unitRate": 2854.6,
+    "resourceType": {
+      "resourceTypeName": "Machinery"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "EQP-CONMIX-42",
+    "resourceName": "Concrete Mixer Truck",
+    "unitRate": 1831.48,
+    "resourceType": {
+      "resourceTypeName": "Machinery"
+    },
+    "uom": {
+      "uomName": "Day",
+      "uomCode": "DAY",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "EQP-DRAEXC-43",
+    "resourceName": "Dragline Excavator",
+    "unitRate": 1606.12,
+    "resourceType": {
+      "resourceTypeName": "Machinery"
+    },
+    "uom": {
+      "uomName": "Day",
+      "uomCode": "DAY",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "EQP-GRA-44",
+    "resourceName": "Grader",
+    "unitRate": 4635.02,
+    "resourceType": {
+      "resourceTypeName": "Machinery"
+    },
+    "uom": {
+      "uomName": "Day",
+      "uomCode": "DAY",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "EQP-LOA-45",
+    "resourceName": "Loader",
+    "unitRate": 4485.83,
+    "resourceType": {
+      "resourceTypeName": "Machinery"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "EQP-PLACOM-46",
+    "resourceName": "Plate Compactor",
+    "unitRate": 2433.52,
+    "resourceType": {
+      "resourceTypeName": "Machinery"
+    },
+    "uom": {
+      "uomName": "Day",
+      "uomCode": "DAY",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "EQP-ROAROL-47",
+    "resourceName": "Road Roller",
+    "unitRate": 1564.7,
+    "resourceType": {
+      "resourceTypeName": "Machinery"
+    },
+    "uom": {
+      "uomName": "Day",
+      "uomCode": "DAY",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "EQP-VIBROL-48",
+    "resourceName": "Vibratory Roller",
+    "unitRate": 2559.29,
+    "resourceType": {
+      "resourceTypeName": "Machinery"
+    },
+    "uom": {
+      "uomName": "Day",
+      "uomCode": "DAY",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "EQP-PADROL-49",
+    "resourceName": "Padfoot Roller",
+    "unitRate": 3999.34,
+    "resourceType": {
+      "resourceTypeName": "Machinery"
+    },
+    "uom": {
+      "uomName": "Day",
+      "uomCode": "DAY",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "LAB-SKILAB-01",
+    "resourceName": "Skilled Labour",
+    "unitRate": 2845.19,
+    "resourceType": {
+      "resourceTypeName": "Labour"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "LAB-UNSLAB-02",
+    "resourceName": "Unskilled Labour",
+    "unitRate": 659.02,
+    "resourceType": {
+      "resourceTypeName": "Labour"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "LAB-CONWOR-03",
+    "resourceName": "Construction Worker",
+    "unitRate": 834.11,
+    "resourceType": {
+      "resourceTypeName": "Labour"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "LAB-CONINS-04",
+    "resourceName": "Construction Inspector",
+    "unitRate": 4802.64,
+    "resourceType": {
+      "resourceTypeName": "Labour"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "LAB-FLOINS-05",
+    "resourceName": "Flooring Installer",
+    "unitRate": 117.45,
+    "resourceType": {
+      "resourceTypeName": "Labour"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "LAB-SUR-06",
+    "resourceName": "Surveyor",
+    "unitRate": 544.67,
+    "resourceType": {
+      "resourceTypeName": "Labour"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "LAB-GLA-07",
+    "resourceName": "Glazier",
+    "unitRate": 358.08,
+    "resourceType": {
+      "resourceTypeName": "Labour"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "LAB-TILSET-08",
+    "resourceName": "Tile Setter",
+    "unitRate": 2988.4,
+    "resourceType": {
+      "resourceTypeName": "Labour"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "LAB-BRIMAS-09",
+    "resourceName": "Brick Mason",
+    "unitRate": 3808.86,
+    "resourceType": {
+      "resourceTypeName": "Labour"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "LAB-ROO-10",
+    "resourceName": "Roofer",
+    "unitRate": 2959.58,
+    "resourceType": {
+      "resourceTypeName": "Labour"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "LAB-CONFIN-11",
+    "resourceName": "Concrete Finisher",
+    "unitRate": 1289.16,
+    "resourceType": {
+      "resourceTypeName": "Labour"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "LAB-IRO-12",
+    "resourceName": "Ironworker",
+    "unitRate": 2637.08,
+    "resourceType": {
+      "resourceTypeName": "Labour"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "LAB-CRAOPE-13",
+    "resourceName": "Crane Operator",
+    "unitRate": 4593.32,
+    "resourceType": {
+      "resourceTypeName": "Labour"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "LAB-PLU-14",
+    "resourceName": "Plumber",
+    "unitRate": 4284.18,
+    "resourceType": {
+      "resourceTypeName": "Labour"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "LAB-CAR-15",
+    "resourceName": "Carpenter",
+    "unitRate": 2045.66,
+    "resourceType": {
+      "resourceTypeName": "Labour"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "LAB-PAI-16",
+    "resourceName": "Painter",
+    "unitRate": 988.92,
+    "resourceType": {
+      "resourceTypeName": "Labour"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "LAB-ELE-17",
+    "resourceName": "Electrician",
+    "unitRate": 3604.01,
+    "resourceType": {
+      "resourceTypeName": "Labour"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "LAB-PIP-18",
+    "resourceName": "Pipefitter",
+    "unitRate": 4133.69,
+    "resourceType": {
+      "resourceTypeName": "Labour"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "LAB-COSEST-19",
+    "resourceName": "Cost Estimator",
+    "unitRate": 2531.69,
+    "resourceType": {
+      "resourceTypeName": "Labour"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "LAB-SAFMAN-20",
+    "resourceName": "Safety Manager",
+    "unitRate": 4003.62,
+    "resourceType": {
+      "resourceTypeName": "Labour"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "LAB-CONMAN-21",
+    "resourceName": "Construction Manager",
+    "unitRate": 1077.82,
+    "resourceType": {
+      "resourceTypeName": "Labour"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "LAB-CIVENG-22",
+    "resourceName": "Civil Engineer",
+    "unitRate": 2227.07,
+    "resourceType": {
+      "resourceTypeName": "Labour"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "LAB-CONLAB-23",
+    "resourceName": "Concrete Laborer",
+    "unitRate": 4847.32,
+    "resourceType": {
+      "resourceTypeName": "Labour"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "LAB-CONLAB-24",
+    "resourceName": "Construction Laborer",
+    "unitRate": 3579.62,
+    "resourceType": {
+      "resourceTypeName": "Labour"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "LAB-BRI-25",
+    "resourceName": "Bricklayer",
+    "unitRate": 1754.49,
+    "resourceType": {
+      "resourceTypeName": "Labour"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "LAB-DRY-26",
+    "resourceName": "Drywaller",
+    "unitRate": 901.02,
+    "resourceType": {
+      "resourceTypeName": "Labour"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "LAB-HVATEC-27",
+    "resourceName": "HVAC Technician",
+    "unitRate": 1152.47,
+    "resourceType": {
+      "resourceTypeName": "Labour"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "LAB-INS-28",
+    "resourceName": "Insulator",
+    "unitRate": 3053.81,
+    "resourceType": {
+      "resourceTypeName": "Labour"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "LAB-LAN-29",
+    "resourceName": "Landscaper",
+    "unitRate": 1340.32,
+    "resourceType": {
+      "resourceTypeName": "Labour"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "LAB-MAS-30",
+    "resourceName": "Mason",
+    "unitRate": 3224.55,
+    "resourceType": {
+      "resourceTypeName": "Labour"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "LAB-BOI-31",
+    "resourceName": "Boilermaker",
+    "unitRate": 4844.83,
+    "resourceType": {
+      "resourceTypeName": "Labour"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "LAB-BLO-32",
+    "resourceName": "Blockmason",
+    "unitRate": 3592.41,
+    "resourceType": {
+      "resourceTypeName": "Labour"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "LAB-STO-33",
+    "resourceName": "Stonemason",
+    "unitRate": 3574.43,
+    "resourceType": {
+      "resourceTypeName": "Labour"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "LAB-CARINS-34",
+    "resourceName": "Carpet Installer",
+    "unitRate": 3583.59,
+    "resourceType": {
+      "resourceTypeName": "Labour"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "LAB-CEMMAS-35",
+    "resourceName": "Cement Mason",
+    "unitRate": 2291.81,
+    "resourceType": {
+      "resourceTypeName": "Labour"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "LAB-BUIINS-36",
+    "resourceName": "Building Inspector",
+    "unitRate": 348.6,
+    "resourceType": {
+      "resourceTypeName": "Labour"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "LAB-EQUOPE-37",
+    "resourceName": "Machinery Operator",
+    "unitRate": 940.72,
+    "resourceType": {
+      "resourceTypeName": "Labour"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "LAB-HEL-38",
+    "resourceName": "Helper",
+    "unitRate": 420.24,
+    "resourceType": {
+      "resourceTypeName": "Labour"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "LAB-TAP-39",
+    "resourceName": "Taper",
+    "unitRate": 3791.4,
+    "resourceType": {
+      "resourceTypeName": "Labour"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "LAB-ELEINS-40",
+    "resourceName": "Elevator Installer",
+    "unitRate": 2918.34,
+    "resourceType": {
+      "resourceTypeName": "Labour"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "LAB-HAZMAT-41",
+    "resourceName": "Hazardous Materials Removal Worker",
+    "unitRate": 4199.76,
+    "resourceType": {
+      "resourceTypeName": "Labour"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "LAB-REFMEC-42",
+    "resourceName": "Refrigeration Mechanic",
+    "unitRate": 2226.42,
+    "resourceType": {
+      "resourceTypeName": "Labour"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "LAB-SHEMET-43",
+    "resourceName": "Sheet Metal Worker",
+    "unitRate": 4528.95,
+    "resourceType": {
+      "resourceTypeName": "Labour"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "LAB-SOLPHO-44",
+    "resourceName": "Solar Photovoltaic Installer",
+    "unitRate": 2139.98,
+    "resourceType": {
+      "resourceTypeName": "Labour"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "LAB-STRIRO-45",
+    "resourceName": "Structural Iron Worker",
+    "unitRate": 4528.72,
+    "resourceType": {
+      "resourceTypeName": "Labour"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "LAB-HEL-46",
+    "resourceName": "Helpers–Electricians",
+    "unitRate": 204.0,
+    "resourceType": {
+      "resourceTypeName": "Labour"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "LAB-OPEENG-47",
+    "resourceName": "Operating Engineer",
+    "unitRate": 1651.27,
+    "resourceType": {
+      "resourceTypeName": "Labour"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "LAB-STE-48",
+    "resourceName": "Steamfitter",
+    "unitRate": 4054.56,
+    "resourceType": {
+      "resourceTypeName": "Labour"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "LAB-WEL-49",
+    "resourceName": "Welder",
+    "unitRate": 4463.87,
+    "resourceType": {
+      "resourceTypeName": "Labour"
+    },
+    "uom": {
+      "uomName": "Hour",
+      "uomCode": "HR",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "SUB-PLASUB-01",
+    "resourceName": "Plastering Subcontract",
+    "unitRate": 4568.1,
+    "resourceType": {
+      "resourceTypeName": "Subcontract"
+    },
+    "uom": {
+      "uomName": "Square Meter",
+      "uomCode": "SQM",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "SUB-ELEINS-02",
+    "resourceName": "Electrical Installation",
+    "unitRate": 4043.63,
+    "resourceType": {
+      "resourceTypeName": "Subcontract"
+    },
+    "uom": {
+      "uomName": "Unit",
+      "uomCode": "UNT",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "SUB-SITPRE-03",
+    "resourceName": "Site Preparation",
+    "unitRate": 822.32,
+    "resourceType": {
+      "resourceTypeName": "Subcontract"
+    },
+    "uom": {
+      "uomName": "Unit",
+      "uomCode": "UNT",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "SUB-CONWOR-04",
+    "resourceName": "Concrete Work",
+    "unitRate": 4415.55,
+    "resourceType": {
+      "resourceTypeName": "Subcontract"
+    },
+    "uom": {
+      "uomName": "Unit",
+      "uomCode": "UNT",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "SUB-STRFRA-05",
+    "resourceName": "Structural Framing",
+    "unitRate": 205.05,
+    "resourceType": {
+      "resourceTypeName": "Subcontract"
+    },
+    "uom": {
+      "uomName": "Cubic Meter",
+      "uomCode": "CUM",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "SUB-ROO-06",
+    "resourceName": "Roofing",
+    "unitRate": 1514.88,
+    "resourceType": {
+      "resourceTypeName": "Subcontract"
+    },
+    "uom": {
+      "uomName": "Unit",
+      "uomCode": "UNT",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "SUB-SID-07",
+    "resourceName": "Siding",
+    "unitRate": 4974.36,
+    "resourceType": {
+      "resourceTypeName": "Subcontract"
+    },
+    "uom": {
+      "uomName": "Square Meter",
+      "uomCode": "SQM",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "SUB-SHEMET-08",
+    "resourceName": "Sheet Metal Work",
+    "unitRate": 513.87,
+    "resourceType": {
+      "resourceTypeName": "Subcontract"
+    },
+    "uom": {
+      "uomName": "Cubic Meter",
+      "uomCode": "CUM",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "SUB-PLU-09",
+    "resourceName": "Plumbing",
+    "unitRate": 1121.77,
+    "resourceType": {
+      "resourceTypeName": "Subcontract"
+    },
+    "uom": {
+      "uomName": "Square Meter",
+      "uomCode": "SQM",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "SUB-HVA-10",
+    "resourceName": "HVAC",
+    "unitRate": 3984.73,
+    "resourceType": {
+      "resourceTypeName": "Subcontract"
+    },
+    "uom": {
+      "uomName": "Square Meter",
+      "uomCode": "SQM",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "SUB-UTISUB-11",
+    "resourceName": "Utility Subcontract",
+    "unitRate": 4005.92,
+    "resourceType": {
+      "resourceTypeName": "Subcontract"
+    },
+    "uom": {
+      "uomName": "Square Meter",
+      "uomCode": "SQM",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "SUB-CIVSUB-12",
+    "resourceName": "Civil Subcontract",
+    "unitRate": 1136.36,
+    "resourceType": {
+      "resourceTypeName": "Subcontract"
+    },
+    "uom": {
+      "uomName": "Unit",
+      "uomCode": "UNT",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "SUB-ELESUB-13",
+    "resourceName": "Electrician Subcontract",
+    "unitRate": 1074.01,
+    "resourceType": {
+      "resourceTypeName": "Subcontract"
+    },
+    "uom": {
+      "uomName": "Square Meter",
+      "uomCode": "SQM",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "SUB-GLASUB-14",
+    "resourceName": "Glazier Subcontract",
+    "unitRate": 1406.84,
+    "resourceType": {
+      "resourceTypeName": "Subcontract"
+    },
+    "uom": {
+      "uomName": "Unit",
+      "uomCode": "UNT",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "SUB-STESUB-15",
+    "resourceName": "Steelworker Subcontract",
+    "unitRate": 2726.9,
+    "resourceType": {
+      "resourceTypeName": "Subcontract"
+    },
+    "uom": {
+      "uomName": "Cubic Meter",
+      "uomCode": "CUM",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "SUB-CAR-16",
+    "resourceName": "Carpentry",
+    "unitRate": 3625.74,
+    "resourceType": {
+      "resourceTypeName": "Subcontract"
+    },
+    "uom": {
+      "uomName": "Square Meter",
+      "uomCode": "SQM",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "SUB-FLO-17",
+    "resourceName": "Flooring",
+    "unitRate": 4055.03,
+    "resourceType": {
+      "resourceTypeName": "Subcontract"
+    },
+    "uom": {
+      "uomName": "Cubic Meter",
+      "uomCode": "CUM",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "SUB-INSSER-18",
+    "resourceName": "Insulation Services",
+    "unitRate": 3630.83,
+    "resourceType": {
+      "resourceTypeName": "Subcontract"
+    },
+    "uom": {
+      "uomName": "Square Meter",
+      "uomCode": "SQM",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "SUB-PAISUB-19",
+    "resourceName": "Painting Subcontract",
+    "unitRate": 1337.38,
+    "resourceType": {
+      "resourceTypeName": "Subcontract"
+    },
+    "uom": {
+      "uomName": "Square Meter",
+      "uomCode": "SQM",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "SUB-MIL-20",
+    "resourceName": "Millwork",
+    "unitRate": 2326.24,
+    "resourceType": {
+      "resourceTypeName": "Subcontract"
+    },
+    "uom": {
+      "uomName": "Unit",
+      "uomCode": "UNT",
+      "isActive": false
+    },
+    "quantityType": {
+      "quantityType": "Coefficient"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "SUB-TILSER-21",
+    "resourceName": "Tile Services",
+    "unitRate": 2348.39,
+    "resourceType": {
+      "resourceTypeName": "Subcontract"
+    },
+    "uom": {
+      "uomName": "Square Meter",
+      "uomCode": "SQM",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": false
+  },
+  {
+    "resourceCode": "SUB-LAN-22",
+    "resourceName": "Landscaping",
+    "unitRate": 1659.57,
+    "resourceType": {
+      "resourceTypeName": "Subcontract"
+    },
+    "uom": {
+      "uomName": "Square Meter",
+      "uomCode": "SQM",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": true
+  },
+  {
+    "resourceCode": "SUB-DEM-23",
+    "resourceName": "Demolition",
+    "unitRate": 2667.64,
+    "resourceType": {
+      "resourceTypeName": "Subcontract"
+    },
+    "uom": {
+      "uomName": "Cubic Meter",
+      "uomCode": "CUM",
+      "isActive": true
+    },
+    "quantityType": {
+      "quantityType": "Direct"
+    },
+    "active": true
+  }
+]
