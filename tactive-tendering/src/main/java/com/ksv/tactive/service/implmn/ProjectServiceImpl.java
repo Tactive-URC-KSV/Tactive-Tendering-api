@@ -16,6 +16,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
@@ -192,11 +193,21 @@ public class ProjectServiceImpl implements ProjectService{
 	
 	@Override
 	public List<ProjectInfoDto> getAllProjects() {
-		List<ProjectInfoDto> projects = projectDao.findAllProjectInfo().stream()
-				.filter(project -> !project.isArchieve())
-				.collect(Collectors.toList());
-		return projects;
+		List<ProjectInfoDto> projects = projectDao.findAllProjectInfo();
+		List<ProjectInfoDto> filteredProjects = new ArrayList<>();
+		if(projects.isEmpty()) {
+			throw new DataNotFoundException(messageSource.getMessage("project.not.found", null, Locale.ENGLISH));
+		}
+		else {
+			for(ProjectInfoDto project : projects) {
+				if(project != null && !project.isArchieve()) {
+					filteredProjects.add(project);
+				}
+			}
+		}
+	    return filteredProjects;
 	}
+
 
 	@Override
 	public Projects findByProjectId(String projectId) {
