@@ -1,8 +1,14 @@
 package com.ksv.tactive.project.entity;
 
+import java.util.Set;
+
+import com.fasterxml.jackson.annotation.JsonBackReference;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import lombok.Data;
 
@@ -14,13 +20,23 @@ public class TenderEstimation {
 	private String id;
 	private String docNumber;
 	
-	@ManyToOne
-	@JoinColumn(name = "cost_code_activity_id")
-	private CostCodeActivity costCodeActivity;
+	@JsonBackReference
+	@ManyToMany
+	@JoinTable(
+		name = "tender_estimation_cost_code_activities",
+		joinColumns = @JoinColumn(name = "tender_estimation_id"),
+		inverseJoinColumns = @JoinColumn(name = "cost_code_activity_id")
+	)
+	private Set<CostCodeActivity> costCodeActivity;
 	
-	@ManyToOne
-	@JoinColumn(name = "activity_group_id")
-	private ActivityGroup activityGroup;
+	@JsonBackReference
+	@ManyToMany
+	@JoinTable(
+		name = "tender_estimation_activity_group",
+		joinColumns = @JoinColumn(name = "tender_estimation_id"),
+		inverseJoinColumns = @JoinColumn(name = "activity_group_id")
+	)
+	private Set<ActivityGroup> activityGroup;
 	
 	private double coEfficient;
 	private double calculatedQuantity;
@@ -40,7 +56,7 @@ public class TenderEstimation {
 	
 	@ManyToOne 
 	@JoinColumn(name = "resource_id")
-	private Resource resource;
+	private Resources resource;
 	
 	@ManyToOne
 	@JoinColumn(name = "uom_id")
@@ -58,7 +74,12 @@ public class TenderEstimation {
 	@JoinColumn(name = "currency_id")
 	private Currency currency;
 	
+	private double exchangeRate;
 	private double totalCostCompanyCurrency;
 	
+	@JsonBackReference
+	@ManyToOne
+	@JoinColumn(name = "project_id")
+	private Projects project;
 
 }

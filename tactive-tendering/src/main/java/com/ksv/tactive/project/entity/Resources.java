@@ -8,7 +8,7 @@ import lombok.Data;
 
 @Data
 @Entity
-public class Resource {
+public class Resources {
 	
 	@Id
 	private String id;
