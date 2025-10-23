@@ -16,4 +16,4 @@ echo Starting Spring Boot application...
 java -jar "%JAR_PATH%" --spring.config.additional-location=file:"%CONFIG_PATH%" > "%LOG_FILE%" 2>&1
 
 echo Spring Boot app started successfully. Logs at %LOG_FILE%.
-pause
+exit /b 0
