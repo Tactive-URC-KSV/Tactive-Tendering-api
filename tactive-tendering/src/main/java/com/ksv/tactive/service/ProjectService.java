@@ -15,6 +15,7 @@ import com.ksv.tactive.dto.FeasibilityApprovalDocuDTO;
 import com.ksv.tactive.dto.ProjectInfoDto;
 import com.ksv.tactive.dto.ProjectInputDTO;
 import com.ksv.tactive.dto.TemplateDto;
+import com.ksv.tactive.dto.TenderEstResourceDto;
 import com.ksv.tactive.dto.TenderResourceDto;
 import com.ksv.tactive.exception.DataNotFoundException;
 import com.ksv.tactive.project.entity.ActivityGroup;
@@ -84,9 +85,15 @@ public interface ProjectService {
 	List<CostCodeActivity> getCostCodeActivityByProject(String projectId);
 	double getTotalAmountByCostCodeType(String costCodeTypeId, String projectId);
 	CostCodeActivity getCostCodeActivityById(String costCodeId);
+	ActivityGroup getActivityGroupById(String activityGroupId);
 	
 	String addResourcesToTender(TenderResourceDto tenderResourceDto);
-	List<TenderEstimation> getEstimatedResourcesByCostCode(String costCodeId);
+	List<TenderEstResourceDto> getEstimatedResourcesByCostCode(String costCodeId);
+	List<TenderEstimation> getEstimatedResourcesByActivityGroup(String activityGroupId);
+	String deleteTenderEstimation(String tenderEstimationId);
+	String pasteResourceToCostCode(String costCodeId, List<String> tenderEstimationIds);
+	String pasteResourceToActivity(String activityGroupId, List<String> tenderEstimationIds);
+	
 	
 	
 	

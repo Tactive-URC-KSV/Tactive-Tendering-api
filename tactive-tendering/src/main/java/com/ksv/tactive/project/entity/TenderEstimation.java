@@ -39,15 +39,11 @@ public class TenderEstimation {
 	private Set<ActivityGroup> activityGroup;
 	
 	private double coEfficient;
-	private double calculatedQuantity;
 	private double wastePercentage;
-	private double wasteQuantity;
-	private double netQuantity;
 	private double rate;
 	private double additionalRate;
 	private double shippingPrice;
 	private double costUnitRate;
-	private double resourceTotalCost;
 	private boolean rateLock;
 	
 	@ManyToOne
@@ -75,11 +71,5 @@ public class TenderEstimation {
 	private Currency currency;
 	
 	private double exchangeRate;
-	private double totalCostCompanyCurrency;
 	
-	@JsonBackReference
-	@ManyToOne
-	@JoinColumn(name = "project_id")
-	private Projects project;
-
 }

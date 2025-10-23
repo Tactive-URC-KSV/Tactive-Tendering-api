@@ -11,5 +11,6 @@ import com.ksv.tactive.project.entity.TenderEstimation;
 public interface TenderEstimationDao extends JpaRepository<TenderEstimation, String>{
 
 	List<TenderEstimation> findByCostCodeActivityId(String costCodeId);
+	List<TenderEstimation> findByActivityGroupId(String activityGroupId);
 
 }

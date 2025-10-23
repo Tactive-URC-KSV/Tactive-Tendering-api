@@ -1,7 +1,5 @@
 package com.ksv.tactive.dto;
 
-import java.util.List;
-
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -29,8 +27,8 @@ public class TenderResourceDto {
 	private String uomId;
 	private String currencyId;
 	private String resourceId;
-	private List<String> costCodeActivityId;
-	private List<String> activityGroupId;
+	private String costCodeActivityId;
+	private String activityGroupId;
 	private String projectId;
 
 }

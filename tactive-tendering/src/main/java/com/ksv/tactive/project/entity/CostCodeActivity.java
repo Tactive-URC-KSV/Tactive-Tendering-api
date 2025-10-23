@@ -4,6 +4,7 @@ import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
@@ -58,6 +59,8 @@ public class CostCodeActivity {
 	@JoinColumn(name = "project_id")
 	private Projects project;
 	
+	@Column(nullable = true)
 	private double resourceRate;
+	@Column(nullable = true)
 	private double resourceAmount;
 }
