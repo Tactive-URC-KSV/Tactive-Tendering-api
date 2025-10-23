@@ -29,6 +29,7 @@ import com.ksv.tactive.dto.FeasibilityApprovalDocuDTO;
 import com.ksv.tactive.dto.ProjectInfoDto;
 import com.ksv.tactive.dto.ProjectInputDTO;
 import com.ksv.tactive.dto.TemplateDto;
+import com.ksv.tactive.dto.TenderEstResourceDto;
 import com.ksv.tactive.dto.TenderResourceDto;
 import com.ksv.tactive.exception.DataNotFoundException;
 import com.ksv.tactive.exception.DuplicateProjectCodeException;
@@ -257,26 +258,27 @@ public class ProjectControler {
     
     @GetMapping("project/getBoqTotalValue/{projectId}")
     public ResponseEntity<?> getBoqTotalValue(@PathVariable String projectId){
-    	List<BOQ> boqList =projectService.getAllBOQ(projectId);
-    	if(boqList.isEmpty()) {
-			return ResponseEntity.status(HttpStatus.NO_CONTENT)
-					.body(messageSource.getMessage("boq.not.found", null, Locale.ENGLISH));
+    	try {
+    		List<BOQ> boqList =projectService.getAllBOQ(projectId);
+    		double totalValue = boqList.stream()
+    				.mapToDouble(b -> b.getTotalAmount() != 0 ? b.getTotalAmount() : 0.0)
+    				.sum();
+    		return ResponseEntity.status(HttpStatus.OK).body(totalValue);
+    	}
+    	catch (DataNotFoundException e) {
+			return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
 		}
-    	double totalValue = boqList.stream()
-    			.mapToDouble(b -> b.getTotalAmount() != 0 ? b.getTotalAmount() : 0.0)
-    			.sum();
-		return ResponseEntity.status(HttpStatus.OK).body(totalValue);
     }
 
     @GetMapping("project/getParentTotalValue/{projectId}/{parentCode}")
     public ResponseEntity<?> getParentTotalValue(@PathVariable String projectId, @PathVariable String parentCode){
-    	List<BOQ> boqList =projectService.getAllBOQ(projectId);
-    	if(boqList.isEmpty()) {
-			return ResponseEntity.status(HttpStatus.NO_CONTENT)
-					.body(messageSource.getMessage("boq.not.found", null, Locale.ENGLISH));
+    	try {
+			List<BOQ> boqList =projectService.getAllBOQ(projectId);
+			double totalValue = projectService.getParentTotalValue(boqList, parentCode);
+			return ResponseEntity.status(HttpStatus.OK).body(totalValue);
+		} catch (DataNotFoundException e) {
+			return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
 		}
-    	double totalValue = projectService.getParentTotalValue(boqList, parentCode);
-		return ResponseEntity.status(HttpStatus.OK).body(totalValue);
     }
     
     @PostMapping("project/saveTemplateMapping")
@@ -467,11 +469,30 @@ public class ProjectControler {
 			return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
     	}
     }
-    
+    @PostMapping("tenderEstimation/pasteResourceToCostCode/{costCodeId}")
+    public ResponseEntity<?> pasteResource(@PathVariable String costCodeId, @RequestBody List<String> tenderEstimationIds){
+    	try {
+    		String message = projectService.pasteResourceToCostCode(costCodeId, tenderEstimationIds);
+    		return ResponseEntity.status(HttpStatus.OK).body(message);
+    	}
+    	catch (DataNotFoundException e) {
+			return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+		}
+    }
+    @PostMapping("tenderEstimation/pasteResourceToActivity/{activityGroupId}")
+    public ResponseEntity<?> pasteResourceToActivity(@PathVariable String activityGroupId, @RequestBody List<String> tenderEstimationIds){
+    	try {
+    		String message = projectService.pasteResourceToActivity(activityGroupId, tenderEstimationIds);
+    		return ResponseEntity.status(HttpStatus.OK).body(message);
+    	}
+    	catch (DataNotFoundException e) {
+			return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+		}
+	}
     @GetMapping("tenderEstimation/estimatedResources/{costCodeId}")
     public ResponseEntity<?> getEstimatedResourcesByCostCode(@PathVariable String costCodeId){
 		try {
-			List<TenderEstimation> estimatedResources = projectService.getEstimatedResourcesByCostCode(costCodeId);
+			List<TenderEstResourceDto> estimatedResources = projectService.getEstimatedResourcesByCostCode(costCodeId);
 			if(estimatedResources.isEmpty()) {
 				return ResponseEntity.status(HttpStatus.NO_CONTENT).body(messageSource.getMessage("tender.resource.not.found", null, Locale.ENGLISH));
 			}
@@ -481,6 +502,36 @@ public class ProjectControler {
 		}
     }
     
+    @GetMapping("costCodeActivity/activityGroup/{activityGroupId}")
+    public ResponseEntity<?> getActivityGroup(@PathVariable String activityGroupId){
+    	try {
+    		ActivityGroup activityGroup = projectService.getActivityGroupById(activityGroupId);
+    		return ResponseEntity.status(HttpStatus.OK).body(activityGroup);
+    	}catch (DataNotFoundException e) {
+			return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+		}
+    }
     
-    
+    @GetMapping("/tenderEstimation/estimatedResourcesByActivityGroup/{activityGroupId}")
+	public ResponseEntity<?> getEstimatedResourcesByActivityGroup(@PathVariable String activityGroupId) {
+		try {
+			List<TenderEstimation> estimatedResources = projectService
+					.getEstimatedResourcesByActivityGroup(activityGroupId);
+			if (estimatedResources.isEmpty()) {
+				return ResponseEntity.status(HttpStatus.NO_CONTENT)
+						.body(messageSource.getMessage("tender.resource.not.found", null, Locale.ENGLISH));
+			}
+			return ResponseEntity.status(HttpStatus.OK).body(estimatedResources);
+		} catch (DataNotFoundException e) {
+			return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+		}
+	}
+    @DeleteMapping("tenderEstimation/delete/tenderEstimatoin/{tenderEstimationId}")
+    public ResponseEntity<?> deleteTenderEstimation(@PathVariable String tenderEstimationId){
+		try {
+			return ResponseEntity.status(HttpStatus.OK).body(projectService.deleteTenderEstimation(tenderEstimationId));
+		}catch (DataNotFoundException e) {
+			return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+		}
+    }
 }
