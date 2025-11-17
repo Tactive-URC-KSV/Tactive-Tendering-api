@@ -1,10 +1,7 @@
 package com.ksv.tactive.dbconfig;
-
 import java.util.HashMap;
 import java.util.Map;
-
 import javax.sql.DataSource;
-
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -16,7 +13,6 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.transaction.PlatformTransactionManager;
-
 @Configuration
 @EnableJpaRepositories(
     basePackages = "com.ksv.tactive.project.dao",
@@ -24,14 +20,12 @@ import org.springframework.transaction.PlatformTransactionManager;
     transactionManagerRef = "projectTransactionManager"
 )
 public class ProjectDbConfig {
-
 	@Primary
 	@Bean
 	@ConfigurationProperties("spring.datasource.project")
 	DataSourceProperties projectDataSourceProperties() {
 	    return new DataSourceProperties();
 	}
-
 	@Primary
     @Bean(name = "projectDataSource")
     @ConfigurationProperties(prefix = "spring.datasource.project")
@@ -40,7 +34,6 @@ public class ProjectDbConfig {
 				.initializeDataSourceBuilder()
 				.build();
     }
-
 	@Primary
     @Bean(name = "projectEntityManagerFactory")
     LocalContainerEntityManagerFactoryBean projectEntityManagerFactory(
@@ -56,7 +49,6 @@ public class ProjectDbConfig {
                 .properties(properties)
                 .build();
     }
-
 	@Primary
     @Bean(name = "projectTransactionManager")
     PlatformTransactionManager projectTransactionManager(

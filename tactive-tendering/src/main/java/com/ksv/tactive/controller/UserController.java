@@ -1,8 +1,6 @@
 package com.ksv.tactive.controller;
-
 import java.util.HashMap;
 import java.util.Map;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,16 +10,12 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
 import com.ksv.tactive.service.UserService;
-
 @RestController
 @RequestMapping("/tactive")
 public class UserController {
-	
 	@Autowired
 	private UserService userService;
-	
 	@PostMapping("/login")
 	public ResponseEntity<?> login(@RequestParam String username,
 			@RequestParam String password){
@@ -33,7 +27,6 @@ public class UserController {
 		}
 		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not found");
 	}
-	
 	@GetMapping("/user/{userId}")
 	public ResponseEntity<?> getUserById(@PathVariable String userId) {
 		try {
@@ -42,5 +35,4 @@ public class UserController {
 			return ResponseEntity.status(HttpStatus.CONFLICT).body("User not found");
 		}
 	}
-
 }

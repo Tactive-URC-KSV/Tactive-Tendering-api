@@ -1,5 +1,4 @@
 package com.ksv.tactive.dataloader;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
@@ -15,18 +14,15 @@ import com.ksv.tactive.project.dao.ActivityGroupDao;
 import com.ksv.tactive.project.dao.CostCodeTypeDao;
 import com.ksv.tactive.project.entity.ActivityGroup;
 import com.ksv.tactive.project.entity.CostCodeType;
-
 @Component
 public class ActivityGroupLoader implements MasterDataLoader<ActivityGroup> {
     private static final Logger logger = LoggerFactory.getLogger(ActivityGroupLoader.class);
-
     @Autowired
     private ObjectMapper objectMapper;
     @Autowired
     private ActivityGroupDao activityGroupDao;
     @Autowired
     private CostCodeTypeDao costCodeTypeDao;
-
     @Transactional
     @Override
     public void loadData() throws IOException {
@@ -36,7 +32,6 @@ public class ActivityGroupLoader implements MasterDataLoader<ActivityGroup> {
                 throw new IOException("Resource file 'standard-costcodes.json' not found");
             }
             List<ActivityGroup> costCodes = objectMapper.readValue(inputStream, new TypeReference<>() {});
-            
                 for (ActivityGroup costCode : costCodes) {
                 	if(activityGroupDao.findByActivityNameIgnoreCase(costCode.getActivityName()) != null) {
 						continue;
@@ -46,7 +41,6 @@ public class ActivityGroupLoader implements MasterDataLoader<ActivityGroup> {
                     costCode.setCostCodeType(costCodeType);
                     activityGroupDao.save(costCode);
                 }
-                
         }
     }
     private CostCodeType findCostCodeTypeByName(String name) {
@@ -58,6 +52,5 @@ public class ActivityGroupLoader implements MasterDataLoader<ActivityGroup> {
 			costCodeTypeDao.save(costCodeType);
 		}
 		return costCodeType;
-		
 	} 
 }

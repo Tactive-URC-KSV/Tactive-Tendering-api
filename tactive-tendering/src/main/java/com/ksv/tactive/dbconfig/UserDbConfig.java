@@ -1,10 +1,7 @@
 package com.ksv.tactive.dbconfig;
-
 import java.util.HashMap;
 import java.util.Map;
-
 import javax.sql.DataSource;
-
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -15,7 +12,6 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.transaction.PlatformTransactionManager;
-
 @Configuration
 @EnableJpaRepositories(
     basePackages = "com.ksv.tactive.user.dao",
@@ -23,15 +19,11 @@ import org.springframework.transaction.PlatformTransactionManager;
     transactionManagerRef = "userTransactionManager"
 )
 public class UserDbConfig {
-
-
 	@Bean
 	@ConfigurationProperties("spring.datasource.user")
 	DataSourceProperties userDataSourceProperties() {
 	    return new DataSourceProperties();
 	}
-
-	
     @Bean(name = "userDataSource")
     @ConfigurationProperties("spring.datasource.user")
     DataSource userDataSource() {
@@ -39,8 +31,6 @@ public class UserDbConfig {
         		.initializeDataSourceBuilder()
         		.build();
     }
-
-	
     @Bean(name = "userEntityManagerFactory")
     LocalContainerEntityManagerFactoryBean userEntityManagerFactory (EntityManagerFactoryBuilder builder,
     					@Qualifier("userDataSource") DataSource dataSource) {
@@ -54,8 +44,6 @@ public class UserDbConfig {
                 .properties(properties)
                 .build();
     }
-
-	
     @Bean(name = "userTransactionManager")
     PlatformTransactionManager userTransactionManager(
             @Qualifier("userEntityManagerFactory") LocalContainerEntityManagerFactoryBean emf) {

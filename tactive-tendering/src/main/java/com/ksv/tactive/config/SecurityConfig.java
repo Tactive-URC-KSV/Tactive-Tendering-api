@@ -1,5 +1,4 @@
 package com.ksv.tactive.config;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,10 +13,8 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-
 import com.ksv.tactive.exception.AuthorizationException;
 import com.ksv.tactive.filter.JwtFilter;
-
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
@@ -29,8 +26,6 @@ public class SecurityConfig {
 	SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 		AuthenticationManagerBuilder authBuilder = http.getSharedObject(AuthenticationManagerBuilder.class);
         authBuilder.userDetailsService(userDetailsService()).passwordEncoder(bCryptPasswordEncoder());
-        
-        
 		return http.csrf(AbstractHttpConfigurer::disable)
 				.authorizeHttpRequests(requests -> requests
 						.requestMatchers("/tactive/login","/swagger-ui/**", "/v3/api-docs/**").permitAll()
@@ -41,22 +36,16 @@ public class SecurityConfig {
 				.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
 				.build();
 	}
-	
-	
-
 	@Bean
 	BCryptPasswordEncoder bCryptPasswordEncoder() {
 		return new BCryptPasswordEncoder();
 	}
-	
 	@Bean
 	UserDetailsService userDetailsService() {
 	    return new CustomUserDetailsService(); 
 	}
-	
 	@Bean
 	AuthenticationManager authenticationManager(HttpSecurity http	) throws Exception {
 	    return  http.getSharedObject(AuthenticationManagerBuilder.class).build();
 	}
-	
 }
