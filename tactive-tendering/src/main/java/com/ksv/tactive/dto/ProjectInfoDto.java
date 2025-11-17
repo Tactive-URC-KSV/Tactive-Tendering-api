@@ -1,10 +1,7 @@
 package com.ksv.tactive.dto;
-
 import java.sql.Date;
-
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
 @Data
 @NoArgsConstructor
 public class ProjectInfoDto {
@@ -19,8 +16,6 @@ public class ProjectInfoDto {
     private String regionName;
     private Date createdAt;
     private boolean archieve;
-
-    
     public ProjectInfoDto(String projectId, String projectCode, String projectName,
             Date startDate, Date endDate, String sectorName,
             String regionName, Double estimatedValue, String status, Date createdAt, boolean archieve) {
@@ -36,5 +31,4 @@ public class ProjectInfoDto {
     	this.createdAt = createdAt;
     	this.archieve = archieve;
     }
-
 }

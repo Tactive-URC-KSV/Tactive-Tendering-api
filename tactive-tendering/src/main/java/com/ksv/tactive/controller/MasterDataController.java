@@ -1,8 +1,6 @@
 package com.ksv.tactive.controller;
-
 import java.util.List;
 import java.util.Locale;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.http.HttpStatus;
@@ -13,7 +11,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
 import com.ksv.tactive.exception.DuplicateEntryException;
 import com.ksv.tactive.project.entity.CostCodeType;
 import com.ksv.tactive.project.entity.Currency;
@@ -28,18 +25,13 @@ import com.ksv.tactive.project.entity.ScopeOfPackage;
 import com.ksv.tactive.project.entity.Sector;
 import com.ksv.tactive.project.entity.UOM;
 import com.ksv.tactive.service.MasterService;
-
 @RestController
 @RequestMapping("/tactive")
 public class MasterDataController {
-	
-	
 	@Autowired
 	private MasterService masterService;
-	
 	@Autowired
 	private MessageSource messageSource;
-	
 	@PostMapping("/regions/addRegion")
 	public ResponseEntity<String> addRegion(@RequestBody Region region) {
 		try {
@@ -49,7 +41,6 @@ public class MasterDataController {
 					.body(e.getMessage());
 		}
 	}
-	
 	@GetMapping("/regions")
 	public ResponseEntity<?> getAllRegions(){
 		if(masterService.getAllRegions().isEmpty()) {
@@ -62,17 +53,14 @@ public class MasterDataController {
 	public ResponseEntity<String> addSector(@RequestBody Sector sector){
 		return ResponseEntity.status(HttpStatus.OK).body(masterService.addSector(sector));
 	}
-	
 	@PostMapping("/scope/addScope")
 	public ResponseEntity<String> addScope(@RequestBody ScopeOfPackage scope){
 		return ResponseEntity.status(HttpStatus.OK).body(masterService.addScope(scope));
 	}
-	
 	@PostMapping("/uom/addUom")
 	public ResponseEntity<String> addUOM(@RequestBody UOM uom){
 		return ResponseEntity.status(HttpStatus.OK).body(masterService.addUom(uom));
 	}
-	
 	@GetMapping("/uoms")
     public ResponseEntity<?> getAllUOMs() {
         List<UOM> uoms = masterService.getAllUOMs();
@@ -81,7 +69,6 @@ public class MasterDataController {
         }
         return ResponseEntity.status(HttpStatus.OK).body(uoms);
     }
-
     @GetMapping("/sectors")
     public ResponseEntity<?> getAllSectors() {
         List<Sector> sectors = masterService.getAllSector();
@@ -90,7 +77,6 @@ public class MasterDataController {
         }
         return ResponseEntity.status(HttpStatus.OK).body(sectors);
     }
-
     @GetMapping("/scopes")
     public ResponseEntity<?> getAllScopes() {
         List<ScopeOfPackage> scopes = masterService.getAllScopes();
@@ -99,7 +85,6 @@ public class MasterDataController {
         }
         return ResponseEntity.status(HttpStatus.OK).body(scopes);
     }
-    
     @GetMapping("/project-status")
 	public ResponseEntity<?> getProjectStatus(){
     	List<ProjectStatus> status = masterService.getAllProjectStatus();
@@ -108,7 +93,6 @@ public class MasterDataController {
         }
         return ResponseEntity.status(HttpStatus.OK).body(status);
 	}
-    
     @PostMapping("/project-status/add")
     public ResponseEntity<String> addProjectStatus(@RequestBody ProjectStatus projectStatus) {
 		return ResponseEntity.status(HttpStatus.OK).body(masterService.addProjectStatus(projectStatus));
@@ -125,7 +109,6 @@ public class MasterDataController {
         }
         return ResponseEntity.status(HttpStatus.OK).body(approvals);
 	}
-    
     @PostMapping("/costCodeType/add")
     public ResponseEntity<?> addCostCodeType(@RequestBody CostCodeType costCodeType) {
     	try {
@@ -135,7 +118,6 @@ public class MasterDataController {
 					.body(e.getMessage());
 		}
     }	
-    
     @GetMapping("/costCodeTypes")
     public ResponseEntity<?> getAllCostCodeTypes() {
     	List<CostCodeType> costCodeType = masterService.getAllCostCodeTypes();
@@ -144,7 +126,6 @@ public class MasterDataController {
         }
         return ResponseEntity.status(HttpStatus.OK).body(costCodeType);
 	}
-    
     @GetMapping("/resourceType")
     public ResponseEntity<?> getAllResourceTypes() {
 		List<ResourceType> resourceTypes = masterService.getAllResourceTypes();
@@ -153,7 +134,6 @@ public class MasterDataController {
 		}
 		return ResponseEntity.status(HttpStatus.OK).body(resourceTypes);
     }
-    
 	@GetMapping("/resources")
 	public ResponseEntity<?> getAllResources() {
 		List<Resources> resources = masterService.getAllResources();
@@ -163,7 +143,6 @@ public class MasterDataController {
 		}
 		return ResponseEntity.status(HttpStatus.OK).body(resources);
 	}
-	
 	@GetMapping("/quantityType")
 	public ResponseEntity<?> getAllQuantityTypes() {
 		List<QuantityType> quantityTypes = masterService.getAllQuantityTypes();
@@ -173,7 +152,6 @@ public class MasterDataController {
 		}
 		return ResponseEntity.status(HttpStatus.OK).body(quantityTypes);
 	}
-	
 	@GetMapping("/resourceNature")
 	public ResponseEntity<?> getAllResourceNatures() {
 		List<ResourceNature> resourceNatures = masterService.getAllResourceNatures();
@@ -195,7 +173,6 @@ public class MasterDataController {
 				.toList();
 		return ResponseEntity.status(HttpStatus.OK).body(filteredResources);
 	}
-	
 	@GetMapping("/project/currency")
 	public ResponseEntity<?> getAllCurrencies(){
 		List<Currency> currencies = masterService.getAllCurrencies();
@@ -204,7 +181,6 @@ public class MasterDataController {
 		}
 		return ResponseEntity.status(HttpStatus.OK).body(currencies);
 	}
-	
 	@PostMapping("/resourceNature/add")
 	public ResponseEntity<String> addResourceNature(@RequestBody ResourceNature resourceNature){
 		try {

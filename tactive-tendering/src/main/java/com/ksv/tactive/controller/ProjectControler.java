@@ -1,6 +1,6 @@
 package com.ksv.tactive.controller;
-
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.sql.SQLIntegrityConstraintViolationException;
 import java.util.List;
 import java.util.Locale;
@@ -8,6 +8,7 @@ import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
+import org.springframework.core.io.Resource;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,10 +30,10 @@ import com.ksv.tactive.dto.FeasibilityApprovalDocuDTO;
 import com.ksv.tactive.dto.ProjectInfoDto;
 import com.ksv.tactive.dto.ProjectInputDTO;
 import com.ksv.tactive.dto.TemplateDto;
-import com.ksv.tactive.dto.TenderEstResourceDto;
 import com.ksv.tactive.dto.TenderResourceDto;
 import com.ksv.tactive.exception.DataNotFoundException;
 import com.ksv.tactive.exception.DuplicateProjectCodeException;
+import com.ksv.tactive.exception.FileNotSaveException;
 import com.ksv.tactive.exception.ProjectNotFoundException;
 import com.ksv.tactive.project.entity.ActivityGroup;
 import com.ksv.tactive.project.entity.ApprovalDocuments;
@@ -43,24 +44,17 @@ import com.ksv.tactive.project.entity.FinancialFeasibility;
 import com.ksv.tactive.project.entity.Projects;
 import com.ksv.tactive.project.entity.TechnicalFeasibility;
 import com.ksv.tactive.project.entity.Template;
-import com.ksv.tactive.project.entity.TenderEstimation;
 import com.ksv.tactive.service.ProjectService;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-
-
 @RestController
 @RequestMapping("/tactive")
 public class ProjectControler {
-	
 	@Autowired
 	private MessageSource messageSource;
-	
 	@Autowired
 	private ProjectService projectService;
-
-	
 	@GetMapping("project/allProjects")
 	public ResponseEntity<?> getAllProjects() {
 		List<ProjectInfoDto> projects = projectService.getAllProjects();
@@ -69,12 +63,9 @@ public class ProjectControler {
 		}
 		return ResponseEntity.status(HttpStatus.OK).body(projects);
 	}
-	
-	
 	@PostMapping("project/createProject")
 	public ResponseEntity<?> createProject(@RequestBody ProjectInputDTO projectInputDTO,
 			HttpServletRequest request) {
-		
 		try {
 			Projects savedProject=projectService.saveProject(projectInputDTO,request);
 			return ResponseEntity.status(HttpStatus.CREATED).body(savedProject);
@@ -83,17 +74,12 @@ public class ProjectControler {
 					.body(e.getMessage());
 		}
 	}
-	
-	
 	@PostMapping("project/saveProjectFiles/{projectId}")
 	public ResponseEntity<?> saveProjectFiles(@RequestPart(required = false) List<MultipartFile> files,
 			@PathVariable String projectId) {
 		projectService.saveProjectFiles(projectId, files);
 		return ResponseEntity.status(HttpStatus.CREATED).body("Files Uploaded");
-
 	}
-	
-	
 	@GetMapping("project/viewProjectInfo/{projectId}")
 	public ResponseEntity<?>  findProjectById(@PathVariable String projectId){
 		try {
@@ -104,8 +90,6 @@ public class ProjectControler {
 					.body(e.getMessage());
 		}
 	}
-	
-	
 	@PutMapping("project/updateProject/{projectId}")
 	public ResponseEntity<?> updateProject(@RequestBody ProjectInputDTO projectInputDTO,
 			@PathVariable String projectId){
@@ -119,8 +103,6 @@ public class ProjectControler {
 					.body(e.getMessage());
 		}
 	}
-	
-	
 	@DeleteMapping("project/deleteProject/{projectId}")
 	public ResponseEntity<String> deleteProject(@PathVariable String projectId){
 		try {
@@ -131,8 +113,6 @@ public class ProjectControler {
 					.body(e.getMessage());
 		}
 	}	
-	
-    
     @PostMapping("/feasibility/add/{projectId}")
     public ResponseEntity<String> addTechFeasbility(@RequestPart TechnicalFeasibility techFeasibility,
     		@RequestPart List<FeasibilityApprovalDocuDTO> approvalDocDTO,
@@ -148,18 +128,15 @@ public class ProjectControler {
 		}
     	return ResponseEntity.status(HttpStatus.CONFLICT).body(messageSource.getMessage("feasibility.study.save.error", null, Locale.ENGLISH));
     }
-    
     @PutMapping("/feasibility/approve/{projectId}")
     public ResponseEntity<String> approveFeasibilityStudy(@PathVariable String projectId, @RequestParam(required = false) String comments, HttpServletRequest request){
     	return ResponseEntity.status(HttpStatus.OK).body(projectService.updateFeasibilityStudyStatus(projectId, true, comments, request));
     }
-    
     @PutMapping("/feasibility/reject/{projectId}")
     public ResponseEntity<String> rejectFeasibilityStudy(@PathVariable String projectId,
 			@RequestParam(required = false) String comments, HttpServletRequest request) {
 		return ResponseEntity.status(HttpStatus.OK).body(projectService.updateFeasibilityStudyStatus(projectId, false, comments, request));
 	}
-    
     @GetMapping("/feasibility/{projectId}")
     public ResponseEntity<?> getFeasibilityStudyByProjectId(@PathVariable String projectId) {
     	try {
@@ -170,28 +147,34 @@ public class ProjectControler {
 			return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
 		}
 	}
-    
     @PostMapping("/project/addDrawings/{projectId}")
     public ResponseEntity<?> addDrawings(@PathVariable String projectId,
     		@RequestPart(required = true) List<MultipartFile> drawings){
     	projectService.saveProjectDrawings(projectId, drawings);
 		return ResponseEntity.status(HttpStatus.OK).body(messageSource.getMessage("drawings.upload.success", null, Locale.ENGLISH));
     }
-    
     @GetMapping("/project/approved/projects")
     public ResponseEntity<?> getApprovedProjects() {
     	List<ProjectInfoDto> approvedProjects = projectService.getAllApprovedProjects();
 		return ResponseEntity.status(HttpStatus.OK).body(approvedProjects);
 	}
-    
     @GetMapping("/feasibility/approvalDoc/{techId}")
     public ResponseEntity<?> getFeasibilityApprovalDoc(@PathVariable String techId){
     	List<ApprovalDocuments> approvalDoc = projectService.getApprovalDocData(techId);
     	return ResponseEntity.status(HttpStatus.OK).body(approvalDoc);
-//    	Map<ApprovalDocuments, Resource> approvalDocMap = projectService.getApprovalDocs(approvalDoc);
-//    	return ResponseEntity.status(HttpStatus.OK).body(approvalDocMap);
+    	
     }
-    
+    @GetMapping("/project/approvalDoc/{docId}")
+    public ResponseEntity<?> getApprovalDocumentById(@PathVariable String docId){
+    	try {
+    	    Resource document = projectService.getApprovalDocs(docId);
+    	    return ResponseEntity.ok(document);
+    	} 
+    	catch (MalformedURLException | FileNotSaveException | DataNotFoundException e) {
+    	    return ResponseEntity.status(HttpStatus.CONFLICT)
+    	                         .body(e.getMessage());
+    	}
+    }
     @PostMapping("/project/excel/getSheets")
     public ResponseEntity<?> getBOQFileData(@RequestParam("file") MultipartFile boqFile) {
     	List<String> columnNames;
@@ -214,9 +197,7 @@ public class ProjectControler {
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
 					.body(e.getMessage());
 		}
-    	
     }
-    
     @PostMapping("/project/excel/getColumns/{sheetName}")
     public ResponseEntity<?> getColumns(@RequestParam("file") MultipartFile boqFile, @PathVariable String sheetName) {
     	List<String> columnNames;
@@ -228,7 +209,6 @@ public class ProjectControler {
 					.body("Error reading the Excel file: " + e.getMessage());
 		}
     }
-    
     @PostMapping("project/mapBOQ/{sheetName}/{projectId}")
     public ResponseEntity<?> uploadBOQ(
     		@PathVariable String projectId,
@@ -239,27 +219,36 @@ public class ProjectControler {
     	try {
 			String response = projectService.mapBOQ(projectId, sheetName, columnMapping, filePath);
 			return ResponseEntity.status(HttpStatus.OK).body(response);
-		} catch (IOException e) {
+		} catch (IOException | DataNotFoundException e) {
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
 					.body("Error processing the Excel file: " + e.getMessage());
 		}
     }
-    
     @GetMapping("project/getParentBoq/{projectId}")
     public ResponseEntity<?> getParentBOQ(@PathVariable String projectId){
-    	List<BOQ> boqList =projectService.getAllBOQ(projectId);
-    	List<BOQ> parentBoqList = projectService.getParentBOQ(boqList);
-    	if(boqList.isEmpty()) {
-			return ResponseEntity.status(HttpStatus.NO_CONTENT)
-					.body(messageSource.getMessage("boq.not.found", null, Locale.ENGLISH));
-		}
-		return ResponseEntity.status(HttpStatus.OK).body(parentBoqList);
+    	try {
+    		List<BOQ> boqList =projectService.getParentBOQ(projectId);
+    		return ResponseEntity.status(HttpStatus.OK).body(boqList);
+    	}
+    	catch (DataNotFoundException e) {
+    		return ResponseEntity.status(HttpStatus.NO_CONTENT).body(e.getMessage());
+    	}
+    }
+    @GetMapping("project/getChildBoq/{projectId}/{parentBoqId}")
+    public ResponseEntity<?> getChildBOQ(@PathVariable String projectId, @PathVariable String parentBoqId){
+    	try {
+    		List<BOQ> boqList =projectService.getChildBOQ(projectId, parentBoqId);
+    		return ResponseEntity.status(HttpStatus.OK).body(boqList);
+    	}
+    	catch (DataNotFoundException e) {	
+    		return ResponseEntity.status(HttpStatus.NO_CONTENT).body(e.getMessage());
+    	}
     }
     
     @GetMapping("project/getBoqTotalValue/{projectId}")
     public ResponseEntity<?> getBoqTotalValue(@PathVariable String projectId){
     	try {
-    		List<BOQ> boqList =projectService.getAllBOQ(projectId);
+    		List<BOQ> boqList =projectService.getParentBOQ(projectId);
     		double totalValue = boqList.stream()
     				.mapToDouble(b -> b.getTotalAmount() != 0 ? b.getTotalAmount() : 0.0)
     				.sum();
@@ -269,18 +258,16 @@ public class ProjectControler {
 			return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
 		}
     }
-
     @GetMapping("project/getParentTotalValue/{projectId}/{parentCode}")
     public ResponseEntity<?> getParentTotalValue(@PathVariable String projectId, @PathVariable String parentCode){
     	try {
-			List<BOQ> boqList =projectService.getAllBOQ(projectId);
+			List<BOQ> boqList =projectService.getParentBOQ(projectId);
 			double totalValue = projectService.getParentTotalValue(boqList, parentCode);
 			return ResponseEntity.status(HttpStatus.OK).body(totalValue);
 		} catch (DataNotFoundException e) {
 			return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
 		}
     }
-    
     @PostMapping("project/saveTemplateMapping")
     public ResponseEntity<?> saveTemplate(@RequestPart Template template,
     		@RequestPart Map<String, String> mapping){
@@ -289,9 +276,7 @@ public class ProjectControler {
 			return ResponseEntity.status(HttpStatus.OK).body(response);
 		}
 		return ResponseEntity.status(HttpStatus.CONFLICT).body(messageSource.getMessage("template.save.error", null, Locale.ENGLISH));
-
     }
-    
     @GetMapping("project/getAllTemplate")
     public ResponseEntity<?> getAllTemplate(){
     	List<Template> templates = projectService.getAllTemplate();
@@ -301,7 +286,6 @@ public class ProjectControler {
 		}
 		return ResponseEntity.status(HttpStatus.OK).body(templates);
     }
-    
     @GetMapping("project/getTemplate/{templateId}")
     public ResponseEntity<?> getTemplateById(@PathVariable String templateId){
     	try {
@@ -311,19 +295,16 @@ public class ProjectControler {
     		return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
     	}
     }
-    
-    @GetMapping("project/getAllBOQ/{projectId}")
-    public ResponseEntity<?> getAllBOQ(@PathVariable String projectId){
+    @GetMapping("project/getBOQCount/{projectId}")
+    public ResponseEntity<?> getBOQCount(@PathVariable String projectId){
     	try {
-    		
-    		List<BOQ> boqList =projectService.getAllBOQ(projectId);
-    		return ResponseEntity.status(HttpStatus.OK).body(boqList);
+    		Map<String, Integer> boqstats =projectService.getBOQCount(projectId);
+    		return ResponseEntity.status(HttpStatus.OK).body(boqstats);
     	}
     	catch (DataNotFoundException e) {
 			return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
 		}
     }
-    
     @DeleteMapping("project/deleteBOQ/{projectId}")
     public ResponseEntity<?> deleteBOQ(@RequestBody List<String> boqCode, @PathVariable String projectId) {
     	try {
@@ -336,9 +317,17 @@ public class ProjectControler {
     	catch (DataIntegrityViolationException e) {
 			return ResponseEntity.status(HttpStatus.CONFLICT).body(messageSource.getMessage("boq.delete.error", null, Locale.ENGLISH));
     	}
-    	
     }
-    
+    @GetMapping("/project/BOQ/{boqId}")
+    public ResponseEntity<?> getBoqDetailById(@PathVariable String boqId){
+    	try {
+    		BOQ boq = projectService.getBoqById(boqId);
+    		return ResponseEntity.status(HttpStatus.OK).body(boq);
+    	}
+    	catch (DataNotFoundException e) {
+			return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+		}
+    }
     @GetMapping("project/Boq/excel/{projectId}")
     public ResponseEntity<?> generateBOQExcel(HttpServletResponse response, @PathVariable String projectId) {
     	try {
@@ -358,7 +347,6 @@ public class ProjectControler {
 			return ResponseEntity.status(HttpStatus.NO_CONTENT).body(e.getMessage());
 		}
     }
-    
     @GetMapping("project/getAllBoqUploadedProject")
     public ResponseEntity<?> getAllBoqProjects(){
     	try {
@@ -369,19 +357,14 @@ public class ProjectControler {
     		return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
     	}
     }
-    
-    
     @PostMapping("/activityGroup/add")
     public ResponseEntity<?> addActivityGroup(@RequestBody ActivityGroup activityGroup) {
 		return ResponseEntity.status(HttpStatus.OK).body(projectService.addActivityGroup(activityGroup));
 	}
-    
-    
     @GetMapping("/activityGroups")
     public ResponseEntity<?> getAllActivityGroups() {
     	return ResponseEntity.status(HttpStatus.OK).body(projectService.getAllActivityGroups());
 	}
-	
     @PostMapping("costCode/saveOneToOne")
     public ResponseEntity<?> saveCostCodeActivityOneToOne(@RequestBody List<CostCodeDto> costCodeDto ){
     	try {
@@ -391,7 +374,6 @@ public class ProjectControler {
 			return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
 		}
     }
-    
     @PostMapping("costCode/saveOneToMany")
     public ResponseEntity<?> saveCostCodeActivityOneToMany(@RequestBody List<CostCodeDto> costCodeDto ){
 		try {
@@ -401,7 +383,6 @@ public class ProjectControler {
 			return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
 		}
     }
-    
     @PostMapping("costCode/saveManyToOne")
     public ResponseEntity<?> saveCostCodeActivityManyToOne(@RequestBody List<CostCodeDto> costCodeDto ){
 		try {
@@ -411,18 +392,15 @@ public class ProjectControler {
 			return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
 		}
     }
-    
     @DeleteMapping("costCode/delete/{costCodeId}")
     public ResponseEntity<?> deleteCostCodeActivity(@PathVariable String costCodeId ){
 		return ResponseEntity.status(HttpStatus.OK).body(projectService.deleteCostCode(costCodeId));
 	}
-    
     @GetMapping("project/costCodeUpdatedProjects")
     public ResponseEntity<?> getAllCostCodeUpdatedProjects(){
 		List<ProjectInfoDto> projects = projectService.getAllCostCodeUpdatedProject();
 		return ResponseEntity.status(HttpStatus.OK).body(projects);
 	}
-    
     @GetMapping("costCodeActivity/costCode/{costCodeId}")
     public ResponseEntity<?> getCostCodeActivityById(@PathVariable String costCodeId){
 		try {
@@ -432,7 +410,6 @@ public class ProjectControler {
 			return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
 		}
 	}
-    
     @GetMapping("costCodeActivity/{projectId}")
     public ResponseEntity<?> getCostCodeActivityByProject(@PathVariable String projectId){
     	List<CostCodeActivity> costCode = projectService.getCostCodeActivityByProject(projectId);
@@ -460,7 +437,6 @@ public class ProjectControler {
 		}
 		return ResponseEntity.status(HttpStatus.CONFLICT).body(messageSource.getMessage("cost.code.not.found", null, Locale.ENGLISH));
 	}
-    
     @PostMapping("tenderEstimation/addResources")
     public ResponseEntity<?> addResourcesToTender(@RequestBody TenderResourceDto tenderResourceDto){
     	try {
@@ -479,59 +455,5 @@ public class ProjectControler {
 			return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
 		}
     }
-    @PostMapping("tenderEstimation/pasteResourceToActivity/{activityGroupId}")
-    public ResponseEntity<?> pasteResourceToActivity(@PathVariable String activityGroupId, @RequestBody List<String> tenderEstimationIds){
-    	try {
-    		String message = projectService.pasteResourceToActivity(activityGroupId, tenderEstimationIds);
-    		return ResponseEntity.status(HttpStatus.OK).body(message);
-    	}
-    	catch (DataNotFoundException e) {
-			return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
-		}
-	}
-    @GetMapping("tenderEstimation/estimatedResources/{costCodeId}")
-    public ResponseEntity<?> getEstimatedResourcesByCostCode(@PathVariable String costCodeId){
-		try {
-			List<TenderEstResourceDto> estimatedResources = projectService.getEstimatedResourcesByCostCode(costCodeId);
-			if(estimatedResources.isEmpty()) {
-				return ResponseEntity.status(HttpStatus.NO_CONTENT).body(messageSource.getMessage("tender.resource.not.found", null, Locale.ENGLISH));
-			}
-			return ResponseEntity.status(HttpStatus.OK).body(estimatedResources);
-		}catch (DataNotFoundException e) {
-			return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
-		}
-    }
-    
-    @GetMapping("costCodeActivity/activityGroup/{activityGroupId}")
-    public ResponseEntity<?> getActivityGroup(@PathVariable String activityGroupId){
-    	try {
-    		ActivityGroup activityGroup = projectService.getActivityGroupById(activityGroupId);
-    		return ResponseEntity.status(HttpStatus.OK).body(activityGroup);
-    	}catch (DataNotFoundException e) {
-			return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
-		}
-    }
-    
-    @GetMapping("/tenderEstimation/estimatedResourcesByActivityGroup/{activityGroupId}")
-	public ResponseEntity<?> getEstimatedResourcesByActivityGroup(@PathVariable String activityGroupId) {
-		try {
-			List<TenderEstimation> estimatedResources = projectService
-					.getEstimatedResourcesByActivityGroup(activityGroupId);
-			if (estimatedResources.isEmpty()) {
-				return ResponseEntity.status(HttpStatus.NO_CONTENT)
-						.body(messageSource.getMessage("tender.resource.not.found", null, Locale.ENGLISH));
-			}
-			return ResponseEntity.status(HttpStatus.OK).body(estimatedResources);
-		} catch (DataNotFoundException e) {
-			return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
-		}
-	}
-    @DeleteMapping("tenderEstimation/delete/tenderEstimatoin/{tenderEstimationId}")
-    public ResponseEntity<?> deleteTenderEstimation(@PathVariable String tenderEstimationId){
-		try {
-			return ResponseEntity.status(HttpStatus.OK).body(projectService.deleteTenderEstimation(tenderEstimationId));
-		}catch (DataNotFoundException e) {
-			return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
-		}
-    }
+   
 }

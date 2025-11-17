@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.poi.EncryptedDocumentException;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.Cell;
@@ -24,26 +23,24 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-
 import com.ksv.tactive.exception.DataNotFoundException;
 import com.ksv.tactive.project.dao.UOMDao;
 import com.ksv.tactive.project.entity.BOQ;
 import com.ksv.tactive.project.entity.UOM;
-
 import jakarta.servlet.http.HttpServletResponse;
 
 @Service
 public class ExcelFileService {
-	
 	@Autowired
 	private UOMDao uomDao;
-	
+
 	private Workbook readXlsxFile(MultipartFile file) throws IOException {
 		InputStream inputStream = file.getInputStream();
 		Workbook workbook = new XSSFWorkbook(inputStream);
 		workbook.close();
 		return workbook;
 	}
+
 	private Workbook readXlsFile(MultipartFile file) throws IOException {
 		InputStream inputStream = file.getInputStream();
 		Workbook workbook = new HSSFWorkbook(inputStream);
@@ -64,8 +61,7 @@ public class ExcelFileService {
 		}
 		return sheets;
 	}
-	
-	
+
 	public List<String> getColumns(MultipartFile boqFile, String sheetName) throws IOException {
 		Workbook workbook = null;
 		List<String> columns = null;
@@ -74,95 +70,68 @@ public class ExcelFileService {
 		} else {
 			workbook = readXlsFile(boqFile);
 		}
-		Sheet sheet =workbook.getSheet(sheetName);
+		Sheet sheet = workbook.getSheet(sheetName);
 		columns = getColumnHeader(sheet);
 		return columns;
 	}
-	
+
 	private List<String> getColumnHeader(Sheet sheet) {
 		List<String> columns = new ArrayList<>();
-		if(sheet != null) {
-			for(int i=0; i<sheet.getPhysicalNumberOfRows(); i++) {
-				Row row = sheet.getRow(i); 
+		if (sheet != null) {
+			for (int i = 0; i < sheet.getPhysicalNumberOfRows(); i++) {
+				Row row = sheet.getRow(i);
 				int cell = 0;
-				while(row != null && row.getPhysicalNumberOfCells() > cell) {
-					if(row.getCell(cell) != null) {
+				while (row != null && row.getPhysicalNumberOfCells() > cell) {
+					if (row.getCell(cell) != null) {
 						columns.add(row.getCell(cell).getStringCellValue());
 					}
 					cell++;
 				}
-				if(columns.size() >= 4) break;
+				if (columns.size() >= 4)
+					break;
 			}
 		}
 		return columns;
 	}
-	public List<BOQ> mapBOQData(String sheetName, Map<String, String> columnMapping, InputStream inputStream) throws EncryptedDocumentException, IOException {
+
+	public List<BOQ> mapBOQData(String sheetName, Map<String, String> columnMapping, InputStream inputStream)
+			throws EncryptedDocumentException, IOException, DataNotFoundException {
 		Sheet sheet = findSheetByName(sheetName, inputStream);
 		Map<String, Integer> columnIndex = findColumnIndexMap(sheet, columnMapping);
 		List<BOQ> boqList = new ArrayList<>();
-		if(sheet != null && !columnIndex.isEmpty()) {
+		if (sheet != null && !columnIndex.isEmpty()) {
 			FormulaEvaluator evaluator = sheet.getWorkbook().getCreationHelper().createFormulaEvaluator();
 			int rowNum = findRowNumber(sheet);
-			for(int row = rowNum; sheet.getPhysicalNumberOfRows() > row; row++) {
+			for (int row = rowNum; sheet.getPhysicalNumberOfRows() > row; row++) {
 				Row currentRow = sheet.getRow(row);
-				if(currentRow != null) {
+				if (currentRow != null) {
 					BOQ boq = new BOQ();
-					for(Map.Entry<String, String> entry : columnMapping.entrySet()) {
+					for (Map.Entry<String, String> entry : columnMapping.entrySet()) {
 						String internalField = entry.getKey();
 						String columnHeader = entry.getValue();
 						Integer indexValue = columnIndex.get(columnHeader);
-						
-						if(indexValue != null) {
+						if (indexValue != null) {
 							Cell cell = currentRow.getCell(indexValue);
 							String value = getCellValueAsString(cell, evaluator);
 							switch (internalField) {
-							case "slNo" -> {
-							    Integer parsed = parseInteger(value);
-							    if (parsed != null) boq.setSlNo(parsed);
+								case "boqCode" -> boq.setBoqCode(value);
+								case "boqName" -> boq.setBoqName(value);
+								case "quantity" -> {
+									if (isNotEmpty(value)) {
+										boq.setQuantity(Double.valueOf(value));
+										boq.setLastLevel(true);
+									}
+								}
+								case "uom" -> {
+									if (isNotEmpty(value)) {
+										boq.setUom(findUOM(value));
+										boq.setLastLevel(true);
+									}
+									else {
+										boq.setLastLevel(false);
+									}
+								}
 							}
-						    case "boqCode" -> boq.setBoqCode(value);
-						    case "boqName" -> boq.setBoqName(value);
-						    case "parentLevel" -> {
-						        if (isNotEmpty(value)) boq.setParentLevel(Integer.valueOf(value));
-						    }
-						    case "level" -> {
-						        if (isNotEmpty(value)) boq.setLevel(Integer.valueOf(value));
-						    }
-						    case "quantity" -> {
-						        if (isNotEmpty(value)) boq.setQuantity(Double.valueOf(value));
-						    }
-						    case "uom" -> {
-						    	if(isNotEmpty(value)) {
-						    		boq.setUom(findUOM(value));
-						    	}
-						    }
-						    case "supplyRate" -> {
-						        if (isNotEmpty(value)) boq.setSupplyRate(Double.valueOf(value));
-						    }
-						    case "installationRate" -> {
-						        if (isNotEmpty(value)) boq.setInstallationRate(Double.valueOf(value));
-						    }
-						    case "totalRate" -> {
-						        if (isNotEmpty(value)) boq.setTotalRate(Double.parseDouble(value));
-						    }
-						    case "supplyAmount" -> {
-						        if (isNotEmpty(value)) boq.setSupplyAmount(Double.parseDouble(value));
-						    }
-						    case "installationAmount" -> {
-						        if (isNotEmpty(value)) boq.setInstallationAmount(Double.parseDouble(value));
-						    }
-						    case "totalAmount" -> {
-						        if (isNotEmpty(value)) boq.setTotalAmount(Double.parseDouble(value));
-						    }
-						    case "remarks" -> boq.setRemarks(value);
-						    case "lastLevel" -> boq.setLastLevel("1".equals(value));
-						    case "rateOnly" -> boq.setRateOnly("1".equals(value));
-						    case "qtyType" -> boq.setQtyType(value);
-						    case "wo" -> {
-						        if (isNotEmpty(value)) boq.setWo(Integer.valueOf(value));
-						    }
-						}
-							
 						}
 					}
 					boqList.add(boq);
@@ -171,128 +140,140 @@ public class ExcelFileService {
 		}
 		return boqList;
 	}
-	
-	private Integer parseInteger(String value) {
-	    if (isNotEmpty(value)) {
-	        try {
-	            return (int) Double.parseDouble(value); 
-	        } catch (NumberFormatException e) {
-	            return null;
-	        }
-	    }
-	    return null;
-	}
+//	private Integer parseInteger(String value) {
+//		if (isNotEmpty(value)) {
+//			try {
+//				return (int) Double.parseDouble(value);
+//			} catch (NumberFormatException e) {
+//				return null;
+//			}
+//		}
+//		return null;
+//	}
+
 	private boolean isNotEmpty(String value) {
 		return value != null && !value.trim().isEmpty();
 	}
+
 	private String getCellValueAsString(Cell cell, FormulaEvaluator evaluator) {
-	    if (cell == null) return null;
-
-	    return switch (cell.getCellType()) {
-	        case STRING -> cell.getStringCellValue().trim();
-	        case NUMERIC -> {
-	            double num = cell.getNumericCellValue();
-	            if (num == Math.floor(num)) {
-	                yield String.valueOf((long) num);
-	            } else {
-	                yield String.valueOf(num);
-	            }
-	        }
-	        case BOOLEAN -> String.valueOf(cell.getBooleanCellValue());
-	        case FORMULA -> {
-	            CellValue evaluatedValue = evaluator.evaluate(cell);
-	            if (evaluatedValue == null) yield null;
-
-	            yield switch (evaluatedValue.getCellType()) {
-	                case STRING -> evaluatedValue.getStringValue();
-	                case NUMERIC -> {
-	                    double num = evaluatedValue.getNumberValue();
-	                    if (num == Math.floor(num)) {
-	                        yield String.valueOf((long) num);
-	                    } else {
-	                        yield String.valueOf(num);
-	                    }
-	                }
-	                case BOOLEAN -> String.valueOf(evaluatedValue.getBooleanValue());
-	                default -> null;
-	            };
-	        }
-	        default -> null;
-	    };
+		if (cell == null)
+			return null;
+		return switch (cell.getCellType()) {
+		case STRING ->{
+			String value = cell.getStringCellValue().trim();
+			if(value.isEmpty()) {
+				yield null;
+			} else {
+				yield value.toLowerCase().contains("total amount") ? null : value;
+			}
+		}
+		case NUMERIC -> {
+			double num = cell.getNumericCellValue();
+			if (num == Math.floor(num)) {
+				yield String.valueOf((long) num);
+			} else {
+				yield String.valueOf(num);
+			}
+		}
+		case BOOLEAN -> String.valueOf(cell.getBooleanCellValue());
+		case FORMULA -> {
+			CellValue evaluatedValue = evaluator.evaluate(cell);
+			if (evaluatedValue == null)
+				yield null;
+			yield switch (evaluatedValue.getCellType()) {
+			case STRING -> evaluatedValue.getStringValue();
+			case NUMERIC -> {
+				double num = evaluatedValue.getNumberValue();
+				if (num == Math.floor(num)) {
+					yield String.valueOf((long) num);
+				} else {
+					yield String.valueOf(num);
+				}
+			}
+			case BOOLEAN -> String.valueOf(evaluatedValue.getBooleanValue());
+			default -> null;
+			};
+		}
+		default -> null;
+		};
 	}
-	
+
 	private int findRowNumber(Sheet sheet) {
 		List<String> columns = getColumnHeader(sheet);
-		for(int row = 0 ; sheet.getPhysicalNumberOfRows() > row; row++) {
-			Row currentRow =sheet.getRow(row);
-			if(currentRow != null) {
-				for(int cell = 0; currentRow.getPhysicalNumberOfCells() > cell; cell++) {
+		for (int row = 0; sheet.getPhysicalNumberOfRows() > row; row++) {
+			Row currentRow = sheet.getRow(row);
+			if (currentRow != null) {
+				for (int cell = 0; currentRow.getPhysicalNumberOfCells() > cell; cell++) {
 					Cell currentCell = currentRow.getCell(cell);
-					if(currentCell != null && currentCell.getCellType() == CellType.STRING) {
+					if (currentCell != null && currentCell.getCellType() == CellType.STRING) {
 						String cellValue = currentCell.getStringCellValue();
-						if(cellValue != null && columns.contains(cellValue.trim())) {
-							return row+1;
+						if (cellValue != null && columns.contains(cellValue.trim())) {
+							return row + 1;
 						}
 					}
 				}
-			}	
+			}
 		}
 		return 0;
 	}
+
 	private Map<String, Integer> findColumnIndexMap(Sheet sheet, Map<String, String> columnMapping) {
 		Map<String, Integer> columnIndexMap = new HashMap<>();
 		List<String> columns = getColumnHeader(sheet);
-		if(sheet != null) {
-			for(int row = 0; sheet.getPhysicalNumberOfRows() > row; row++) {
-				Row currentRow = sheet.getRow(row);	
-				if(currentRow != null) {
-					for(int cell=0; currentRow.getPhysicalNumberOfCells() > cell; cell++) {
-						Cell currentCell =currentRow.getCell(cell);
-						if(currentCell != null && currentCell.getCellType() == CellType.STRING) {
-							String cellValue =currentCell.getStringCellValue();
-							if(cellValue != null && columns.contains(cellValue.trim()) && columnMapping.containsValue(cellValue)) {
+		if (sheet != null) {
+			for (int row = 0; sheet.getPhysicalNumberOfRows() > row; row++) {
+				Row currentRow = sheet.getRow(row);
+				if (currentRow != null) {
+					for (int cell = 0; currentRow.getPhysicalNumberOfCells() > cell; cell++) {
+						Cell currentCell = currentRow.getCell(cell);
+						if (currentCell != null && currentCell.getCellType() == CellType.STRING) {
+							String cellValue = currentCell.getStringCellValue();
+							if (cellValue != null && columns.contains(cellValue.trim())
+									&& columnMapping.containsValue(cellValue)) {
 								columnIndexMap.put(cellValue, cell);
 							}
 						}
 					}
-					if(columnIndexMap.size() == columnMapping.size()) {
-						break; 
+					if (columnIndexMap.size() == columnMapping.size()) {
+						break;
 					}
 				}
 			}
 		}
 		return columnIndexMap;
 	}
-	private Sheet findSheetByName(String sheetName, InputStream inputStream) throws EncryptedDocumentException, IOException {
+
+	private Sheet findSheetByName(String sheetName, InputStream inputStream)
+			throws EncryptedDocumentException, IOException {
 		Workbook workbook = WorkbookFactory.create(inputStream);
-		Sheet sheet = workbook !=null ? workbook.getSheet(sheetName) : null;
+		Sheet sheet = workbook != null ? workbook.getSheet(sheetName) : null;
 		return sheet != null ? sheet : null;
 	}
-	
+
 	protected UOM findUOM(String value) {
+		String sanitizedValue = value.trim().replaceAll("[., /]", "");
 		List<UOM> uoms = uomDao.findAll();
 		for (UOM uom : uoms) {
-			if (uom.getUomCode().equalsIgnoreCase(value)) {
+			if (uom.getUomCode().equalsIgnoreCase(sanitizedValue) || uom.getUomName().equalsIgnoreCase(value)) {
 				return uom;
 			}
 		}
-		throw new DataNotFoundException("UOM not available");
+		return null;
 	}
-	public void generateBoqFile(List<BOQ> boqList, HttpServletResponse response) throws IOException {
-		String projectName = boqList.get(0).getProject().getProjectName()
-		        .trim()
-		        .replaceAll("\\s+", "_");            
-		String fileName = projectName; 
 
+	public void generateBoqFile(List<BOQ> boqList, HttpServletResponse response) throws IOException {
+		String projectName = boqList.get(0).getProject().getProjectName().trim().replaceAll("\\s+", "_");
+		String fileName = projectName;
 		response.setHeader("Content-Disposition", "attachment; filename=" + fileName + ".xlsx");
 		XSSFWorkbook workBook = new XSSFWorkbook();
 		XSSFSheet sheet = workBook.createSheet("BOQ");
-		addData(sheet,boqList);
+		addData(sheet, boqList);
 		workBook.write(response.getOutputStream());
 		response.getOutputStream().flush();
 		response.getOutputStream().close();
 		workBook.close();
 	}
+
 	private void addData(XSSFSheet sheet, List<BOQ> boqList) {
 		sheet.setColumnWidth(2, 256 * 10);
 		sheet.setColumnWidth(3, 256 * 50);
@@ -300,7 +281,7 @@ public class ExcelFileService {
 		sheet.setColumnWidth(8, 256 * 15);
 		addHeader(sheet);
 		int rowNum = 1;
-		for(BOQ boq : boqList) {
+		for (BOQ boq : boqList) {
 			int slNo = rowNum++;
 			Row row = sheet.createRow(slNo);
 			row.createCell(0).setCellValue(slNo);
@@ -309,24 +290,22 @@ public class ExcelFileService {
 			row.createCell(3).setCellValue(boq.getBoqName());
 			row.createCell(4).setCellValue(boq.getUom() != null ? boq.getUom().getUomCode() : "");
 			row.createCell(5).setCellValue(boq.getQuantity());
-			row.createCell(6).setCellValue(boq.getTotalRate());
-			row.createCell(7).setCellValue(boq.getTotalAmount());
 			row.createCell(8).setCellValue(boq.getParentBOQ() != null ? boq.getParentBOQ().getBoqCode() : "");
 			row.createCell(9).setCellValue(boq.isLastLevel() ? "Yes" : "No");
 		}
-		
 	}
+
 	private void addHeader(XSSFSheet sheet) {
 		Row row = sheet.createRow(0);
 		CellStyle style = sheet.getWorkbook().createCellStyle();
 		style.setAlignment(HorizontalAlignment.CENTER);
 		style.setWrapText(true);
 		row.setRowStyle(style);
-		String [] header = {"S No", "ID", "BOQ Code", "BOQ Name", "UOM", "Quantity", "Rate", "Amount","Parent Code","Last level"};
-		for(int i = 0; i < header.length; i++) {
+		String[] header = { "S No", "ID", "BOQ Code", "BOQ Name", "UOM", "Quantity", "Rate", "Amount", "Parent Code",
+				"Last level" };
+		for (int i = 0; i < header.length; i++) {
 			Cell cell = row.createCell(i);
 			cell.setCellValue(header[i]);
 		}
-		
 	}
 }
