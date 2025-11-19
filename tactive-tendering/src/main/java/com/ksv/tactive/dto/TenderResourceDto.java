@@ -1,6 +1,8 @@
 package com.ksv.tactive.dto;
+
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
 @Data
 @NoArgsConstructor
 public class TenderResourceDto {
@@ -25,7 +27,6 @@ public class TenderResourceDto {
 	private String uomId;
 	private String currencyId;
 	private String resourceId;
-	private String costCodeActivityId;
-	private String activityGroupId;
+	private String boqId;
 	private String projectId;
 }
