@@ -445,10 +445,10 @@ public class ProjectControler {
 			return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
     	}
     }
-    @PostMapping("tenderEstimation/pasteResourceToCostCode/{costCodeId}")
-    public ResponseEntity<?> pasteResource(@PathVariable String costCodeId, @RequestBody List<String> tenderEstimationIds){
+    @PostMapping("tenderEstimation/pasteResourceToCostCode/{boqId}")
+    public ResponseEntity<?> pasteResource(@PathVariable String boqId, @RequestBody List<String> tenderEstimationIds){
     	try {
-    		String message = projectService.pasteResourceToCostCode(costCodeId, tenderEstimationIds);
+    		String message = projectService.pasteResourceToBOQ(boqId, tenderEstimationIds);
     		return ResponseEntity.status(HttpStatus.OK).body(message);
     	}
     	catch (DataNotFoundException e) {

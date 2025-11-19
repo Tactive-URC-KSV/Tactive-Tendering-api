@@ -83,6 +83,8 @@ import com.ksv.tactive.project.entity.ScopeOfPackage;
 import com.ksv.tactive.project.entity.TechnicalFeasibility;
 import com.ksv.tactive.project.entity.Template;
 import com.ksv.tactive.project.entity.TemplateMapping;
+import com.ksv.tactive.project.entity.TenderEstimation;
+import com.ksv.tactive.project.entity.TenderEstimationCostDetails;
 import com.ksv.tactive.project.entity.UOM;
 import com.ksv.tactive.service.ProjectService;
 import com.ksv.tactive.service.UserService;
@@ -911,16 +913,71 @@ public class ProjectServiceImpl implements ProjectService {
 	}
 	@Override
 	public String addResourcesToTender(TenderResourceDto dto) {
-	   return null;
+		TenderEstimation tenderEst;
+        if (dto.getId() != null) {
+            tenderEst = tenderEstDao.findById(dto.getId()).orElse(new TenderEstimation());
+            
+        } else {
+            tenderEst = new TenderEstimation();
+            tenderEst.setId(UUID.randomUUID().toString()); 
+        }
+        
+       
+        tenderEst.setDocNumber(dto.getDocNumber());
+        tenderEst.setCoEfficient(dto.getCoEfficient());
+        tenderEst.setWastePercentage(dto.getWastePercentage());
+        tenderEst.setRate(dto.getRate());
+        tenderEst.setAdditionalRate(dto.getAdditionalRate());
+        tenderEst.setShippingPrice(dto.getShippingPrice());
+        tenderEst.setCostUnitRate(dto.getCostUnitRate());
+        tenderEst.setRateLock(dto.isRateLock());
+        tenderEst.setExchangeRate(dto.getExchangeRate());
+        tenderEst.setResourceType(resourceTypeDao.findById(dto.getResourceTypeId()).orElse(null));
+        tenderEst.setResource(resourceDao.findById(dto.getResourceId()).orElse(null));
+        tenderEst.setUom(uomDao.findById(dto.getUomId()).orElse(null));
+        tenderEst.setResourceNature(resourceNatureDao.findById(dto.getResourceNatureId()).orElse(null));
+        tenderEst.setQuantityType(quantityTypeDao.findById(dto.getQuantityTypeId()).orElse(null));
+        tenderEst.setCurrency(projectCurrencyDao.findById(dto.getCurrencyId()).orElse(null));
+        BOQ boq = new BOQ(); 
+        boq.setId(dto.getBoqId()); 
+        if (tenderEst.getBoq() == null) {
+            tenderEst.setBoq(new HashSet<>());
+        }
+        tenderEst.getBoq().add(boq);
+        tenderEst = tenderEstDao.save(tenderEst);
+        TenderEstimationCostDetails costDetails = costDetailsDao
+            .findByTenderEstimationIdAndBoqId(tenderEst.getId(), dto.getBoqId())
+            .orElse(new TenderEstimationCostDetails());
+        if (costDetails.getId() == null) {
+             costDetails.setId(UUID.randomUUID().toString());
+        }
+        
+        costDetails.setTenderEstimation(tenderEst);
+        costDetails.setBoq(boq);
+        costDetails.setCalculatedQuantity(dto.getCalculatedQuantity());
+        costDetails.setWastePercentage(dto.getWastePercentage());
+        costDetails.setWasteQuantity(dto.getWasteQuantity());
+        costDetails.setNetQuantity(dto.getNetQuantity());
+        costDetails.setRate(dto.getRate());
+        costDetails.setAdditionalRate(dto.getAdditionalRate());
+        costDetails.setShippingPrice(dto.getShippingPrice());
+        costDetails.setCostUnitRate(dto.getCostUnitRate());
+        costDetails.setExchangeRate(dto.getExchangeRate());
+        costDetails.setTotalCostCompanyCurrency(dto.getTotalCostCompanyCurrency());
+        costDetails.setResourceTotalCost(dto.getResourceTotalCost());
+        costDetails.setCoEffSnapshot(dto.getCoEfficient()); 
+        costDetails.setRateLock(dto.isRateLock());
+        costDetailsDao.save(costDetails);
+
+        return messageSource.getMessage("tender.resource.add.success",null, Locale.ENGLISH);
 	}
 	
-	
 	@Override
-	public String pasteResourceToCostCode(String costCodeId, List<String> tenderEstimationIds) {
+	public String pasteResourceToBOQ(String boqId, List<String> tenderEstimationIds) {
 		List<String> messages = new ArrayList<>();
 		for(String id:tenderEstimationIds) {
 			TenderResourceDto dto = new TenderResourceDto();
-			dto.setCostCodeActivityId(costCodeId);
+			dto.setBoqId(boqId);
 			dto.setId(id);
 			messages.add(addResourcesToTender(dto));
 		}
@@ -931,7 +988,7 @@ public class ProjectServiceImpl implements ProjectService {
 	}
 	@Override
 	public ActivityGroup getActivityGroupById(String activityGroupId) {
-		
-		return null;
+		return activityGroupsDao.findById(activityGroupId).orElseThrow(
+				() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
 	}
 }

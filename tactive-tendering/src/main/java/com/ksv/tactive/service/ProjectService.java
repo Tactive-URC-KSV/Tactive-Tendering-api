@@ -82,7 +82,7 @@ public interface ProjectService {
 //	List<TenderEstResourceDto> getEstimatedResourcesByCostCode(String costCodeId);
 //	List<TenderEstimation> getEstimatedResourcesByActivityGroup(String activityGroupId);
 //	String deleteTenderEstimationForActivityGroup(String tenderEstimationId, String activityGroupId);
-	String pasteResourceToCostCode(String costCodeId, List<String> tenderEstimationIds);
+	String pasteResourceToBOQ(String boqId, List<String> tenderEstimationIds);
 //	String pasteResourceToActivity(String activityGroupId, List<String> tenderEstimationIds);
 //	String deleteTenderEstimationForCostCode(String tenderEstimationId, String costCodeId);
 //	String updateTenderEstimationResource(TenderResourceDto tenderResourceDto);
