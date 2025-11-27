@@ -9,5 +9,6 @@ import com.ksv.tactive.project.entity.TenderEstimationCostDetails;
 public interface TenderEstCostDao extends JpaRepository<TenderEstimationCostDetails, String>{
 
 	Optional<TenderEstimationCostDetails> findByTenderEstimationIdAndBoqId(String id, String boqId);
+	TenderEstimationCostDetails findByTenderEstimationId(String tenderEstimationId);
 	
 }

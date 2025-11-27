@@ -35,4 +35,12 @@ public class UserController {
 			return ResponseEntity.status(HttpStatus.CONFLICT).body("User not found");
 		}
 	}
+	@GetMapping("/loggedin-user")
+	public ResponseEntity<?> getLoggedInUser() {
+		try {
+			return ResponseEntity.status(HttpStatus.OK).body(userService.findLoggedInUser());
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.CONFLICT).body("User not found");
+		}
+	}
 }
