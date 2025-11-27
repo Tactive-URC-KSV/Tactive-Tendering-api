@@ -23,6 +23,8 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+
+import com.ksv.tactive.dto.ExcelExtractBOQ;
 import com.ksv.tactive.exception.DataNotFoundException;
 import com.ksv.tactive.project.dao.UOMDao;
 import com.ksv.tactive.project.entity.BOQ;
@@ -308,4 +310,72 @@ public class ExcelFileService {
 			cell.setCellValue(header[i]);
 		}
 	}
+
+	public List<ExcelExtractBOQ> getExtractedData(
+	        MultipartFile boqFile, String sheetName, Map<String, String> columnMapping,
+	        int startRow, int endRow) throws IOException {
+	    Workbook workbook = boqFile.getOriginalFilename().endsWith(".xlsx")
+	            ? readXlsxFile(boqFile) : readXlsFile(boqFile);
+	    Sheet sheet = workbook.getSheet(sheetName);
+	    if (sheet == null) {
+	        return new ArrayList<>();
+	    }
+	    Map<String, Integer> columnIndex = findColumnIndexMap(sheet, columnMapping);
+	    if (columnIndex.isEmpty()) {
+	    }
+	    FormulaEvaluator evaluator = workbook.getCreationHelper().createFormulaEvaluator();
+	    int lastRowNum = sheet.getLastRowNum();
+	    int detectedStart = (startRow == 0) ? findRowNumber(sheet) : startRow;
+	    if (detectedStart > lastRowNum + 10) detectedStart = 5;
+	    int finalStartRow = Math.max(detectedStart, 0);
+	    int finalEndRow = (endRow == 0) ? lastRowNum : Math.min(endRow, lastRowNum);
+	    if (finalStartRow > finalEndRow) {
+	        return new ArrayList<>();
+	    }
+	    List<ExcelExtractBOQ> extractedData = new ArrayList<>();
+	    int serialNumber = 1;
+	    long parentindex = 0;
+	    for (int rowNum = finalStartRow; rowNum <= finalEndRow; rowNum++) {
+	        Row row = sheet.getRow(rowNum);
+	        if (row == null) continue;
+	        ExcelExtractBOQ boq = new ExcelExtractBOQ();
+	        boq.setSno(serialNumber++);
+	        boolean hasData = false;
+	        for (Map.Entry<String, String> entry : columnMapping.entrySet()) {
+	            String internalField = entry.getKey();
+	            String columnHeader = entry.getValue();
+	            Integer colIndex = columnIndex.get(columnHeader);
+	            if (colIndex == null) continue;
+	            Cell cell = row.getCell(colIndex);
+	            String rawValue = getCellValueAsString(cell, evaluator);
+	            switch (internalField) {
+	                case "boqCode" -> { boq.setBoqCode(rawValue); if(isNotEmpty(rawValue)) hasData=true; }
+	                case "boqName" -> { boq.setBoqName(rawValue); if(isNotEmpty(rawValue)) hasData=true; }
+	                case "quantity" -> {
+	                    if (rawValue != null && !rawValue.isBlank()) {
+	                        try {
+	                            boq.setQuantity(Double.parseDouble(rawValue.trim()));
+	                            hasData = true;
+	                        } catch (NumberFormatException e) {
+	                            
+	                        }
+	                    }
+	                }
+	                case "uom" -> { boq.setUom(rawValue); if(rawValue!=null) hasData=true; }
+	            }
+	        }
+	        boq.setLastLevel(boq.getQuantity() > 0 || (boq.getUom() != null && !boq.getUom().isBlank()));
+	        if(boq.isLastLevel()==true) {
+	        	boq.setParentSno(parentindex);
+	        }
+	        else {
+	        	parentindex = boq.getSno();
+	        }
+	        if (hasData || !columnIndex.isEmpty()) {  
+	            extractedData.add(boq);
+	        }
+	    }
+	    return extractedData;
+	}
+
 }

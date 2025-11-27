@@ -1,6 +1,5 @@
 package com.ksv.tactive.service.implmn;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -15,6 +14,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
@@ -32,10 +32,13 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.itextpdf.text.DocumentException;
 import com.ksv.tactive.dto.CostCodeDto;
+import com.ksv.tactive.dto.ExcelExtractBOQ;
 import com.ksv.tactive.dto.FeasibilityApprovalDocuDTO;
+import com.ksv.tactive.dto.PaginatedResponse;
 import com.ksv.tactive.dto.ProjectInfoDto;
 import com.ksv.tactive.dto.ProjectInputDTO;
 import com.ksv.tactive.dto.TemplateDto;
+import com.ksv.tactive.dto.TenderEstResourceDto;
 import com.ksv.tactive.dto.TenderResourceDto;
 import com.ksv.tactive.exception.DataNotFoundException;
 import com.ksv.tactive.exception.DuplicateProjectCodeException;
@@ -484,6 +487,49 @@ public class ProjectServiceImpl implements ProjectService {
 		return null;
 	}
 	@Override
+	public PaginatedResponse<ExcelExtractBOQ> extractBOQDataPaginated(
+	        String sheetName,
+	        Map<String, String> columnMapping,
+	        MultipartFile boqFile,
+	        int startRow,
+	        int endRow,
+	        int page,
+	        int size,
+	        String search
+	) throws IOException {
+		
+	    List<ExcelExtractBOQ> allRows = null;
+	    String fileName = boqFile.getOriginalFilename();
+		if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
+			allRows = excelService.getExtractedData(boqFile, sheetName, columnMapping, startRow, endRow);
+		}
+		else {
+			allRows = pdfService.getExtractedData(boqFile, columnMapping, startRow, endRow);
+		}
+	    if (search != null && !search.isBlank()) {
+	        String lower = search.toLowerCase();
+	        allRows = allRows.stream()
+	                .filter(item ->
+	                        (item.getBoqCode() != null && item.getBoqCode().toLowerCase().contains(lower)) ||
+	                        (item.getBoqName() != null && item.getBoqName().toLowerCase().contains(lower))
+	                )
+	                .toList();
+	    }
+	    int totalElements = allRows.size();
+	    int totalPages = (int) Math.ceil((double) totalElements / size);
+	    int fromIndex = page * size;
+	    int toIndex = Math.min(fromIndex + size, totalElements);
+	    List<ExcelExtractBOQ> content =
+	            (fromIndex >= totalElements) ? List.of() : allRows.subList(fromIndex, toIndex);
+	    return new PaginatedResponse<ExcelExtractBOQ>(
+	            content,        
+	            page,           
+	            size,          
+	            totalElements,  
+	            totalPages      
+	    );
+	}
+	@Override
 	public String saveBoqFile(MultipartFile boqFile, String projectId) {
 		String projectName = findByProjectId(projectId).getProjectName();
 		Path directory = Paths
@@ -515,61 +561,146 @@ public class ProjectServiceImpl implements ProjectService {
 			throw new FileNotSaveException(messageSource.getMessage("file.upload.failure", null, Locale.ENGLISH), e);
 		}
 	}
+//	@Override
+//	public String mapBOQ(String projectId, String sheetName, Map<String, String> columnMapping, String filePath)
+//			throws IOException, DataNotFoundException {
+//		Projects project = findByProjectId(projectId);
+//		Resource resource = new UrlResource(Paths.get(filePath).toUri());
+//		List<BOQ> boqList = null;
+//		if (resource.exists() || resource.isReadable()) {
+//			String fileName = resource.getFilename();
+//			InputStream inputStream = resource.getInputStream();
+//			if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
+//				boqList = excelService.mapBOQData(sheetName, columnMapping, inputStream);
+//			} else if (fileName.endsWith(".pdf")) {
+//				boqList = pdfService.mapBOQData(columnMapping, inputStream);
+//			} else {
+//				throw new FileNotSaveException(
+//						messageSource.getMessage("file.type.not.supported", null, Locale.ENGLISH));
+//			}
+//			if (!boqList.isEmpty()) {
+//				BOQ parentBoq = null;
+//				BOQ subBoq = null;
+//				for (BOQ boq : boqList) {
+//					boq.setId(UUID.randomUUID().toString());
+//					boq.setProject(project);
+//					if ((!isValidText(boq.getBoqCode()) && !isValidText(boq.getBoqName()))
+//				            && boq.getQuantity() == 0 && boq.getUom() == null) {
+//				        continue;
+//				    }
+//					if((!isNotEmpty(boq.getBoqCode()) || !isNotEmpty(boq.getBoqName()))
+//							&& boq.getQuantity() == 0 && boq.getUom() == null) {
+//						boq.setParentBOQ(null);
+//						boq.setLevel(1);
+//						parentBoq=boqDao.save(boq);
+//						subBoq = null;
+//					}
+//					else if(boq.getQuantity() == 0 && boq.getUom() == null && (boq.getBoqCode() != null && boq.getBoqName() != null)){
+//						boq.setParentBOQ(parentBoq);
+//						boq.setLevel(2);
+//						boq.setLastLevel(false);
+//						subBoq = boqDao.save(boq);
+//					}
+//					else if(boq.getQuantity() != 0 || boq.getUom() != null){
+//						if(subBoq != null) {
+//							boq.setParentBOQ(subBoq);
+//						} else {
+//							boq.setParentBOQ(parentBoq);
+//						}
+//						boq.setLevel(3);
+//						boqDao.save(boq);
+//					}
+//				}
+//			}
+//			return "BOQ data mapped successfully";
+//		}
+//		return null;
+//	}
 	@Override
-	public String mapBOQ(String projectId, String sheetName, Map<String, String> columnMapping, String filePath)
-			throws IOException, DataNotFoundException {
-		Projects project = findByProjectId(projectId);
-		Resource resource = new UrlResource(Paths.get(filePath).toUri());
-		List<BOQ> boqList = null;
-		if (resource.exists() || resource.isReadable()) {
-			String fileName = resource.getFilename();
-			InputStream inputStream = resource.getInputStream();
-			if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
-				boqList = excelService.mapBOQData(sheetName, columnMapping, inputStream);
-			} else if (fileName.endsWith(".pdf")) {
-				boqList = pdfService.mapBOQData(columnMapping, inputStream);
-			} else {
-				throw new FileNotSaveException(
-						messageSource.getMessage("file.type.not.supported", null, Locale.ENGLISH));
+	public String mapBOQData(String projectId,
+	                         String sheetName,
+	                         Map<String, String> columnMapping,
+	                         Map<Long, Long> parentChildMapping,
+	                         Map<Long, Boolean> lastLevelMapping,
+	                         Map<Long, Long> levelMapping,
+	                         MultipartFile boqFile) throws IOException {
+
+	    Projects project = findByProjectId(projectId);
+	    saveBoqFile(boqFile, projectId);
+	    int startRow = 0;
+	    int endRow = 1000;
+	    List<ExcelExtractBOQ> extractedRows;
+	    String fileName = boqFile.getOriginalFilename();
+	    if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
+	        extractedRows = excelService.getExtractedData(boqFile, sheetName, columnMapping, startRow, endRow);
+	    } else {
+	        extractedRows = pdfService.getExtractedData(boqFile, columnMapping, startRow, endRow);
+	    }
+	    if (extractedRows == null || extractedRows.isEmpty()) {
+	        throw new DataNotFoundException("No BOQ data extracted from file!");
+	    }
+	    Map<Long, BOQ> boqEntityMap = new HashMap<>();
+	    extractedRows.forEach(row -> {
+	        BOQ boq = new BOQ();
+	        boq.setId(UUID.randomUUID().toString());
+	        boq.setBoqCode(row.getBoqCode());
+	        boq.setBoqName(row.getBoqName());
+	        boq.setQuantity(row.getQuantity());
+	        boq.setProject(project);
+	        if (row.getUom() != null) {
+	            UOM uom = findUOM(row.getUom());
+	            boq.setUom(uom);
+	        }
+	        if (!isValidText(row.getBoqCode()) && !isNotEmpty(row.getBoqCode())) {
+	            return;
+	        }
+	        Long level = levelMapping.getOrDefault(row.getSno(), 0L);
+	        boq.setLevel(level.intValue());
+	        if (!row.isLastLevel()) {
+	            boq.setLastLevel(lastLevelMapping.getOrDefault(row.getSno(), false));
+	        } else {
+	            boq.setLastLevel(row.isLastLevel());
+	        }
+
+	        boqEntityMap.put(row.getSno(), boq);
+	    });
+	    parentChildMapping.forEach((childSno, parentSno) -> {
+	        BOQ child = boqEntityMap.get(childSno);
+	        BOQ parent = boqEntityMap.get(parentSno);
+
+	        if (child != null && parent != null) {
+	            child.setParentBOQ(parent);
+	            parent.getChildren().add(child);
+	        }
+	    });
+	    for (ExcelExtractBOQ row : extractedRows) {
+	        Long childSno = row.getSno();
+	        Long parentSno = row.getParentSno();
+	        if (parentSno == null || parentSno == 0) continue;
+	        if (parentChildMapping.containsKey(childSno)) continue;
+	        BOQ child = boqEntityMap.get(childSno);
+	        BOQ parent = boqEntityMap.get(parentSno);
+	        if (child != null && parent != null) {
+	            child.setParentBOQ(parent);
+	            parent.getChildren().add(child);
+	        }
+	    }
+	    List<BOQ> boqList = new ArrayList<>(boqEntityMap.values());
+	    boqDao.saveAll(boqList);
+	    return "BOQ Mapping Successfully Stored for Project " + projectId;
+	}
+
+	protected UOM findUOM(String value) {
+		String sanitizedValue = value.trim().replaceAll("[., /]", "");
+		List<UOM> uoms = uomDao.findAll();
+		for (UOM uom : uoms) {
+			if (uom.getUomCode().equalsIgnoreCase(sanitizedValue) || uom.getUomName().equalsIgnoreCase(value)) {
+				return uom;
 			}
-			if (!boqList.isEmpty()) {
-				BOQ parentBoq = null;
-				BOQ subBoq = null;
-				for (BOQ boq : boqList) {
-					boq.setId(UUID.randomUUID().toString());
-					boq.setProject(project);
-					if ((!isValidText(boq.getBoqCode()) && !isValidText(boq.getBoqName()))
-				            && boq.getQuantity() == 0 && boq.getUom() == null) {
-				        continue;
-				    }
-					if((!isNotEmpty(boq.getBoqCode()) || !isNotEmpty(boq.getBoqName()))
-							&& boq.getQuantity() == 0 && boq.getUom() == null) {
-						boq.setParentBOQ(null);
-						boq.setLevel(1);
-						parentBoq=boqDao.save(boq);
-						subBoq = null;
-					}
-					else if(boq.getQuantity() == 0 && boq.getUom() == null && (boq.getBoqCode() != null && boq.getBoqName() != null)){
-						boq.setParentBOQ(parentBoq);
-						boq.setLevel(2);
-						boq.setLastLevel(false);
-						subBoq = boqDao.save(boq);
-					}
-					else if(boq.getQuantity() != 0 || boq.getUom() != null){
-						if(subBoq != null) {
-							boq.setParentBOQ(subBoq);
-						} else {
-							boq.setParentBOQ(parentBoq);
-						}
-						boq.setLevel(3);
-						boqDao.save(boq);
-					}
-				}
-			}
-			return "BOQ data mapped successfully";
 		}
 		return null;
 	}
+
 	private boolean isValidText(String value) {
 	    if (value == null) return false;
 	    String trimmed = value.trim();
@@ -920,9 +1051,7 @@ public class ProjectServiceImpl implements ProjectService {
         } else {
             tenderEst = new TenderEstimation();
             tenderEst.setId(UUID.randomUUID().toString()); 
-        }
-        
-       
+        }       
         tenderEst.setDocNumber(dto.getDocNumber());
         tenderEst.setCoEfficient(dto.getCoEfficient());
         tenderEst.setWastePercentage(dto.getWastePercentage());
@@ -932,12 +1061,29 @@ public class ProjectServiceImpl implements ProjectService {
         tenderEst.setCostUnitRate(dto.getCostUnitRate());
         tenderEst.setRateLock(dto.isRateLock());
         tenderEst.setExchangeRate(dto.getExchangeRate());
-        tenderEst.setResourceType(resourceTypeDao.findById(dto.getResourceTypeId()).orElse(null));
-        tenderEst.setResource(resourceDao.findById(dto.getResourceId()).orElse(null));
-        tenderEst.setUom(uomDao.findById(dto.getUomId()).orElse(null));
-        tenderEst.setResourceNature(resourceNatureDao.findById(dto.getResourceNatureId()).orElse(null));
-        tenderEst.setQuantityType(quantityTypeDao.findById(dto.getQuantityTypeId()).orElse(null));
-        tenderEst.setCurrency(projectCurrencyDao.findById(dto.getCurrencyId()).orElse(null));
+        tenderEst.setResourceType(dto.getResourceTypeId() != null 
+        	    ? resourceTypeDao.findById(dto.getResourceTypeId()).orElse(null) 
+        	    : null);
+
+        	tenderEst.setResource(dto.getResourceId() != null
+        	    ? resourceDao.findById(dto.getResourceId()).orElse(null)
+        	    : null);
+        	    
+        	tenderEst.setUom(dto.getUomId() != null
+        	    ? uomDao.findById(dto.getUomId()).orElse(null)
+        	    : null);
+        	    
+        	tenderEst.setResourceNature(dto.getResourceNatureId() != null
+        	    ? resourceNatureDao.findById(dto.getResourceNatureId()).orElse(null)
+        	    : null);
+        	    
+        	tenderEst.setQuantityType(dto.getQuantityTypeId() != null
+        	    ? quantityTypeDao.findById(dto.getQuantityTypeId()).orElse(null)
+        	    : null);
+        	    
+        	tenderEst.setCurrency(dto.getCurrencyId() != null
+        	    ? projectCurrencyDao.findById(dto.getCurrencyId()).orElse(null)
+        	    : null);
         BOQ boq = new BOQ(); 
         boq.setId(dto.getBoqId()); 
         if (tenderEst.getBoq() == null) {
@@ -951,7 +1097,6 @@ public class ProjectServiceImpl implements ProjectService {
         if (costDetails.getId() == null) {
              costDetails.setId(UUID.randomUUID().toString());
         }
-        
         costDetails.setTenderEstimation(tenderEst);
         costDetails.setBoq(boq);
         costDetails.setCalculatedQuantity(dto.getCalculatedQuantity());
@@ -968,27 +1113,113 @@ public class ProjectServiceImpl implements ProjectService {
         costDetails.setCoEffSnapshot(dto.getCoEfficient()); 
         costDetails.setRateLock(dto.isRateLock());
         costDetailsDao.save(costDetails);
-
-        return messageSource.getMessage("tender.resource.add.success",null, Locale.ENGLISH);
+        BOQ boqEntity = boqDao.findById(dto.getBoqId()).orElse(null);
+        if (boqEntity != null) {	
+        	boqEntity.setTotalAmount(boqEntity.getTotalAmount() + dto.getTotalCostCompanyCurrency());
+        	boqEntity.setTotalRate(boqEntity.getTotalAmount() / boqEntity.getQuantity());
+			boqDao.save(boqEntity);
+		}
+        return messageSource.getMessage("tender.resource.save.success",null, Locale.ENGLISH);
 	}
 	
 	@Override
 	public String pasteResourceToBOQ(String boqId, List<String> tenderEstimationIds) {
-		List<String> messages = new ArrayList<>();
-		for(String id:tenderEstimationIds) {
-			TenderResourceDto dto = new TenderResourceDto();
-			dto.setBoqId(boqId);
-			dto.setId(id);
-			messages.add(addResourcesToTender(dto));
-		}
-		if(messages.size() == tenderEstimationIds.size()) {
-			return messageSource.getMessage("tender.resource.paste.success", null, Locale.ENGLISH);
-		}
-		return messageSource.getMessage("tender.resource.empty", null, Locale.ENGLISH);
+		BOQ boq = boqDao.findById(boqId).orElse(null);
+	    List<String> messages = new ArrayList<>();
+	    for(String existingTenderEstId : tenderEstimationIds) {
+	        TenderEstimation existingTenderEst = tenderEstDao.findById(existingTenderEstId).orElse(null);
+	        if (existingTenderEst == null) {
+	            messages.add("Failed to find existing TenderEstimation with ID: " + existingTenderEstId);
+	            continue; 
+	        }
+	        TenderResourceDto dto = new TenderResourceDto();
+	        dto.setResourceTypeId(existingTenderEst.getResourceType() != null ? existingTenderEst.getResourceType().getId() : null);
+	        dto.setResourceId(existingTenderEst.getResource() != null ? existingTenderEst.getResource().getId() : null);
+	        dto.setUomId(existingTenderEst.getUom() != null ? existingTenderEst.getUom().getId() : null);
+	        dto.setResourceNatureId(existingTenderEst.getResourceNature() != null ? existingTenderEst.getResourceNature().getId() : null);
+	        dto.setQuantityTypeId(existingTenderEst.getQuantityType() != null ? existingTenderEst.getQuantityType().getId() : null);
+	        dto.setCurrencyId(existingTenderEst.getCurrency() != null ? existingTenderEst.getCurrency().getId() : null);
+	        dto.setBoqId(boqId);
+	        dto.setId(null); 
+	        dto.setDocNumber(existingTenderEst.getDocNumber());
+	        dto.setCoEfficient(existingTenderEst.getCoEfficient());
+	        dto.setWastePercentage(existingTenderEst.getWastePercentage());
+	        dto.setRate(existingTenderEst.getRate());
+	        dto.setAdditionalRate(existingTenderEst.getAdditionalRate());
+	        dto.setShippingPrice(existingTenderEst.getShippingPrice());
+	        dto.setCostUnitRate(existingTenderEst.getCostUnitRate());
+	        dto.setRateLock(existingTenderEst.isRateLock());
+	        dto.setExchangeRate(existingTenderEst.getExchangeRate());	        
+	        TenderEstimationCostDetails existingCostDetails = costDetailsDao
+	             .findByTenderEstimationIdAndBoqId(existingTenderEstId, existingTenderEst.getBoq().iterator().next().getId())
+	             .orElse(null);
+	        if (existingCostDetails != null) {
+	            dto.setCalculatedQuantity(boq.getQuantity() * existingCostDetails.getCoEffSnapshot());
+	            dto.setWasteQuantity((existingCostDetails.getWastePercentage() / 100) * boq.getQuantity());
+	            dto.setNetQuantity(dto.getCalculatedQuantity() + dto.getWasteQuantity());
+	            dto.setTotalCostCompanyCurrency(dto.getNetQuantity() * existingCostDetails.getCostUnitRate());
+	            dto.setResourceTotalCost(dto.getTotalCostCompanyCurrency() * dto.getExchangeRate());
+	            dto.setCoEfficient(existingCostDetails.getCoEffSnapshot()); 
+	        }
+	        messages.add(addResourcesToTender(dto));
+	    }
+	    if(messages.size() == tenderEstimationIds.size()) {
+	        return messageSource.getMessage("tender.resource.paste.success", null, Locale.ENGLISH);
+	    }
+	    return messageSource.getMessage("tender.resource.empty", null, Locale.ENGLISH);
 	}
 	@Override
 	public ActivityGroup getActivityGroupById(String activityGroupId) {
 		return activityGroupsDao.findById(activityGroupId).orElseThrow(
 				() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
+	}
+	@Override
+	public List<TenderEstResourceDto> getEstimatedResourcesByBoq(String boqId) {
+		List<TenderEstimation> estimations = tenderEstDao.findByBoqId(boqId);
+		List<TenderEstResourceDto> dtoList = new ArrayList<>();
+		for (TenderEstimation est : estimations) {
+			TenderEstimationCostDetails costDetails = costDetailsDao
+					.findByTenderEstimationIdAndBoqId(est.getId(), boqId)
+					.orElse(null);
+			TenderEstResourceDto dto = new TenderEstResourceDto();
+			dto.setTenderEstimation(est);
+			dto.setCostDetails(costDetails);
+			dtoList.add(dto);
+		}
+		return dtoList;
+	}
+	@Override
+	public String deleteTenderEstimationForBoq(String tenderEstimationId, String boqId) {
+		TenderEstimation tenderEstimation = tenderEstDao.findById(tenderEstimationId).orElse(null);
+		if (tenderEstimation != null) {
+			Set<BOQ> boqSet = tenderEstimation.getBoq();
+			boqSet.removeIf(boq -> boq.getId().equals(boqId));
+			if (boqSet.isEmpty()) {
+				TenderEstimationCostDetails costDetails = costDetailsDao.findByTenderEstimationId(tenderEstimationId);
+				if (costDetails != null) {
+					costDetailsDao.delete(costDetails);
+				}
+				tenderEstDao.delete(tenderEstimation);
+			} else {
+				tenderEstimation.setBoq(boqSet);
+				tenderEstDao.save(tenderEstimation);
+				Optional<TenderEstimationCostDetails> costDetails = costDetailsDao.findByTenderEstimationIdAndBoqId(tenderEstimationId, boqId);
+				costDetails.ifPresent(costDetailsDao::delete);
+			}
+			return messageSource.getMessage("tender.resource.delete.success", null, Locale.ENGLISH);
+		}
+		return null;
+	}
+	@Override
+	public TenderEstResourceDto getEstimatedResourceById(String tenderEstimationId) {
+		TenderEstimation tenderEstimation = tenderEstDao.findById(tenderEstimationId).orElse(null);
+		if (tenderEstimation != null) {
+			TenderEstimationCostDetails costDetails = costDetailsDao.findByTenderEstimationId(tenderEstimationId);
+			TenderEstResourceDto dto = new TenderEstResourceDto();
+			dto.setTenderEstimation(tenderEstimation);
+			dto.setCostDetails(costDetails);
+			return dto;
+		}
+		return null;
 	}
 }

@@ -12,10 +12,13 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.itextpdf.text.DocumentException;
 import com.ksv.tactive.dto.CostCodeDto;
+import com.ksv.tactive.dto.ExcelExtractBOQ;
 import com.ksv.tactive.dto.FeasibilityApprovalDocuDTO;
+import com.ksv.tactive.dto.PaginatedResponse;
 import com.ksv.tactive.dto.ProjectInfoDto;
 import com.ksv.tactive.dto.ProjectInputDTO;
 import com.ksv.tactive.dto.TemplateDto;
+import com.ksv.tactive.dto.TenderEstResourceDto;
 import com.ksv.tactive.dto.TenderResourceDto;
 import com.ksv.tactive.exception.DataNotFoundException;
 import com.ksv.tactive.project.entity.ActivityGroup;
@@ -55,7 +58,10 @@ public interface ProjectService {
 	List<String> getPdfColumns(MultipartFile boqFile) throws IOException;
 	List<String> getExcelColumns(MultipartFile boqFile, String sheetName) throws IOException;
 	String saveBoqFile(MultipartFile boqFile, String projectId);
-	String mapBOQ(String projectId, String sheetName, Map<String, String> columnMapping, String filePath) throws IOException;
+//	String mapBOQ(String projectId, String sheetName, Map<String, String> columnMapping, String filePath) throws IOException;
+	String mapBOQData(String projectId, String sheetName, Map<String, String> columnMapping,
+			Map<Long, Long> parentChildMapping, Map<Long, Boolean> lastLevelMapping, Map<Long, Long> levelMapping,
+			MultipartFile boqFile) throws IOException;
 	List<BOQ> getParentBOQ(String projectId);
 	List<BOQ> getChildBOQ(String projectId, String parentBoqId);
 	List<BOQ> getParentBOQ(List<BOQ> boqList);
@@ -79,13 +85,16 @@ public interface ProjectService {
 	CostCodeActivity getCostCodeActivityById(String costCodeId);
 	ActivityGroup getActivityGroupById(String activityGroupId);
 	String addResourcesToTender(TenderResourceDto tenderResourceDto);
-//	List<TenderEstResourceDto> getEstimatedResourcesByCostCode(String costCodeId);
+	List<TenderEstResourceDto> getEstimatedResourcesByBoq(String boqId);
 //	List<TenderEstimation> getEstimatedResourcesByActivityGroup(String activityGroupId);
-//	String deleteTenderEstimationForActivityGroup(String tenderEstimationId, String activityGroupId);
 	String pasteResourceToBOQ(String boqId, List<String> tenderEstimationIds);
 //	String pasteResourceToActivity(String activityGroupId, List<String> tenderEstimationIds);
-//	String deleteTenderEstimationForCostCode(String tenderEstimationId, String costCodeId);
 //	String updateTenderEstimationResource(TenderResourceDto tenderResourceDto);
+	String deleteTenderEstimationForBoq(String tenderEstimationId, String boqId);
+	TenderEstResourceDto getEstimatedResourceById(String tenderEstimationId);
+	PaginatedResponse<ExcelExtractBOQ> extractBOQDataPaginated(String sheetName,
+			Map<String, String> columnMapping, MultipartFile boqFile, int startRow, int endRow, int page, int size, String search) throws IOException;
+	
 	
 	
 }

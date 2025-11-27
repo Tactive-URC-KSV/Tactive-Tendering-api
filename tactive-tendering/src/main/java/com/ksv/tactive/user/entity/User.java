@@ -18,6 +18,8 @@ public class User {
 	private String email;
 	@Column(unique = true , nullable = false)
 	private String username;
+	@Column(nullable = true)
+	private long phoneNumber;
 	private String name;
 	@JsonIgnore
 	@Column(unique = true , nullable = false)
