@@ -66,6 +66,7 @@ public interface ProjectService {
 	List<BOQ> getChildBOQ(String projectId, String parentBoqId);
 	List<BOQ> getParentBOQ(List<BOQ> boqList);
 	Map<String, Integer> getBOQCount(String projectId);
+	Map<BOQ, Double> findTotalAmountForParentBoqs(String projectId);
 	double getParentTotalValue(List<BOQ> boqList, String parentCode);
 	void generateBoqExcel(String projectId, HttpServletResponse response) throws IOException, DataNotFoundException;
 	void generateBoqPdf(String projectId, HttpServletResponse response) throws IOException, DocumentException, DataNotFoundException;
@@ -92,8 +93,10 @@ public interface ProjectService {
 //	String updateTenderEstimationResource(TenderResourceDto tenderResourceDto);
 	String deleteTenderEstimationForBoq(String tenderEstimationId, String boqId);
 	TenderEstResourceDto getEstimatedResourceById(String tenderEstimationId);
+	TenderEstResourceDto getEstimatedResourceByIdAndBoqId(String tenderEstimationId, String boqId);
 	PaginatedResponse<ExcelExtractBOQ> extractBOQDataPaginated(String sheetName,
 			Map<String, String> columnMapping, MultipartFile boqFile, int startRow, int endRow, int page, int size, String search) throws IOException;
+	
 	
 	
 	

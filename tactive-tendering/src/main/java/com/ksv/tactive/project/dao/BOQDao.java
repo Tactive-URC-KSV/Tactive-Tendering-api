@@ -8,4 +8,5 @@ public interface BOQDao extends JpaRepository<BOQ, String>{
 	BOQ findByBoqCodeAndProjectId(String parentCode, String projectId);
 	List<BOQ> findByProjectId(String projectId);
 	List<BOQ> findByProjectIdAndParentBOQId(String projectId, String parentBoqId);
+	List<BOQ> findByParentBOQId(String boqCode);
 }

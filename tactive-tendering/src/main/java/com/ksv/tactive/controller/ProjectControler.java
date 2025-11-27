@@ -3,6 +3,7 @@ package com.ksv.tactive.controller;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.sql.SQLIntegrityConstraintViolationException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -562,4 +563,20 @@ public class ProjectControler {
 			return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
 		}
 	}
+	@GetMapping("/estimatedResource/{tenderEstimationId}")
+	public TenderEstResourceDto getEstimatedResourceByIdAndBoqId(
+	    @PathVariable String tenderEstimationId,
+	    @RequestParam String boqId) {
+	    return projectService.getEstimatedResourceByIdAndBoqId(tenderEstimationId, boqId); 
+	}
+	@GetMapping("project/getParentBoqAndAmount/{projectId}")
+	public ResponseEntity<?> getParentBOQAndAmount(@PathVariable String projectId) {
+		try {
+			Map<BOQ, Double> parentBoqAmountMap = projectService.findTotalAmountForParentBoqs(projectId);
+			return ResponseEntity.status(HttpStatus.OK).body(parentBoqAmountMap);
+		} catch (DataNotFoundException e) {
+			return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+		}
+	}
+	
 }

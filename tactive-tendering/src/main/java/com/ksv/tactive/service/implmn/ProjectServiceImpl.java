@@ -762,6 +762,28 @@ public class ProjectServiceImpl implements ProjectService {
 		return boqCountMap;
 	}
 	@Override
+	public Map<BOQ, Double> findTotalAmountForParentBoqs(String projectId) {
+	    List<BOQ> boqList = getParentBOQ(projectId);
+	    Map<BOQ, Double> parentBoqTotalMap = new HashMap<>();
+	    for (BOQ boq : boqList) {
+	        double totalValue = findTotalValueForParentBoq(boq);
+	        parentBoqTotalMap.put(boq, totalValue);
+	    }
+	    return parentBoqTotalMap;
+	}
+	private double findTotalValueForParentBoq(BOQ boq) {
+	    if (boq.isLastLevel()) {
+	        return boq.getTotalAmount() != 0 ? boq.getTotalAmount() : 0.0;
+	    }
+	    List<BOQ> childBoqs = boqDao.findByParentBOQId(boq.getBoqCode());
+	    double totalValue = 0.0;
+	    
+	    for (BOQ childBoq : childBoqs) {
+	        totalValue += findTotalValueForParentBoq(childBoq);
+	    }
+	    return totalValue;
+	}
+	@Override
 	public void deleteBOQ(List<String> boqCode, String projectId) throws DataIntegrityViolationException {
 		for (String code : boqCode) {
 			BOQ boq = boqDao.findById(code).orElseThrow(() -> new DataNotFoundException(
@@ -1044,129 +1066,175 @@ public class ProjectServiceImpl implements ProjectService {
 	}
 	@Override
 	public String addResourcesToTender(TenderResourceDto dto) {
-		TenderEstimation tenderEst;
-        if (dto.getId() != null) {
-            tenderEst = tenderEstDao.findById(dto.getId()).orElse(new TenderEstimation());
-            
-        } else {
-            tenderEst = new TenderEstimation();
-            tenderEst.setId(UUID.randomUUID().toString()); 
-        }       
-        tenderEst.setDocNumber(dto.getDocNumber());
-        tenderEst.setCoEfficient(dto.getCoEfficient());
-        tenderEst.setWastePercentage(dto.getWastePercentage());
-        tenderEst.setRate(dto.getRate());
-        tenderEst.setAdditionalRate(dto.getAdditionalRate());
-        tenderEst.setShippingPrice(dto.getShippingPrice());
-        tenderEst.setCostUnitRate(dto.getCostUnitRate());
-        tenderEst.setRateLock(dto.isRateLock());
-        tenderEst.setExchangeRate(dto.getExchangeRate());
-        tenderEst.setResourceType(dto.getResourceTypeId() != null 
-        	    ? resourceTypeDao.findById(dto.getResourceTypeId()).orElse(null) 
-        	    : null);
-
-        	tenderEst.setResource(dto.getResourceId() != null
-        	    ? resourceDao.findById(dto.getResourceId()).orElse(null)
-        	    : null);
-        	    
-        	tenderEst.setUom(dto.getUomId() != null
-        	    ? uomDao.findById(dto.getUomId()).orElse(null)
-        	    : null);
-        	    
-        	tenderEst.setResourceNature(dto.getResourceNatureId() != null
-        	    ? resourceNatureDao.findById(dto.getResourceNatureId()).orElse(null)
-        	    : null);
-        	    
-        	tenderEst.setQuantityType(dto.getQuantityTypeId() != null
-        	    ? quantityTypeDao.findById(dto.getQuantityTypeId()).orElse(null)
-        	    : null);
-        	    
-        	tenderEst.setCurrency(dto.getCurrencyId() != null
-        	    ? projectCurrencyDao.findById(dto.getCurrencyId()).orElse(null)
-        	    : null);
-        BOQ boq = new BOQ(); 
-        boq.setId(dto.getBoqId()); 
-        if (tenderEst.getBoq() == null) {
-            tenderEst.setBoq(new HashSet<>());
-        }
-        tenderEst.getBoq().add(boq);
-        tenderEst = tenderEstDao.save(tenderEst);
-        TenderEstimationCostDetails costDetails = costDetailsDao
-            .findByTenderEstimationIdAndBoqId(tenderEst.getId(), dto.getBoqId())
-            .orElse(new TenderEstimationCostDetails());
-        if (costDetails.getId() == null) {
-             costDetails.setId(UUID.randomUUID().toString());
-        }
-        costDetails.setTenderEstimation(tenderEst);
-        costDetails.setBoq(boq);
-        costDetails.setCalculatedQuantity(dto.getCalculatedQuantity());
-        costDetails.setWastePercentage(dto.getWastePercentage());
-        costDetails.setWasteQuantity(dto.getWasteQuantity());
-        costDetails.setNetQuantity(dto.getNetQuantity());
-        costDetails.setRate(dto.getRate());
-        costDetails.setAdditionalRate(dto.getAdditionalRate());
-        costDetails.setShippingPrice(dto.getShippingPrice());
-        costDetails.setCostUnitRate(dto.getCostUnitRate());
-        costDetails.setExchangeRate(dto.getExchangeRate());
-        costDetails.setTotalCostCompanyCurrency(dto.getTotalCostCompanyCurrency());
-        costDetails.setResourceTotalCost(dto.getResourceTotalCost());
-        costDetails.setCoEffSnapshot(dto.getCoEfficient()); 
-        costDetails.setRateLock(dto.isRateLock());
-        costDetailsDao.save(costDetails);
-        BOQ boqEntity = boqDao.findById(dto.getBoqId()).orElse(null);
-        if (boqEntity != null) {	
-        	boqEntity.setTotalAmount(boqEntity.getTotalAmount() + dto.getTotalCostCompanyCurrency());
-        	boqEntity.setTotalRate(boqEntity.getTotalAmount() / boqEntity.getQuantity());
-			boqDao.save(boqEntity);
-		}
-        return messageSource.getMessage("tender.resource.save.success",null, Locale.ENGLISH);
+	    TenderEstimation tenderEst;
+	    if (dto.getId() != null && !dto.getId().isEmpty()) {
+	        tenderEst = tenderEstDao.findById(dto.getId()).orElseThrow(() -> 
+	            new RuntimeException("TenderEstimation not found with ID: " + dto.getId()));
+	        BOQ targetBoq = boqDao.findById(dto.getBoqId()).orElseThrow(() -> 
+	            new RuntimeException("BOQ not found with ID: " + dto.getBoqId()));
+	        if (tenderEst.getBoq().contains(targetBoq)) {
+	            updateCostDetailsOnly(tenderEst, targetBoq, dto);
+	            return messageSource.getMessage("tender.resource.update.success", null, Locale.ENGLISH);
+	        }
+	    } else {
+	        tenderEst = new TenderEstimation();
+	        tenderEst.setId(UUID.randomUUID().toString());
+	    }
+	    updateTenderEstimationFields(tenderEst, dto);
+	    BOQ boq = boqDao.findById(dto.getBoqId()).orElseThrow(() -> 
+	        new RuntimeException("BOQ not found with ID: " + dto.getBoqId()));
+	    
+	    if (tenderEst.getBoq() == null) {
+	        tenderEst.setBoq(new HashSet<>());
+	    }
+	    tenderEst.getBoq().add(boq); 
+	    tenderEst = tenderEstDao.save(tenderEst);
+	    createOrUpdateCostDetails(tenderEst, boq, dto);
+	    updateBoqTotals(boq, dto.getTotalCostCompanyCurrency());
+	    return messageSource.getMessage("tender.resource.save.success", null, Locale.ENGLISH);
+	}
+	private void updateCostDetailsOnly(TenderEstimation tenderEst, BOQ boq, TenderResourceDto dto) {
+	    TenderEstimationCostDetails costDetails = costDetailsDao
+	        .findByTenderEstimationIdAndBoqId(tenderEst.getId(), boq.getId())
+	        .orElse(new TenderEstimationCostDetails());
+	    if (costDetails.getId() == null) {
+	        costDetails.setId(UUID.randomUUID().toString());
+	    }
+	    costDetails.setTenderEstimation(tenderEst);
+	    costDetails.setBoq(boq);
+	    costDetails.setCalculatedQuantity(dto.getCalculatedQuantity());
+	    costDetails.setWastePercentage(dto.getWastePercentage());
+	    costDetails.setWasteQuantity(dto.getWasteQuantity());
+	    costDetails.setNetQuantity(dto.getNetQuantity());
+	    costDetails.setRate(dto.getRate());
+	    costDetails.setAdditionalRate(dto.getAdditionalRate());
+	    costDetails.setShippingPrice(dto.getShippingPrice());
+	    costDetails.setCostUnitRate(dto.getCostUnitRate());
+	    costDetails.setExchangeRate(dto.getExchangeRate());
+	    costDetails.setTotalCostCompanyCurrency(dto.getTotalCostCompanyCurrency());
+	    costDetails.setResourceTotalCost(dto.getResourceTotalCost());
+	    costDetails.setCoEffSnapshot(dto.getCoEfficient());
+	    costDetails.setRateLock(dto.isRateLock());
+	    costDetailsDao.save(costDetails);
+	    updateBoqTotals(boq, dto.getTotalCostCompanyCurrency());
+	}
+	private void createOrUpdateCostDetails(TenderEstimation tenderEst, BOQ boq, TenderResourceDto dto) {
+	    TenderEstimationCostDetails costDetails = costDetailsDao
+	        .findByTenderEstimationIdAndBoqId(tenderEst.getId(), boq.getId())
+	        .orElse(new TenderEstimationCostDetails());
+	    if (costDetails.getId() == null) {
+	        costDetails.setId(UUID.randomUUID().toString());
+	    }
+	    costDetails.setTenderEstimation(tenderEst);
+	    costDetails.setBoq(boq);
+	    costDetails.setCalculatedQuantity(dto.getCalculatedQuantity());
+	    costDetails.setWastePercentage(dto.getWastePercentage());
+	    costDetails.setWasteQuantity(dto.getWasteQuantity());
+	    costDetails.setNetQuantity(dto.getNetQuantity());
+	    costDetails.setRate(dto.getRate());
+	    costDetails.setAdditionalRate(dto.getAdditionalRate());
+	    costDetails.setShippingPrice(dto.getShippingPrice());
+	    costDetails.setCostUnitRate(dto.getCostUnitRate());
+	    costDetails.setExchangeRate(dto.getExchangeRate());
+	    costDetails.setTotalCostCompanyCurrency(dto.getTotalCostCompanyCurrency());
+	    costDetails.setResourceTotalCost(dto.getResourceTotalCost());
+	    costDetails.setCoEffSnapshot(dto.getCoEfficient());
+	    costDetails.setRateLock(dto.isRateLock());
+	    costDetailsDao.save(costDetails);
+	}
+	private void updateTenderEstimationFields(TenderEstimation tenderEst, TenderResourceDto dto) {
+	    tenderEst.setDocNumber(dto.getDocNumber());
+	    tenderEst.setCoEfficient(dto.getCoEfficient());
+	    tenderEst.setWastePercentage(dto.getWastePercentage());
+	    tenderEst.setRate(dto.getRate());
+	    tenderEst.setAdditionalRate(dto.getAdditionalRate());
+	    tenderEst.setShippingPrice(dto.getShippingPrice());
+	    tenderEst.setCostUnitRate(dto.getCostUnitRate());
+	    tenderEst.setRateLock(dto.isRateLock());
+	    tenderEst.setExchangeRate(dto.getExchangeRate());
+	    
+	    tenderEst.setResourceType(dto.getResourceTypeId() != null
+	        ? resourceTypeDao.findById(dto.getResourceTypeId()).orElse(null) : null);
+	    tenderEst.setResource(dto.getResourceId() != null
+	        ? resourceDao.findById(dto.getResourceId()).orElse(null) : null);
+	    tenderEst.setUom(dto.getUomId() != null
+	        ? uomDao.findById(dto.getUomId()).orElse(null) : null);
+	    tenderEst.setResourceNature(dto.getResourceNatureId() != null
+	        ? resourceNatureDao.findById(dto.getResourceNatureId()).orElse(null) : null);
+	    tenderEst.setQuantityType(dto.getQuantityTypeId() != null
+	        ? quantityTypeDao.findById(dto.getQuantityTypeId()).orElse(null) : null);
+	    tenderEst.setCurrency(dto.getCurrencyId() != null
+	        ? projectCurrencyDao.findById(dto.getCurrencyId()).orElse(null) : null);
+	}
+	private void updateBoqTotals(BOQ boq, double totalCostCompanyCurrency) {
+	    boq.setTotalAmount(boq.getTotalAmount() + totalCostCompanyCurrency);
+	    boq.setTotalRate(boq.getTotalAmount() / boq.getQuantity());
+	    boqDao.save(boq);
 	}
 	
-	@Override
 	public String pasteResourceToBOQ(String boqId, List<String> tenderEstimationIds) {
-		BOQ boq = boqDao.findById(boqId).orElse(null);
+	    BOQ boq = boqDao.findById(boqId).orElseThrow(() -> 
+	        new RuntimeException("BOQ not found with ID: " + boqId));
 	    List<String> messages = new ArrayList<>();
-	    for(String existingTenderEstId : tenderEstimationIds) {
+	    int successCount = 0;
+	    for (String existingTenderEstId : tenderEstimationIds) {
 	        TenderEstimation existingTenderEst = tenderEstDao.findById(existingTenderEstId).orElse(null);
 	        if (existingTenderEst == null) {
 	            messages.add("Failed to find existing TenderEstimation with ID: " + existingTenderEstId);
-	            continue; 
+	            continue;
 	        }
-	        TenderResourceDto dto = new TenderResourceDto();
-	        dto.setResourceTypeId(existingTenderEst.getResourceType() != null ? existingTenderEst.getResourceType().getId() : null);
-	        dto.setResourceId(existingTenderEst.getResource() != null ? existingTenderEst.getResource().getId() : null);
-	        dto.setUomId(existingTenderEst.getUom() != null ? existingTenderEst.getUom().getId() : null);
-	        dto.setResourceNatureId(existingTenderEst.getResourceNature() != null ? existingTenderEst.getResourceNature().getId() : null);
-	        dto.setQuantityTypeId(existingTenderEst.getQuantityType() != null ? existingTenderEst.getQuantityType().getId() : null);
-	        dto.setCurrencyId(existingTenderEst.getCurrency() != null ? existingTenderEst.getCurrency().getId() : null);
-	        dto.setBoqId(boqId);
-	        dto.setId(null); 
-	        dto.setDocNumber(existingTenderEst.getDocNumber());
-	        dto.setCoEfficient(existingTenderEst.getCoEfficient());
-	        dto.setWastePercentage(existingTenderEst.getWastePercentage());
-	        dto.setRate(existingTenderEst.getRate());
-	        dto.setAdditionalRate(existingTenderEst.getAdditionalRate());
-	        dto.setShippingPrice(existingTenderEst.getShippingPrice());
-	        dto.setCostUnitRate(existingTenderEst.getCostUnitRate());
-	        dto.setRateLock(existingTenderEst.isRateLock());
-	        dto.setExchangeRate(existingTenderEst.getExchangeRate());	        
-	        TenderEstimationCostDetails existingCostDetails = costDetailsDao
-	             .findByTenderEstimationIdAndBoqId(existingTenderEstId, existingTenderEst.getBoq().iterator().next().getId())
-	             .orElse(null);
-	        if (existingCostDetails != null) {
-	            dto.setCalculatedQuantity(boq.getQuantity() * existingCostDetails.getCoEffSnapshot());
-	            dto.setWasteQuantity((existingCostDetails.getWastePercentage() / 100) * boq.getQuantity());
-	            dto.setNetQuantity(dto.getCalculatedQuantity() + dto.getWasteQuantity());
-	            dto.setTotalCostCompanyCurrency(dto.getNetQuantity() * existingCostDetails.getCostUnitRate());
-	            dto.setResourceTotalCost(dto.getTotalCostCompanyCurrency() * dto.getExchangeRate());
-	            dto.setCoEfficient(existingCostDetails.getCoEffSnapshot()); 
+	        boolean alreadyAssociated = existingTenderEst.getBoq().stream()
+	            .anyMatch(b -> b.getId().equals(boqId));
+	            
+	        if (alreadyAssociated) {
+	            messages.add("TenderEstimation " + existingTenderEstId + " already associated with BOQ " + boqId);
+	            continue;
 	        }
-	        messages.add(addResourcesToTender(dto));
+	        TenderResourceDto dto = createTenderResourceDto(existingTenderEst, boq);
+	        String result = addResourcesToTender(dto);
+	        if (result.contains("success")) {
+	            successCount++;
+	        }
+	        messages.add(result);
 	    }
-	    if(messages.size() == tenderEstimationIds.size()) {
+	    if (successCount == tenderEstimationIds.size()) {
 	        return messageSource.getMessage("tender.resource.paste.success", null, Locale.ENGLISH);
 	    }
-	    return messageSource.getMessage("tender.resource.empty", null, Locale.ENGLISH);
+	    return String.format(messageSource.getMessage("tender.resource.partial.success", null, Locale.ENGLISH), 
+	                        successCount, tenderEstimationIds.size());
+	}
+	private TenderResourceDto createTenderResourceDto(TenderEstimation existingTenderEst, BOQ boq) {
+	    TenderResourceDto dto = new TenderResourceDto();
+	    dto.setResourceTypeId(existingTenderEst.getResourceType() != null ? existingTenderEst.getResourceType().getId() : null);
+	    dto.setResourceId(existingTenderEst.getResource() != null ? existingTenderEst.getResource().getId() : null);
+	    dto.setUomId(existingTenderEst.getUom() != null ? existingTenderEst.getUom().getId() : null);
+	    dto.setResourceNatureId(existingTenderEst.getResourceNature() != null ? existingTenderEst.getResourceNature().getId() : null);
+	    dto.setQuantityTypeId(existingTenderEst.getQuantityType() != null ? existingTenderEst.getQuantityType().getId() : null);
+	    dto.setCurrencyId(existingTenderEst.getCurrency() != null ? existingTenderEst.getCurrency().getId() : null);
+	    dto.setBoqId(boq.getId());
+	    dto.setId(existingTenderEst.getId());
+	    dto.setDocNumber(existingTenderEst.getDocNumber());
+	    dto.setCoEfficient(existingTenderEst.getCoEfficient());
+	    dto.setWastePercentage(existingTenderEst.getWastePercentage());
+	    dto.setRate(existingTenderEst.getRate());
+	    dto.setAdditionalRate(existingTenderEst.getAdditionalRate());
+	    dto.setShippingPrice(existingTenderEst.getShippingPrice());
+	    dto.setCostUnitRate(existingTenderEst.getCostUnitRate());
+	    dto.setRateLock(existingTenderEst.isRateLock());
+	    dto.setExchangeRate(existingTenderEst.getExchangeRate());
+	    TenderEstimationCostDetails existingCostDetails = costDetailsDao
+	        .findByTenderEstimationIdAndBoqId(existingTenderEst.getId(), 
+	            existingTenderEst.getBoq().iterator().next().getId())
+	        .orElse(null);
+	    if (existingCostDetails != null) {
+	        dto.setCalculatedQuantity(boq.getQuantity() * existingCostDetails.getCoEffSnapshot());
+	        dto.setWasteQuantity((existingCostDetails.getWastePercentage() / 100) * boq.getQuantity());
+	        dto.setNetQuantity(dto.getCalculatedQuantity() + dto.getWasteQuantity());
+	        dto.setTotalCostCompanyCurrency(dto.getNetQuantity() * existingCostDetails.getCostUnitRate());
+	        dto.setResourceTotalCost(dto.getTotalCostCompanyCurrency() * dto.getExchangeRate());
+	        dto.setCoEfficient(existingCostDetails.getCoEffSnapshot());
+	    }
+	    return dto;
 	}
 	@Override
 	public ActivityGroup getActivityGroupById(String activityGroupId) {
@@ -1190,36 +1258,77 @@ public class ProjectServiceImpl implements ProjectService {
 	}
 	@Override
 	public String deleteTenderEstimationForBoq(String tenderEstimationId, String boqId) {
-		TenderEstimation tenderEstimation = tenderEstDao.findById(tenderEstimationId).orElse(null);
-		if (tenderEstimation != null) {
-			Set<BOQ> boqSet = tenderEstimation.getBoq();
-			boqSet.removeIf(boq -> boq.getId().equals(boqId));
-			if (boqSet.isEmpty()) {
-				TenderEstimationCostDetails costDetails = costDetailsDao.findByTenderEstimationId(tenderEstimationId);
-				if (costDetails != null) {
-					costDetailsDao.delete(costDetails);
-				}
-				tenderEstDao.delete(tenderEstimation);
-			} else {
-				tenderEstimation.setBoq(boqSet);
-				tenderEstDao.save(tenderEstimation);
-				Optional<TenderEstimationCostDetails> costDetails = costDetailsDao.findByTenderEstimationIdAndBoqId(tenderEstimationId, boqId);
-				costDetails.ifPresent(costDetailsDao::delete);
-			}
-			return messageSource.getMessage("tender.resource.delete.success", null, Locale.ENGLISH);
-		}
-		return null;
+	    TenderEstimation tenderEstimation = tenderEstDao.findById(tenderEstimationId)
+	       .orElseThrow(() -> new RuntimeException("TenderEstimation not found with ID: " + tenderEstimationId));
+	    BOQ boq = boqDao.findById(boqId)
+	        .orElseThrow(() -> new RuntimeException("BOQ not found with ID: " + boqId));
+	    if (!tenderEstimation.getBoq().contains(boq)) {
+	        return messageSource.getMessage("tender.resource.not.associated", null, Locale.ENGLISH);
+	    }
+	    Optional<TenderEstimationCostDetails> costDetailsOpt = costDetailsDao
+	        .findByTenderEstimationIdAndBoqId(tenderEstimationId, boqId);
+	    double costToSubtract = 0.0;
+	    if (costDetailsOpt.isPresent()) {
+	        costToSubtract = costDetailsOpt.get().getTotalCostCompanyCurrency();
+	    }
+	    boolean wasRemoved = tenderEstimation.getBoq().remove(boq);
+	    if (wasRemoved) {
+	        if (tenderEstimation.getBoq().isEmpty()) {
+	            deleteTenderEstimationCompletely(tenderEstimation, boqId);
+	        } else {
+	            tenderEstimation.setBoq(tenderEstimation.getBoq());
+	            tenderEstDao.save(tenderEstimation);
+	            costDetailsOpt.ifPresent(costDetailsDao::delete);
+	        }
+	        updateBoqTotalsAfterDeletion(boq, costToSubtract);
+	        
+	        return messageSource.getMessage("tender.resource.delete.success", null, Locale.ENGLISH);
+	    }
+	    return messageSource.getMessage("tender.resource.delete.failed", null, Locale.ENGLISH);
+	}
+
+	private void deleteTenderEstimationCompletely(TenderEstimation tenderEstimation, String boqId) {
+	    List<TenderEstimationCostDetails> allCostDetails = costDetailsDao
+	        .findByTenderEstimationId(tenderEstimation.getId());
+	    costDetailsDao.deleteAll(allCostDetails);
+	    tenderEstDao.delete(tenderEstimation);
+	}
+	private void updateBoqTotalsAfterDeletion(BOQ boq, double costToSubtract) {
+	    boq.setTotalAmount(Math.max(0, boq.getTotalAmount() - costToSubtract));
+	    if (boq.getQuantity() > 0) {
+	        boq.setTotalRate(boq.getTotalAmount() / boq.getQuantity());
+	    } else {
+	        boq.setTotalRate(0.0);
+	    }
+	    boqDao.save(boq);
+	}
+	public TenderEstResourceDto getEstimatedResourceById(String tenderEstimationId) {
+	    TenderEstimation tenderEstimation = tenderEstDao.findById(tenderEstimationId)
+	        .orElseThrow(() -> new RuntimeException("TenderEstimation not found with ID: " + tenderEstimationId));
+	    List<TenderEstimationCostDetails> costDetailsList = costDetailsDao
+	        .findByTenderEstimationId(tenderEstimationId);
+	    TenderEstResourceDto dto = new TenderEstResourceDto();
+	    dto.setTenderEstimation(tenderEstimation);
+	    dto.setCostDetailsList(costDetailsList); 
+	    if (!costDetailsList.isEmpty()) {
+	        dto.setCostDetails(costDetailsList.get(0)); 
+	    }
+	    return dto;
 	}
 	@Override
-	public TenderEstResourceDto getEstimatedResourceById(String tenderEstimationId) {
-		TenderEstimation tenderEstimation = tenderEstDao.findById(tenderEstimationId).orElse(null);
-		if (tenderEstimation != null) {
-			TenderEstimationCostDetails costDetails = costDetailsDao.findByTenderEstimationId(tenderEstimationId);
-			TenderEstResourceDto dto = new TenderEstResourceDto();
-			dto.setTenderEstimation(tenderEstimation);
-			dto.setCostDetails(costDetails);
-			return dto;
-		}
-		return null;
+	public TenderEstResourceDto getEstimatedResourceByIdAndBoqId(String tenderEstimationId, String boqId) {
+	    TenderEstimation tenderEstimation = tenderEstDao.findById(tenderEstimationId)
+	        .orElseThrow(() -> new RuntimeException("TenderEstimation not found with ID: " + tenderEstimationId));
+	    
+	    TenderEstimationCostDetails costDetails = costDetailsDao
+	        .findByTenderEstimationIdAndBoqId(tenderEstimationId, boqId)
+	        .orElseThrow(() -> new RuntimeException(
+	            "Cost details not found for TenderEstimation: " + tenderEstimationId + 
+	            " and BOQ: " + boqId));
+	    
+	    TenderEstResourceDto dto = new TenderEstResourceDto();
+	    dto.setTenderEstimation(tenderEstimation);
+	    dto.setCostDetails(costDetails);
+	    return dto;
 	}
 }
