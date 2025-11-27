@@ -1,14 +1,11 @@
 package com.ksv.tactive.dataloader;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.UUID;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Component;
-
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ksv.tactive.project.dao.QuantityTypeDao;
@@ -19,27 +16,19 @@ import com.ksv.tactive.project.entity.QuantityType;
 import com.ksv.tactive.project.entity.Resources;
 import com.ksv.tactive.project.entity.ResourceType;
 import com.ksv.tactive.project.entity.UOM;
-
 import jakarta.transaction.Transactional;
-
 @Component
 public class ResourceLoader implements MasterDataLoader<Resources> {
-
 	@Autowired
 	private ObjectMapper objectMapper;
-
 	@Autowired
 	private ResourceTypeDao resourceTypeDao;
-
 	@Autowired
 	private UOMDao uomDao;
-
 	@Autowired
 	private QuantityTypeDao quantityTypeDao;
-	
 	@Autowired
 	private ResourceDao resourceDao;
-
 	@Transactional
 	@Override
 	public void loadData() throws IOException, DataAccessException {

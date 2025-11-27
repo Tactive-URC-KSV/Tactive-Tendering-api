@@ -1,8 +1,6 @@
 package com.ksv.tactive.filter;
-
 import java.io.IOException;
 import java.util.Locale;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.MessageSource;
@@ -12,10 +10,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-
 import com.ksv.tactive.config.CustomUserDetailsService;
 import com.ksv.tactive.exception.JwtTokenException;
-
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -28,15 +24,12 @@ public class JwtFilter extends OncePerRequestFilter{
 	private ApplicationContext context;
 	@Autowired
 	private MessageSource messageSource;
-
 	@Override
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
 			throws ServletException, IOException {
 		String authHeader=request.getHeader("Authorization");
-		
 		String username = null;
         String jwt = null;
-
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             jwt = authHeader.substring(7);
             username = jwtService.extractUsername(jwt);
@@ -56,7 +49,5 @@ public class JwtFilter extends OncePerRequestFilter{
         	}
         }
         filterChain.doFilter(request, response);
-		
 	}
-
 }

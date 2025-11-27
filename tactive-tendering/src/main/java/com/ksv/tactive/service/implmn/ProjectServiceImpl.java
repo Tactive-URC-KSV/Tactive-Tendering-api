@@ -1,7 +1,6 @@
 package com.ksv.tactive.service.implmn;
-
 import java.io.IOException;
-import java.io.InputStream;
+import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -12,11 +11,10 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
+import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
@@ -33,11 +31,15 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.itextpdf.text.DocumentException;
+import com.ksv.tactive.dto.BOQSummaryDTO;
 import com.ksv.tactive.dto.CostCodeDto;
+import com.ksv.tactive.dto.ExcelExtractBOQ;
 import com.ksv.tactive.dto.FeasibilityApprovalDocuDTO;
+import com.ksv.tactive.dto.PaginatedResponse;
 import com.ksv.tactive.dto.ProjectInfoDto;
 import com.ksv.tactive.dto.ProjectInputDTO;
 import com.ksv.tactive.dto.TemplateDto;
+import com.ksv.tactive.dto.TenderEstResourceDto;
 import com.ksv.tactive.dto.TenderResourceDto;
 import com.ksv.tactive.exception.DataNotFoundException;
 import com.ksv.tactive.exception.DuplicateProjectCodeException;
@@ -67,6 +69,7 @@ import com.ksv.tactive.project.dao.SectorDao;
 import com.ksv.tactive.project.dao.TechnicalFeasibilityDao;
 import com.ksv.tactive.project.dao.TemplateDao;
 import com.ksv.tactive.project.dao.TemplateMappingDao;
+import com.ksv.tactive.project.dao.TenderEstCostDao;
 import com.ksv.tactive.project.dao.TenderEstimationDao;
 import com.ksv.tactive.project.dao.UOMDao;
 import com.ksv.tactive.project.entity.ActivityGroup;
@@ -75,183 +78,139 @@ import com.ksv.tactive.project.entity.BOQ;
 import com.ksv.tactive.project.entity.BOQFile;
 import com.ksv.tactive.project.entity.CostCodeActivity;
 import com.ksv.tactive.project.entity.CostCodeType;
-import com.ksv.tactive.project.entity.Currency;
 import com.ksv.tactive.project.entity.FeasibilityStudy;
 import com.ksv.tactive.project.entity.FinancialFeasibility;
 import com.ksv.tactive.project.entity.ProjectDocumentDetails;
 import com.ksv.tactive.project.entity.ProjectStatus;
 import com.ksv.tactive.project.entity.Projects;
-import com.ksv.tactive.project.entity.QuantityType;
-import com.ksv.tactive.project.entity.ResourceNature;
-import com.ksv.tactive.project.entity.ResourceType;
-import com.ksv.tactive.project.entity.Resources;
 import com.ksv.tactive.project.entity.ScopeOfPackage;
 import com.ksv.tactive.project.entity.TechnicalFeasibility;
 import com.ksv.tactive.project.entity.Template;
 import com.ksv.tactive.project.entity.TemplateMapping;
 import com.ksv.tactive.project.entity.TenderEstimation;
+import com.ksv.tactive.project.entity.TenderEstimationCostDetails;
 import com.ksv.tactive.project.entity.UOM;
 import com.ksv.tactive.service.ProjectService;
 import com.ksv.tactive.service.UserService;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-
 @Service
-public class ProjectServiceImpl implements ProjectService{
-	
+public class ProjectServiceImpl implements ProjectService {
 	@Value("${file.upload.path}")
 	private String uploadDir;
-	
 //	private static final Logger logger = LoggerFactory.getLogger(ProjectServiceImpl.class);
-	
 	@Autowired
 	private MessageSource messageSource;
-	
 	@Autowired
-	private ProjectDao projectDao; 
-	
+	private ProjectDao projectDao;
 	@Autowired
 	private RegionDao regionRepo;
-	
 	@Autowired
 	private UOMDao uomDao;
-	
 	@Autowired
 	private SectorDao sectorDao;
-	
 	@Autowired
 	private ScopeOfPackDao scopeOfPackDao;
-	
 	@Autowired
 	private UserService userService;
-	
 	@Autowired
 	private ProjectStatusDao statusDao;
-	
-	
 	@Autowired
 	private ProjectDocumentDetailsDao documentDetailsDao;
-	
 	@Autowired
 	private TechnicalFeasibilityDao techFeaDao;
-	
 	@Autowired
 	private ApprovalsDao approvalsDao;
-	
 	@Autowired
 	private FinancialFeasibilityDao finFeasibilityDao;
-	
 	@Autowired
 	private FeasibilityStudyDao feaStudyDao;
-	
 	@Autowired
 	private BOQFileDao boqFileDao;
-	
 	@Autowired
 	private TemplateDao templateDao;
-	
 	@Autowired
 	private TemplateMappingDao templateMappingDao;
-	
 	@Autowired
 	private BOQDao boqDao;
-	
 	@Autowired
 	private ExcelFileService excelService;
-	
 	@Autowired
 	private PdfFileService pdfService;
-
 	@Autowired
 	private ActivityGroupDao activityGroupsDao;
-	
 	@Autowired
 	private CostCodeTypeDao costCodeTypeDao;
-	
 	@Autowired
 	private CostCodeDao costCodeActivityDao;
-	
 	@Autowired
 	private ResourceTypeDao resourceTypeDao;
-	
 	@Autowired
 	private ResourceDao resourceDao;
-	
 	@Autowired
 	private ResourceNatureDao resourceNatureDao;
-	
 	@Autowired
 	private QuantityTypeDao quantityTypeDao;
-	
 	@Autowired
 	private ProjectCurrencyDao projectCurrencyDao;
-	
 	@Autowired
 	private TenderEstimationDao tenderEstDao;
-	
-	
+	@Autowired
+	private TenderEstCostDao costDetailsDao;
 	@Override
 	public List<ProjectInfoDto> getAllProjects() {
 		List<ProjectInfoDto> projects = projectDao.findAllProjectInfo();
 		List<ProjectInfoDto> filteredProjects = new ArrayList<>();
-		if(projects.isEmpty()) {
+		if (projects.isEmpty()) {
 			throw new DataNotFoundException(messageSource.getMessage("project.not.found", null, Locale.ENGLISH));
-		}
-		else {
-			for(ProjectInfoDto project : projects) {
-				if(project != null && !project.isArchieve()) {
+		} else {
+			for (ProjectInfoDto project : projects) {
+				if (project != null && !project.isArchieve()) {
 					filteredProjects.add(project);
 				}
 			}
 		}
-	    return filteredProjects;
+		return filteredProjects;
 	}
-
-
 	@Override
 	public Projects findByProjectId(String projectId) {
-		return projectDao.findById(projectId)
-				.orElseThrow(() -> new ProjectNotFoundException(messageSource.getMessage("project.not.found", null, Locale.ENGLISH)));
+		return projectDao.findById(projectId).orElseThrow(() -> new ProjectNotFoundException(
+				messageSource.getMessage("project.not.found", null, Locale.ENGLISH)));
 	}
-	
 	@Override
-	public Projects saveProject(ProjectInputDTO projectInputDTO, HttpServletRequest request) throws SQLIntegrityConstraintViolationException {
-		
+	public Projects saveProject(ProjectInputDTO projectInputDTO, HttpServletRequest request)
+			throws SQLIntegrityConstraintViolationException {
 		Projects project = projectInputDTO.getProject();
-		if(projectDao.findByProjectCode(project.getProjectCode()) != null) {
-			throw new DuplicateProjectCodeException(messageSource.getMessage("project.code.duplicate", null , Locale.ENGLISH));
+		if (projectDao.findByProjectCode(project.getProjectCode()) != null) {
+			throw new DuplicateProjectCodeException(
+					messageSource.getMessage("project.code.duplicate", null, Locale.ENGLISH));
 		}
-		
 		project.setId(UUID.randomUUID().toString());
 		project.setProjectCode(generateProjectCode());
-		if(project.getProjectName() == null || project.getShortName() == null ) {
+		if (project.getProjectName() == null || project.getShortName() == null) {
 			throw new DataNotFoundException(messageSource.getMessage("project.name.not.found", null, Locale.ENGLISH));
 		}
-		
 		project.setEstimatedValue(project.getBuildingArea() * project.getRatePerUnit());
 		if (!projectInputDTO.getRegionId().isEmpty()) {
-		    project.setRegion(
-		        regionRepo.findById(projectInputDTO.getRegionId())
-		            .orElseThrow(() -> new DataNotFoundException(
-		                messageSource.getMessage("data.not.found", null, Locale.ENGLISH))));
+			project.setRegion(regionRepo.findById(projectInputDTO.getRegionId()).orElseThrow(
+					() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH))));
 		}
-		if(!projectInputDTO.getSectorId().isEmpty()) {
-			project.setSector(sectorDao.findById(projectInputDTO.getSectorId())
-					.orElseThrow(() -> new DataNotFoundException(
-							messageSource.getMessage("data.not.found", null, Locale.ENGLISH))));
+		if (!projectInputDTO.getSectorId().isEmpty()) {
+			project.setSector(sectorDao.findById(projectInputDTO.getSectorId()).orElseThrow(
+					() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH))));
 		}
-		if(!projectInputDTO.getUomId().isEmpty()) {
-			project.setUom(uomDao.findById(projectInputDTO.getUomId())
-					.orElseThrow(() -> new DataNotFoundException(
-							messageSource.getMessage("data.not.found", null, Locale.ENGLISH))));
+		if (!projectInputDTO.getUomId().isEmpty()) {
+			project.setUom(uomDao.findById(projectInputDTO.getUomId()).orElseThrow(
+					() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH))));
 		}
-		if(!projectInputDTO.getScopeOfPackageIds().isEmpty()) {
+		if (!projectInputDTO.getScopeOfPackageIds().isEmpty()) {
 			Set<ScopeOfPackage> scopePackages = projectInputDTO.getScopeOfPackageIds().stream()
 					.filter(id -> id != null && !id.trim().isEmpty())
-				    .map(id -> scopeOfPackDao.findById(id)
-				    		.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH))))
-				    .collect(Collectors.toSet());
+					.map(id -> scopeOfPackDao.findById(id)
+							.orElseThrow(() -> new DataNotFoundException(
+									messageSource.getMessage("data.not.found", null, Locale.ENGLISH))))
+					.collect(Collectors.toSet());
 			project.setScopeOfPackages(scopePackages);
 		}
 		project.setUpdateAt(Date.valueOf(LocalDate.now()));
@@ -260,60 +219,51 @@ public class ProjectServiceImpl implements ProjectService{
 		project.setCompanyId(userService.findLoggedInUser().getCompanyId());
 		project.setProjectStatus(statusDao.findByProcessUrl(request.getRequestURI()));
 		Projects savedProject = projectDao.save(project);
-		
-		if(savedProject != null) {
+		if (savedProject != null) {
 			return savedProject;
 		}
-		throw new SQLIntegrityConstraintViolationException(messageSource.getMessage("project.created.exception", null, Locale.ENGLISH));
+		throw new SQLIntegrityConstraintViolationException(
+				messageSource.getMessage("project.created.exception", null, Locale.ENGLISH));
 	}
-	
 	private String generateProjectCode() {
 		final String chars = "0123456789";
 		Random random = new Random();
 		StringBuilder code = new StringBuilder();
-		for(int i=0; i<3; i++) {
+		for (int i = 0; i < 3; i++) {
 			int index = random.nextInt(chars.length());
-            code.append(chars.charAt(index));
+			code.append(chars.charAt(index));
 		}
-		return "PRJ - "+code.toString();
+		return "PRJ - " + code.toString();
 	}
-
 	@Override
 	public String saveProjectFiles(String projectId, List<MultipartFile> files) {
 		Projects project = findByProjectId(projectId);
-		Path directory=Paths.get(uploadDir,
-				project.getProjectName()
-				.trim()
-				.replaceAll("\\s+", "_")                    
-			    .replaceAll("[^a-zA-Z0-9-_\\.]", ""))
+		Path directory = Paths
+				.get(uploadDir,
+						project.getProjectName().trim().replaceAll("\\s+", "_").replaceAll("[^a-zA-Z0-9-_\\.]", ""))
 				.toAbsolutePath().normalize();
 		try {
 			Files.createDirectories(directory);
-			for(MultipartFile file : files) {
+			for (MultipartFile file : files) {
 				Path targetLocation = directory.resolve(StringUtils.cleanPath(file.getOriginalFilename()));
 				Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
-				
 				ProjectDocumentDetails projectDocuments = new ProjectDocumentDetails();
 				projectDocuments.setId(UUID.randomUUID().toString());
 				projectDocuments.setDocumentPath(targetLocation.toString());
 				projectDocuments.setDocumentName(StringUtils.cleanPath(file.getOriginalFilename()));
 				projectDocuments.setDocumentType(file.getContentType());
 				projectDocuments.setProject(project);
-				
 				documentDetailsDao.save(projectDocuments);
 			}
 			return "Files Uploaded Successfully";
 		} catch (IOException e) {
 			return e.getMessage();
-			
 		}
-		
 	}
-	
 	@Override
 	public void editProject(ProjectInputDTO projectInputDTO, String projectId) {
 		Projects existingProject = findByProjectId(projectId);
-		if(existingProject == null) {
+		if (existingProject == null) {
 			throw new DataNotFoundException(messageSource.getMessage("project.not.found", null, Locale.ENGLISH));
 		}
 		Projects project = projectInputDTO.getProject();
@@ -326,123 +276,94 @@ public class ProjectServiceImpl implements ProjectService{
 		project.setProjectCode(existingProject.getProjectCode());
 		project.setEstimatedValue(project.getBuildingArea() * project.getRatePerUnit());
 		if (!projectInputDTO.getRegionId().isEmpty()) {
-		    project.setRegion(
-		        regionRepo.findById(projectInputDTO.getRegionId())
-		            .orElseThrow(() -> new DataNotFoundException(
-		                messageSource.getMessage("data.not.found", null, Locale.ENGLISH))));
+			project.setRegion(regionRepo.findById(projectInputDTO.getRegionId()).orElseThrow(
+					() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH))));
 		}
-		if(!projectInputDTO.getSectorId().isEmpty()) {
-			project.setSector(sectorDao.findById(projectInputDTO.getSectorId())
-					.orElseThrow(() -> new DataNotFoundException(
-							messageSource.getMessage("data.not.found", null, Locale.ENGLISH))));
+		if (!projectInputDTO.getSectorId().isEmpty()) {
+			project.setSector(sectorDao.findById(projectInputDTO.getSectorId()).orElseThrow(
+					() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH))));
 		}
-		if(!projectInputDTO.getUomId().isEmpty()) {
-			project.setUom(uomDao.findById(projectInputDTO.getUomId())
-					.orElseThrow(() -> new DataNotFoundException(
-							messageSource.getMessage("data.not.found", null, Locale.ENGLISH))));
+		if (!projectInputDTO.getUomId().isEmpty()) {
+			project.setUom(uomDao.findById(projectInputDTO.getUomId()).orElseThrow(
+					() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH))));
 		}
-		if(!projectInputDTO.getScopeOfPackageIds().isEmpty()) {
+		if (!projectInputDTO.getScopeOfPackageIds().isEmpty()) {
 			Set<ScopeOfPackage> scopePackages = projectInputDTO.getScopeOfPackageIds().stream()
 					.filter(id -> id != null && !id.trim().isEmpty())
-				    .map(id -> scopeOfPackDao.findById(id)
-				    		.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH))))
-				    .collect(Collectors.toSet());
+					.map(id -> scopeOfPackDao.findById(id)
+							.orElseThrow(() -> new DataNotFoundException(
+									messageSource.getMessage("data.not.found", null, Locale.ENGLISH))))
+					.collect(Collectors.toSet());
 			project.setScopeOfPackages(scopePackages);
 		}
 		project.setUpdateAt(Date.valueOf(LocalDate.now()));
 		projectDao.save(project);
-		
 	}
-	
 	@Override
 	public String deleteProject(String projectId) {
-		Projects project=findByProjectId(projectId);
+		Projects project = findByProjectId(projectId);
 		project.setArchieve(true);
-		if(project!=null) {
+		if (project != null) {
 			projectDao.save(project);
 		}
-		return messageSource.getMessage("project.delete.success", null , Locale.ENGLISH);
+		return messageSource.getMessage("project.delete.success", null, Locale.ENGLISH);
 	}
-
-
 	@Override
 	public String saveTechFeasibility(TechnicalFeasibility techFeasibility) {
 		techFeasibility.setId(UUID.randomUUID().toString());
 		TechnicalFeasibility saved = techFeaDao.save(techFeasibility);
 		return saved.getId();
 	}
-
 	@Override
 	public String saveFinancialFeasibility(FinancialFeasibility financialFeasibility) {
 		financialFeasibility.setId(UUID.randomUUID().toString());
 		FinancialFeasibility saved = finFeasibilityDao.save(financialFeasibility);
 		return saved.getId();
 	}
-
 	@Override
 	public String saveApprovalDoc(Map<String, MultipartFile> approvalDoc,
-	        List<FeasibilityApprovalDocuDTO> approvalDocuDTO, String techFeasibilityId, String projectId) {
-	    
-	    if (!approvalDoc.isEmpty()) {
-	    	
-	    	Map<String, MultipartFile> filteredApprovalDoc = new HashMap<>();
-	    	
-	       for(Map.Entry<String, MultipartFile> entry : approvalDoc.entrySet()) {
-	    	   
-	    	   String key =entry.getKey();
-	    	   
-	    	   if (key.startsWith("approvalDoc[") && key.endsWith("]")) {
-	    	        String cleanKey = key.substring(key.indexOf('[') + 1, key.indexOf(']'));
-	    	        filteredApprovalDoc.put(cleanKey, entry.getValue());
-	    	   }
-	    	   
-	       }
-	        Set<String> docName = filteredApprovalDoc.keySet();
-	        String lastSavedId = null; 
-
-	        for (String doc : docName) {
-	        	
-	            String filePath = saveApprovalDocFile(filteredApprovalDoc.get(doc), projectId);
-	            if (filePath == null) {
-	                throw new FileNotSaveException(messageSource.getMessage("file.upload.failure", null, Locale.ENGLISH));
-	            }
-
-	            ApprovalDocuments approvalDocuments = new ApprovalDocuments();
-	            approvalDocuments.setId(UUID.randomUUID().toString());
-
-	            for (FeasibilityApprovalDocuDTO dto : approvalDocuDTO) {
-	                if (dto.getDocumentName().equalsIgnoreCase(doc)) {
-	                    approvalDocuments.setDocumentName(dto.getDocumentName());
-	                    approvalDocuments.setComments(dto.getComment());
-	                    approvalDocuments.setApproved(dto.isApproved());
-	                    break; 
-	                }
-	            }
-
-	            approvalDocuments.setFilePath(filePath);
-	            approvalDocuments.setTechnicalFeasibility(
-	                    techFeaDao.findById(techFeasibilityId)
-	                            .orElseThrow(() -> new DataNotFoundException(
-	                                    messageSource.getMessage("data.not.found", null, Locale.ENGLISH)))
-	            );
-
-	            lastSavedId = approvalsDao.save(approvalDocuments).getId();
-	        }
-
-	        return lastSavedId; 
-	    }
-
-	    return null;
+			List<FeasibilityApprovalDocuDTO> approvalDocuDTO, String techFeasibilityId, String projectId) {
+		if (!approvalDoc.isEmpty()) {
+			Map<String, MultipartFile> filteredApprovalDoc = new HashMap<>();
+			for (Map.Entry<String, MultipartFile> entry : approvalDoc.entrySet()) {
+				String key = entry.getKey();
+				if (key.startsWith("approvalDoc[") && key.endsWith("]")) {
+					String cleanKey = key.substring(key.indexOf('[') + 1, key.indexOf(']'));
+					filteredApprovalDoc.put(cleanKey, entry.getValue());
+				}
+			}
+			Set<String> docName = filteredApprovalDoc.keySet();
+			String lastSavedId = null;
+			for (String doc : docName) {
+				String filePath = saveApprovalDocFile(filteredApprovalDoc.get(doc), projectId);
+				if (filePath == null) {
+					throw new FileNotSaveException(
+							messageSource.getMessage("file.upload.failure", null, Locale.ENGLISH));
+				}
+				ApprovalDocuments approvalDocuments = new ApprovalDocuments();
+				approvalDocuments.setId(UUID.randomUUID().toString());
+				for (FeasibilityApprovalDocuDTO dto : approvalDocuDTO) {
+					if (dto.getDocumentName().equalsIgnoreCase(doc)) {
+						approvalDocuments.setDocumentName(dto.getDocumentName());
+						approvalDocuments.setComments(dto.getComment());
+						approvalDocuments.setApproved(dto.isApproved());
+						break;
+					}
+				}
+				approvalDocuments.setFilePath(filePath);
+				approvalDocuments.setTechnicalFeasibility(
+						techFeaDao.findById(techFeasibilityId).orElseThrow(() -> new DataNotFoundException(
+								messageSource.getMessage("data.not.found", null, Locale.ENGLISH))));
+				lastSavedId = approvalsDao.save(approvalDocuments).getId();
+			}
+			return lastSavedId;
+		}
+		return null;
 	}
-
-	
 	private String saveApprovalDocFile(MultipartFile file, String projectId) {
 		String projectName = findByProjectId(projectId).getProjectName();
-		Path directory=Paths.get(uploadDir,
-				projectName
-				.trim()
-				.replaceAll("\\s+", "_")                    
-			    .replaceAll("[^a-zA-Z0-9-_\\.]", ""))
+		Path directory = Paths
+				.get(uploadDir, projectName.trim().replaceAll("\\s+", "_").replaceAll("[^a-zA-Z0-9-_\\.]", ""))
 				.toAbsolutePath().normalize();
 		Path targetDir = directory.resolve("approvals");
 		try {
@@ -453,18 +374,16 @@ public class ProjectServiceImpl implements ProjectService{
 		} catch (IOException e) {
 			return e.getMessage();
 		}
-		
 	}
-
 	@Override
 	public String saveFeasibilityStudy(String techFeasibilityId, String finFeasibilityId, String projectId) {
 		FeasibilityStudy feaStudy = new FeasibilityStudy();
 		Projects project = findByProjectId(projectId);
-		TechnicalFeasibility techFeasibility = techFeaDao.findById(techFeasibilityId)
-				.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
-		FinancialFeasibility finFeasibility = finFeasibilityDao.findById(finFeasibilityId)
-				.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
-		if(project != null && techFeasibility != null && finFeasibility != null) {
+		TechnicalFeasibility techFeasibility = techFeaDao.findById(techFeasibilityId).orElseThrow(
+				() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
+		FinancialFeasibility finFeasibility = finFeasibilityDao.findById(finFeasibilityId).orElseThrow(
+				() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
+		if (project != null && techFeasibility != null && finFeasibility != null) {
 			feaStudy.setId(UUID.randomUUID().toString());
 			feaStudy.setProject(project);
 			feaStudy.setTechnFeasibility(techFeasibility);
@@ -474,18 +393,16 @@ public class ProjectServiceImpl implements ProjectService{
 		}
 		return messageSource.getMessage("feasibility.study.save.success", null, Locale.ENGLISH);
 	}
-
 	@Override
 	public String updateFeasibilityStudyStatus(String projectId, boolean status, String comments,
 			HttpServletRequest request) {
 		FeasibilityStudy feasibilityStudy = feaStudyDao.findByProjectId(projectId).orElseThrow(
 				() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
-
 		feasibilityStudy.setFeasibilityApproved(status);
 		feasibilityStudy.setComments(comments);
 		feasibilityStudy.setReviewedBy(userService.findLoggedInUser().getId());
 		Projects project = feasibilityStudy.getProject();
-		String requestUrl = request.getRequestURI();	
+		String requestUrl = request.getRequestURI();
 		ProjectStatus projectStatus = statusDao.findByProcessUrl(requestUrl.substring(0, requestUrl.lastIndexOf("/")));
 		if (projectStatus != null) {
 			project = updateProjectStatus(project, projectStatus);
@@ -493,271 +410,456 @@ public class ProjectServiceImpl implements ProjectService{
 		}
 		feaStudyDao.save(feasibilityStudy);
 		return messageSource.getMessage("feasibility.study.status.update.success", null, Locale.ENGLISH);
-
 	}
-
 	private Projects updateProjectStatus(Projects project, ProjectStatus status) {
 		project.setProjectStatus(status);
 		return projectDao.save(project);
-
 	}
 	@Override
 	public FeasibilityStudy findFeasibilityStudy(String projectId) {
-		return feaStudyDao.findByProjectId(projectId)
-				.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
+		return feaStudyDao.findByProjectId(projectId).orElseThrow(
+				() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
 	}
-	
 	@Override
 	public List<ApprovalDocuments> getApprovalDocData(String techId) {
 		List<ApprovalDocuments> approvalDoc = approvalsDao.findAllByTechnicalFeasibilityId(techId);
 		return approvalDoc;
 	}
-	
 	@Override
 	public void saveProjectDrawings(String projectId, List<MultipartFile> drawings) {
 		Projects project = findByProjectId(projectId);
-		Path directory=Paths.get(uploadDir,
-				project.getProjectName()
-				.trim()
-				.replaceAll("\\s+", "_")                    
-			    .replaceAll("[^a-zA-Z0-9-_\\.]", ""))
+		Path directory = Paths
+				.get(uploadDir,
+						project.getProjectName().trim().replaceAll("\\s+", "_").replaceAll("[^a-zA-Z0-9-_\\.]", ""))
 				.toAbsolutePath().normalize();
 		Path targetDir = directory.resolve("drawings");
 		try {
 			Files.createDirectories(targetDir);
-			for(MultipartFile file : drawings) {
+			for (MultipartFile file : drawings) {
 				Path targetLocation = targetDir.resolve(StringUtils.cleanPath(file.getOriginalFilename()));
 				Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
-				
 				ProjectDocumentDetails projectDocuments = new ProjectDocumentDetails();
 				projectDocuments.setId(UUID.randomUUID().toString());
 				projectDocuments.setDocumentPath(targetLocation.toString());
 				projectDocuments.setDocumentName(StringUtils.cleanPath(file.getOriginalFilename()));
 				projectDocuments.setDocumentType(file.getContentType());
 				projectDocuments.setProject(project);
-				
 				documentDetailsDao.save(projectDocuments);
 			}
-			
 		} catch (IOException e) {
 			throw new FileNotSaveException(messageSource.getMessage("file.upload.failure", null, Locale.ENGLISH));
-			
 		}
-		
 	}
-	
-//	@Override
-//	public Map<ApprovalDocuments,Resource> getApprovalDocs(List<ApprovalDocuments> approvalDoc) {
-//		Map<ApprovalDocuments, Resource> approvalDocMap = new HashMap<>();
-//		for (ApprovalDocuments doc : approvalDoc) {
-//			try {
-//				Path filePath = Paths.get(doc.getFilePath());
-//				Resource resource = new UrlResource(filePath.toUri());
-//				if (resource.exists() || resource.isReadable()) {
-//					approvalDocMap.put(doc, resource);
-//				} else {
-//					throw new FileNotSaveException(messageSource.getMessage("file.not.found", null, Locale.ENGLISH));
-//				}
-//			} catch (MalformedURLException e) {
-//				e.printStackTrace();
-//			}
-//			
-//		}
-//		return approvalDocMap;
-//	}
-
+	@Override
+	public Resource getApprovalDocs(String docId) throws MalformedURLException {
+		ApprovalDocuments doc = approvalsDao.findById(docId).orElseThrow(() -> new DataNotFoundException(
+				messageSource.getMessage("approval.document.not.found", null, Locale.ENGLISH)));
+		Path filePath = Paths.get(doc.getFilePath());
+		Resource resource = new UrlResource(filePath.toUri());
+		if (resource.exists() || resource.isReadable()) {
+			return resource;
+		} else {
+			throw new FileNotSaveException(messageSource.getMessage("file.not.found", null, Locale.ENGLISH));
+		}
+			
+	}
 	@Override
 	public List<ProjectInfoDto> getAllApprovedProjects() {
-		List<String> projectId = feaStudyDao.findAll().stream()
-				.filter(id -> id.isFeasibilityApproved())
-				.map(project -> project.getProject().getId())
-				.collect(Collectors.toList());
-		List<ProjectInfoDto> approvedProjects = projectId.stream()
-				.map(id -> projectDao.findAllProjectInfoById(id))
-				.filter(project -> !project.isArchieve())
-				.collect(Collectors.toList());
-		return approvedProjects.stream()
-				.filter(project -> project !=null)
-				.collect(Collectors.toList());
+		List<String> projectId = feaStudyDao.findAll().stream().filter(id -> id.isFeasibilityApproved())
+				.map(project -> project.getProject().getId()).collect(Collectors.toList());
+		List<ProjectInfoDto> approvedProjects = projectId.stream().map(id -> projectDao.findAllProjectInfoById(id))
+				.filter(project -> !project.isArchieve()).collect(Collectors.toList());
+		return approvedProjects.stream().filter(project -> project != null).collect(Collectors.toList());
 	}
-	
 	@Override
 	public List<String> getExcelSheets(MultipartFile boqFile) throws IOException {
 		return excelService.getSheetNames(boqFile);
 	}
-	
 	@Override
 	public List<String> getPdfColumns(MultipartFile boqFile) throws IOException {
 		return pdfService.getColumnsHeaders(boqFile);
 	}
-	
 	@Override
 	public List<String> getExcelColumns(MultipartFile boqFile, String sheetName) throws IOException {
 		String fileName = boqFile.getOriginalFilename();
-		if(fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
+		if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
 			return excelService.getColumns(boqFile, sheetName);
 		}
 		return null;
 	}
-	
+	@Override
+	public PaginatedResponse<ExcelExtractBOQ> extractBOQDataPaginated(
+	        String sheetName,
+	        Map<String, String> columnMapping,
+	        MultipartFile boqFile,
+	        int startRow,
+	        int endRow,
+	        int page,
+	        int size,
+	        String search
+	) throws IOException {
+		
+	    List<ExcelExtractBOQ> allRows = null;
+	    String fileName = boqFile.getOriginalFilename();
+		if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
+			allRows = excelService.getExtractedData(boqFile, sheetName, columnMapping, startRow, endRow);
+		}
+		else {
+			allRows = pdfService.getExtractedData(boqFile, columnMapping, startRow, endRow);
+		}
+	    if (search != null && !search.isBlank()) {
+	        String lower = search.toLowerCase();
+	        allRows = allRows.stream()
+	                .filter(item ->
+	                        (item.getBoqCode() != null && item.getBoqCode().toLowerCase().contains(lower)) ||
+	                        (item.getBoqName() != null && item.getBoqName().toLowerCase().contains(lower))
+	                )
+	                .toList();
+	    }
+	    int totalElements = allRows.size();
+	    int totalPages = (int) Math.ceil((double) totalElements / size);
+	    int fromIndex = page * size;
+	    int toIndex = Math.min(fromIndex + size, totalElements);
+	    List<ExcelExtractBOQ> content =
+	            (fromIndex >= totalElements) ? List.of() : allRows.subList(fromIndex, toIndex);
+	    return new PaginatedResponse<ExcelExtractBOQ>(
+	            content,        
+	            page,           
+	            size,          
+	            totalElements,  
+	            totalPages      
+	    );
+	}
 	@Override
 	public String saveBoqFile(MultipartFile boqFile, String projectId) {
 		String projectName = findByProjectId(projectId).getProjectName();
-		Path directory = Paths.get(uploadDir,
-		        projectName.trim()
-		                   .replaceAll("\\s+", "_")
-		                   .replaceAll("[^a-zA-Z0-9-_\\.]", ""))
-		        .toAbsolutePath().normalize()
-		        .resolve("BOQ");
-
+		Path directory = Paths
+				.get(uploadDir, projectName.trim().replaceAll("\\s+", "_").replaceAll("[^a-zA-Z0-9-_\\.]", ""))
+				.toAbsolutePath().normalize().resolve("BOQ");
 		try {
-		    if (boqFile == null || boqFile.isEmpty()) {
-		        throw new FileNotSaveException("Uploaded file is empty");
-		    }
-
-		    String fileName = StringUtils.cleanPath(boqFile.getOriginalFilename());
-		    if (fileName.isBlank() || fileName.contains("..")) {
-		        throw new FileNotSaveException("Invalid file name: " + fileName);
-		    }
-
-		    Files.createDirectories(directory);
-		    Path targetLocation = directory.resolve(fileName);
-		    Files.copy(boqFile.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
-
-		    String filePath = targetLocation.toString();
-		    List<BOQFile> boqFiles = boqFileDao.findByProjectId(projectId);
-
-		    if (boqFiles.stream().noneMatch(b -> b.getFilename().equals(fileName))) {
-		        BOQFile boqFileEntity = new BOQFile();
-		        boqFileEntity.setId(UUID.randomUUID().toString());
-		        boqFileEntity.setFilename(fileName);
-		        boqFileEntity.setFileUrl(filePath);
-		        boqFileEntity.setProject(findByProjectId(projectId));
-		        boqFileDao.save(boqFileEntity);
-		    }
-
-		    return filePath;
-
+			if (boqFile == null || boqFile.isEmpty()) {
+				throw new FileNotSaveException("Uploaded file is empty");
+			}
+			String fileName = StringUtils.cleanPath(boqFile.getOriginalFilename());
+			if (fileName.isBlank() || fileName.contains("..")) {
+				throw new FileNotSaveException("Invalid file name: " + fileName);
+			}
+			Files.createDirectories(directory);
+			Path targetLocation = directory.resolve(fileName);
+			Files.copy(boqFile.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
+			String filePath = targetLocation.toString();
+			List<BOQFile> boqFiles = boqFileDao.findByProjectId(projectId);
+			if (boqFiles.stream().noneMatch(b -> b.getFilename().equals(fileName))) {
+				BOQFile boqFileEntity = new BOQFile();
+				boqFileEntity.setId(UUID.randomUUID().toString());
+				boqFileEntity.setFilename(fileName);
+				boqFileEntity.setFileUrl(filePath);
+				boqFileEntity.setProject(findByProjectId(projectId));
+				boqFileDao.save(boqFileEntity);
+			}
+			return filePath;
 		} catch (IOException e) {
-		    throw new FileNotSaveException(messageSource.getMessage("file.upload.failure", null, Locale.ENGLISH), e);
+			throw new FileNotSaveException(messageSource.getMessage("file.upload.failure", null, Locale.ENGLISH), e);
 		}
-
 	}
-	
+//	@Override
+//	public String mapBOQ(String projectId, String sheetName, Map<String, String> columnMapping, String filePath)
+//			throws IOException, DataNotFoundException {
+//		Projects project = findByProjectId(projectId);
+//		Resource resource = new UrlResource(Paths.get(filePath).toUri());
+//		List<BOQ> boqList = null;
+//		if (resource.exists() || resource.isReadable()) {
+//			String fileName = resource.getFilename();
+//			InputStream inputStream = resource.getInputStream();
+//			if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
+//				boqList = excelService.mapBOQData(sheetName, columnMapping, inputStream);
+//			} else if (fileName.endsWith(".pdf")) {
+//				boqList = pdfService.mapBOQData(columnMapping, inputStream);
+//			} else {
+//				throw new FileNotSaveException(
+//						messageSource.getMessage("file.type.not.supported", null, Locale.ENGLISH));
+//			}
+//			if (!boqList.isEmpty()) {
+//				BOQ parentBoq = null;
+//				BOQ subBoq = null;
+//				for (BOQ boq : boqList) {
+//					boq.setId(UUID.randomUUID().toString());
+//					boq.setProject(project);
+//					if ((!isValidText(boq.getBoqCode()) && !isValidText(boq.getBoqName()))
+//				            && boq.getQuantity() == 0 && boq.getUom() == null) {
+//				        continue;
+//				    }
+//					if((!isNotEmpty(boq.getBoqCode()) || !isNotEmpty(boq.getBoqName()))
+//							&& boq.getQuantity() == 0 && boq.getUom() == null) {
+//						boq.setParentBOQ(null);
+//						boq.setLevel(1);
+//						parentBoq=boqDao.save(boq);
+//						subBoq = null;
+//					}
+//					else if(boq.getQuantity() == 0 && boq.getUom() == null && (boq.getBoqCode() != null && boq.getBoqName() != null)){
+//						boq.setParentBOQ(parentBoq);
+//						boq.setLevel(2);
+//						boq.setLastLevel(false);
+//						subBoq = boqDao.save(boq);
+//					}
+//					else if(boq.getQuantity() != 0 || boq.getUom() != null){
+//						if(subBoq != null) {
+//							boq.setParentBOQ(subBoq);
+//						} else {
+//							boq.setParentBOQ(parentBoq);
+//						}
+//						boq.setLevel(3);
+//						boqDao.save(boq);
+//					}
+//				}
+//			}
+//			return "BOQ data mapped successfully";
+//		}
+//		return null;
+//	}
 	@Override
-	public String mapBOQ(String projectId, String sheetName, Map<String, String> columnMapping, String filePath) throws IOException {
-		Projects project = findByProjectId(projectId);
-		Resource resource = new UrlResource(Paths.get(filePath).toUri());
-		List<BOQ> boqList = null;
-		if(resource.exists() || resource.isReadable()) {
-			String fileName = resource.getFilename();
-			InputStream inputStream = resource.getInputStream();
-			if(fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
-				boqList = excelService.mapBOQData(sheetName, columnMapping, inputStream); 
+	public String mapBOQData(String projectId,
+	                         String sheetName,
+	                         Map<String, String> columnMapping,
+	                         Map<Long, Long> parentChildMapping,
+	                         Map<Long, Boolean> lastLevelMapping,
+	                         Map<Long, Long> levelMapping,
+	                         MultipartFile boqFile) throws IOException {
+
+	    Projects project = findByProjectId(projectId);
+	    saveBoqFile(boqFile, projectId);
+	    int startRow = 0;
+	    int endRow = 1000;
+	    List<ExcelExtractBOQ> extractedRows;
+	    String fileName = boqFile.getOriginalFilename();
+	    if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
+	        extractedRows = excelService.getExtractedData(boqFile, sheetName, columnMapping, startRow, endRow);
+	    } else {
+	        extractedRows = pdfService.getExtractedData(boqFile, columnMapping, startRow, endRow);
+	    }
+	    if (extractedRows == null || extractedRows.isEmpty()) {
+	        throw new DataNotFoundException("No BOQ data extracted from file!");
+	    }
+	    Map<Long, BOQ> boqEntityMap = new HashMap<>();
+	    extractedRows.forEach(row -> {
+	        BOQ boq = new BOQ();
+	        boq.setId(UUID.randomUUID().toString());
+	        boq.setBoqCode(row.getBoqCode());
+	        boq.setBoqName(row.getBoqName());
+	        boq.setQuantity(row.getQuantity());
+	        boq.setProject(project);
+	        if (row.getUom() != null) {
+	            UOM uom = findUOM(row.getUom());
+	            boq.setUom(uom);
+	        }
+	        if (!isValidText(row.getBoqCode()) && !isNotEmpty(row.getBoqCode())) {
+	            return;
+	        }
+	        Long level = levelMapping.getOrDefault(row.getSno(), 0L);
+	        boq.setLevel(level.intValue());
+	        if (!row.isLastLevel()) {
+	            boq.setLastLevel(lastLevelMapping.getOrDefault(row.getSno(), false));
+	        } else {
+	            boq.setLastLevel(row.isLastLevel());
+	        }
+
+	        boqEntityMap.put(row.getSno(), boq);
+	    });
+	    parentChildMapping.forEach((childSno, parentSno) -> {
+	        BOQ child = boqEntityMap.get(childSno);
+	        BOQ parent = boqEntityMap.get(parentSno);
+
+	        if (child != null && parent != null) {
+	            child.setParentBOQ(parent);
+	            parent.getChildren().add(child);
+	        }
+	    });
+	    for (ExcelExtractBOQ row : extractedRows) {
+	        Long childSno = row.getSno();
+	        Long parentSno = row.getParentSno();
+	        if (parentSno == null || parentSno == 0) continue;
+	        if (parentChildMapping.containsKey(childSno)) continue;
+	        BOQ child = boqEntityMap.get(childSno);
+	        BOQ parent = boqEntityMap.get(parentSno);
+	        if (child != null && parent != null) {
+	            child.setParentBOQ(parent);
+	            parent.getChildren().add(child);
+	        }
+	    }
+	    List<BOQ> boqList = new ArrayList<>(boqEntityMap.values());
+	    boqDao.saveAll(boqList);
+	    return "BOQ Mapping Successfully Stored for Project " + projectId;
+	}
+
+	protected UOM findUOM(String value) {
+		String sanitizedValue = value.trim().replaceAll("[., /]", "");
+		List<UOM> uoms = uomDao.findAll();
+		for (UOM uom : uoms) {
+			if (uom.getUomCode().equalsIgnoreCase(sanitizedValue) || uom.getUomName().equalsIgnoreCase(value)) {
+				return uom;
 			}
-			else if(fileName.endsWith(".pdf")) {
-				boqList = pdfService.mapBOQData(columnMapping, inputStream);
-			}
-			else {
-				throw new FileNotSaveException(messageSource.getMessage("file.type.not.supported", null, Locale.ENGLISH));
-			}
-			boqList = validateBOQData(boqList,projectId);
-			if(!boqList.isEmpty()) {
-				for(BOQ boq : boqList) {
-					boq.setProject(project);
-					if(boq.getBoqCode().length() > 1) {
-						String parentCode = boq.getBoqCode().substring(0, boq.getBoqCode().length() - 2);
-						BOQ parentBoq = boqDao.findByBoqCodeAndProjectId(parentCode, projectId);
-						boq.setParentBOQ(parentBoq);
-					}
-					boqDao.save(boq);
-				}
-			}
-			
-			return "BOQ data mapped successfully";
 		}
 		return null;
 	}
-	private List<BOQ> validateBOQData(List<BOQ> boqList, String projectId) {
-		Projects project = findByProjectId(projectId);
-		Iterator<BOQ> iterator = boqList.iterator();
-		while(iterator.hasNext()) {
-			BOQ boq = iterator.next();
-			BOQ savedBOQ = boqDao.findByBoqCodeAndProjectId(boq.getBoqCode(), projectId);
-			if(savedBOQ != null && savedBOQ.getBoqName().equals(boq.getBoqName())) {
-				boq.setId(savedBOQ.getId());
-				boq.setParentBOQ(savedBOQ.getParentBOQ());
-				boq.setProject(project);
-                boqDao.save(boq);
-                iterator.remove();
-			}
-			
-		}
-		return boqList;
+
+	private boolean isValidText(String value) {
+	    if (value == null) return false;
+	    String trimmed = value.trim();
+	    if (trimmed.isEmpty()) return false;
+	    return !trimmed.equalsIgnoreCase("-") &&
+	           !trimmed.equalsIgnoreCase("--") &&
+	           !trimmed.equalsIgnoreCase("—") &&
+	           !trimmed.equalsIgnoreCase("n/a") &&
+	           !trimmed.equalsIgnoreCase("na") &&
+	           !trimmed.equalsIgnoreCase("nil");
 	}
 
-	
+	private boolean isNotEmpty(String value) {
+	    return value != null && !value.trim().isEmpty();
+	}
+//	private List<BOQ> validateBOQData(List<BOQ> boqList, String projectId) {
+//		Projects project = findByProjectId(projectId);
+//		Iterator<BOQ> iterator = boqList.iterator();
+//		while (iterator.hasNext()) {
+//			BOQ boq = iterator.next();
+//			BOQ savedBOQ = boqDao.findByBoqCodeAndProjectId(boq.getBoqCode(), projectId);
+//			if (savedBOQ != null 
+//					&& savedBOQ.getBoqName().equals(boq.getBoqName()) 
+//					&& savedBOQ.getBoqCode().equals(boq.getBoqCode())) {
+//				boq.setId(savedBOQ.getId());
+//				boq.setParentBOQ(savedBOQ.getParentBOQ());
+//				boq.setProject(project);
+//			}
+//		}
+//		return boqList;
+//	}
 	@Override
-	public List<BOQ> getAllBOQ(String projectId) {
+	public List<BOQ> getParentBOQ(String projectId) {
 		List<BOQ> boqList = boqDao.findByProjectId(projectId);
-		if(boqList.isEmpty()) {
-			throw new DataNotFoundException(messageSource.getMessage("boq.not.found", null, Locale.ENGLISH));
+		if (boqList.isEmpty()) {
+			return null;
+		}
+		List<BOQ> parentBoqList = boqList.stream()
+				.filter(boq -> boq.getLevel() == 1)
+				.collect(Collectors.toList());
+		return parentBoqList;
+	}
+	@Override
+	public List<BOQ> getChildBOQ(String projectId, String parentBoqId) {
+		List<BOQ> boqList = boqDao.findByProjectIdAndParentBOQId(projectId, parentBoqId);
+		if (boqList.isEmpty()) {
+			return null;
 		}
 		return boqList;
 	}
+	@Override
+	public Map<String, Integer> getBOQCount(String projectId) {
+		List<BOQ> boqList = boqDao.findByProjectId(projectId);
+		Map<String, Integer> boqCountMap = new HashMap<>();
+		int boqcount = boqList.size();
+		int lastLevelCount = (int) boqList.stream().filter(boq -> boq.isLastLevel()).count();
+		boqCountMap.put("totalBOQCount", boqcount);
+		boqCountMap.put("lastLevelBOQCount", lastLevelCount);
+		return boqCountMap;
+	}
+	@Override
+	public List<BOQSummaryDTO> findTotalAmountForParentBoqs(String projectId) {
+	    List<BOQ> boqList = getParentBOQ(projectId);
+	    List<BOQSummaryDTO> result = new ArrayList<>();
+	    for (BOQ parentBoq : boqList) {
+            double totalAmount = calculateBoqTotalRecursively(projectId, parentBoq.getId());
+            BOQSummaryDTO dto = new BOQSummaryDTO();
+            dto.setId(parentBoq.getId());
+            dto.setBoqCode(parentBoq.getBoqCode());
+            dto.setBoqName(parentBoq.getBoqName());
+            dto.setQuantity(parentBoq.getQuantity());
+            dto.setTotalAmount(totalAmount);
+            
+            result.add(dto);
+        }
+	    return result;
+	}
+	private double calculateBoqTotalRecursively(String projectId, String boqId) {
+        double total = 0.0;
+        int maxDepth = 20; 
+        total = calculateBoqTotalRecursively(projectId, boqId, 0, maxDepth);
+        return total;
+    }
+    
+    private double calculateBoqTotalRecursively(String projectId, String boqId, int currentDepth, int maxDepth) {
+        if (currentDepth >= maxDepth) {
+            return 0.0;
+        }
+        List<BOQ> childBoqs = getChildBOQ(projectId, boqId);
+        double totalAmount = 0.0;
+        for (BOQ childBoq : childBoqs) {
+            if (childBoq.isLastLevel()) {
+                totalAmount += childBoq.getTotalAmount();
+            } else {
+                totalAmount += calculateBoqTotalRecursively(
+                    projectId, 
+                    childBoq.getId(), 
+                    currentDepth + 1, 
+                    20
+                );
+            }
+        }
+        
+        return totalAmount;
+    }
 	
 	@Override
-	public void deleteBOQ(List<String> boqCode, String projectId) throws DataIntegrityViolationException{
-		for(String code : boqCode) {
-			BOQ boq = boqDao.findByBoqCodeAndProjectId(code, projectId);
-			if(boq != null) {
+	public void deleteBOQ(List<String> boqCode, String projectId) throws DataIntegrityViolationException {
+		for (String code : boqCode) {
+			BOQ boq = boqDao.findById(code).orElseThrow(() -> new DataNotFoundException(
+					messageSource.getMessage("boq.not.found", null, Locale.ENGLISH)));
+			if (boq != null) {
 				boqDao.delete(boq);
 			}
 		}
 	}
-	
 	@Override
-	public void generateBoqExcel(String projectId, HttpServletResponse response) throws IOException , DataNotFoundException{
+	public BOQ getBoqById(String boqId) {
+		return boqDao.findById(boqId)
+				.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("boq.not.found", null, Locale.ENGLISH)));
+	}
+	@Override
+	public void generateBoqExcel(String projectId, HttpServletResponse response)
+			throws IOException, DataNotFoundException {
 		response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-		List<BOQ> boqList = getAllBOQ(projectId);
-		excelService.generateBoqFile(boqList,response);
-		
+//		List<BOQ> boqList = getAllBOQ(projectId);
+//		excelService.generateBoqFile(boqList, response);
 	}
-	
 	@Override
-	public void generateBoqPdf(String projectId, HttpServletResponse response) throws IOException, DocumentException, DataNotFoundException {
-		response.setContentType("application/pdf");	
-		List<BOQ> boqList = getAllBOQ(projectId);
-		pdfService.generateBoqPdf(boqList, response);
+	public void generateBoqPdf(String projectId, HttpServletResponse response)
+			throws IOException, DocumentException, DataNotFoundException {
+		response.setContentType("application/pdf");
+//		List<BOQ> boqList = getAllBOQ(projectId);
+//		pdfService.generateBoqPdf(boqList, response);
 	}
-	
 	@Override
 	public List<BOQ> getParentBOQ(List<BOQ> boqList) {
-		if(boqList != null && !boqList.isEmpty()) {
-			return boqList.stream()
-					.filter(boq -> boq.getParentBOQ() == null )
-					.collect(Collectors.toList());
+		if (boqList != null && !boqList.isEmpty()) {
+			return boqList.stream().filter(boq -> boq.getParentBOQ() == null).collect(Collectors.toList());
 		}
 		return null;
 	}
 	@Override
 	public double getParentTotalValue(List<BOQ> boqList, String parentCode) {
 		double totalValue = 0.0;
-		if(boqList != null) {
-			for(BOQ boq : boqList) {
-				if(boq.getParentBOQ() != null && 
-						boq.getParentBOQ().getBoqCode() != null && 
-						boq.getParentBOQ().getBoqCode().contains(parentCode)) {
-					totalValue += boq.getTotalAmount(); 
+		if (boqList != null) {
+			for (BOQ boq : boqList) {
+				if (boq.getParentBOQ() != null && boq.getParentBOQ().getBoqCode() != null
+						&& boq.getParentBOQ().getBoqCode().contains(parentCode)) {
+					totalValue += boq.getTotalAmount();
 				}
 			}
 		}
 		return totalValue;
 	}
-	
 	@Override
-	public String saveTemplate(Template template, Map<String,String> mapping) {
-		if(templateDao.findByTemplateName(template.getTemplateName()) == null) {
+	public String saveTemplate(Template template, Map<String, String> mapping) {
+		if (templateDao.findByTemplateName(template.getTemplateName()) == null) {
 			template.setId(UUID.randomUUID().toString());
 			Template savedTemplate = templateDao.save(template);
 			saveTemplateMapping(mapping, savedTemplate);
@@ -765,383 +867,493 @@ public class ProjectServiceImpl implements ProjectService{
 		}
 		return messageSource.getMessage("template.duplicate", null, Locale.ENGLISH);
 	}
-
 	private void saveTemplateMapping(Map<String, String> mapping, Template savedTemplate) {
-		for(Map.Entry<String, String> map : mapping.entrySet()) {
+		for (Map.Entry<String, String> map : mapping.entrySet()) {
 			TemplateMapping tempMap = new TemplateMapping();
 			tempMap.setTemplate(savedTemplate);
 			tempMap.setInternalFields(map.getKey());
 			tempMap.setExcelFields(map.getValue());
 			templateMappingDao.save(tempMap);
 		}
-		
 	}
-	
 	@Override
 	public List<Template> getAllTemplate() {
 		List<Template> templates = templateDao.findAll();
 		return templates;
 	}
-	
 	@Override
 	public TemplateDto getTemplateById(String templateId) {
 		TemplateDto templateDto = new TemplateDto();
-		Template template = templateDao.findById(templateId)
-				.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
+		Template template = templateDao.findById(templateId).orElseThrow(
+				() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
 		templateDto.setTemplate(template);
 		List<TemplateMapping> mappings = templateMappingDao.findByTemplateId(templateId);
 		Map<String, String> mapping = new HashMap<>();
-		for(TemplateMapping map : mappings) {
+		for (TemplateMapping map : mappings) {
 			mapping.put(map.getInternalFields(), map.getExcelFields());
 		}
 		templateDto.setTemplateMapping(mapping);
 		return templateDto;
 	}
-	
 	@Override
 	public List<ProjectInfoDto> getAllBoqUploadedProject() {
 		List<ProjectInfoDto> projects = new ArrayList<>();
-		Set<String> projectIds = boqDao.findAll().stream()
-				.map(boq -> boq.getProject().getId())
+		Set<String> projectIds = boqDao.findAll().stream().map(boq -> boq.getProject().getId())
 				.collect(Collectors.toSet());
-		for(String id : projectIds) {
+		for (String id : projectIds) {
 			ProjectInfoDto projectInfo = projectDao.findAllProjectInfoById(id);
-			if(projectInfo.isArchieve()) continue;
+			if (projectInfo.isArchieve())
+				continue;
 			projects.add(projectInfo);
 		}
 		return projects;
 	}
-	
-	
 	@Override
 	public String addActivityGroup(ActivityGroup activityGroup) {
-		if(activityGroupsDao.findByActivityName(activityGroup.getActivityName()) == null) {
+		if (activityGroupsDao.findByActivityName(activityGroup.getActivityName()) == null) {
 			activityGroup.setId(UUID.randomUUID().toString());
 			activityGroupsDao.save(activityGroup);
 			return messageSource.getMessage("activity.group.save.success", null, Locale.ENGLISH);
 		}
 		return messageSource.getMessage("activity.group.duplicate", null, Locale.ENGLISH);
 	}
-	
 	@Override
 	public List<ActivityGroup> getAllActivityGroups() {
 		return activityGroupsDao.findAll();
 	}
-	
 	@Override
 	public String saveCostCodeOneToOne(List<CostCodeDto> dtos) {
-	    if (dtos == null || dtos.isEmpty()) {
-	        throw new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH));
-	    }
-
-	    Projects project = findByProjectId(dtos.get(0).getProjectId());
-
-	    for (CostCodeDto dto : dtos) {
-	        CostCodeActivity act = mapCommonFields(dto, project);
-	        act.setBoq(findBoqs(dto.getBoqId()));
-	        act.setQuantity(dto.getQuantity());
-	        act.setRate(dto.getRate());
-	        act.setAmount(dto.getQuantity() * dto.getRate());
-	        costCodeActivityDao.save(act);
-	    }
-
-	    return messageSource.getMessage("cost.code.save.success", null, Locale.ENGLISH);
+		if (dtos == null || dtos.isEmpty()) {
+			throw new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH));
+		}
+		Projects project = findByProjectId(dtos.get(0).getProjectId());
+		for (CostCodeDto dto : dtos) {
+			CostCodeActivity act = mapCommonFields(dto, project);
+			act.setBoq(findBoqs(dto.getBoqId()));
+			act.setQuantity(dto.getQuantity());
+			act.setRate(dto.getRate());
+			act.setAmount(dto.getQuantity() * dto.getRate());
+			costCodeActivityDao.save(act);
+		}
+		return messageSource.getMessage("cost.code.save.success", null, Locale.ENGLISH);
 	}
-
 	@Override
 	public String saveCostCodeOneToMany(List<CostCodeDto> dtos) {
-	    if (dtos == null || dtos.isEmpty()) {
-	        throw new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH));
-	    }
-
-	    Projects project = findByProjectId(dtos.get(0).getProjectId());
-
-	    for (CostCodeDto dto : dtos) {
-	        CostCodeActivity act = mapCommonFields(dto, project);
-	        Set<BOQ> boqSet = findBoqs(dto.getBoqId());
-	        act.setBoq(boqSet);
-
-	        if (dto.getSplitType() != null) {
-	            switch (dto.getSplitType().toLowerCase()) {
-	                case "quantity":
-	                    double q = dto.getQuantity() * (dto.getQtySplitPercentage()/100);
-	                    act.setQuantity(q);
-	                    act.setRate(dto.getRate());
-	                    act.setAmount(q * dto.getRate());
-	                    break;
-	                case "amount":
-	                    double a = dto.getAmount() * (dto.getAmountSplitPercentage()/100);
-	                    act.setAmount(a);
-	                    act.setRate(act.getAmount());
-	                    act.setQuantity(1);
-	                    for(UOM uom : uomDao.findAll()) {
-	                    	if(uom.getUomCode().equalsIgnoreCase("ls")) {
-	                    		act.setUom(uom);
-	                    		break;
-	                    	}
-	                    }
-	                    break;
-	                case "rate":
-	                    double r = dto.getRate() * (dto.getRateSplitPercentage()/100);
-	                    act.setRate(r);
-	                    act.setQuantity(dto.getQuantity());
-	                    act.setAmount(r * dto.getQuantity());
-	                    break;
-	                case "qty_rate":
-	                    double qty = dto.getQuantity() * (dto.getQtySplitPercentage()/100);
-	                    double rate = dto.getRate() * (dto.getRateSplitPercentage()/100);
-	                    act.setQuantity(qty);
-	                    act.setRate(rate);
-	                    act.setAmount(qty * rate);
-	                    break;
-	            }
-	        }
-	        costCodeActivityDao.save(act);
-	    }
-	    return messageSource.getMessage("cost.code.save.success", null, Locale.ENGLISH);
+		if (dtos == null || dtos.isEmpty()) {
+			throw new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH));
+		}
+		Projects project = findByProjectId(dtos.get(0).getProjectId());
+		for (CostCodeDto dto : dtos) {
+			CostCodeActivity act = mapCommonFields(dto, project);
+			Set<BOQ> boqSet = findBoqs(dto.getBoqId());
+			act.setBoq(boqSet);
+			if (dto.getSplitType() != null) {
+				switch (dto.getSplitType().toLowerCase()) {
+				case "quantity":
+					double q = dto.getQuantity() * (dto.getQtySplitPercentage() / 100);
+					act.setQuantity(q);
+					act.setRate(dto.getRate());
+					act.setAmount(q * dto.getRate());
+					break;
+				case "amount":
+					double a = dto.getAmount() * (dto.getAmountSplitPercentage() / 100);
+					act.setAmount(a);
+					act.setRate(act.getAmount());
+					act.setQuantity(1);
+					for (UOM uom : uomDao.findAll()) {
+						if (uom.getUomCode().equalsIgnoreCase("ls")) {
+							act.setUom(uom);
+							break;
+						}
+					}
+					break;
+				case "rate":
+					double r = dto.getRate() * (dto.getRateSplitPercentage() / 100);
+					act.setRate(r);
+					act.setQuantity(dto.getQuantity());
+					act.setAmount(r * dto.getQuantity());
+					break;
+				case "qty_rate":
+					double qty = dto.getQuantity() * (dto.getQtySplitPercentage() / 100);
+					double rate = dto.getRate() * (dto.getRateSplitPercentage() / 100);
+					act.setQuantity(qty);
+					act.setRate(rate);
+					act.setAmount(qty * rate);
+					break;
+				}
+			}
+			costCodeActivityDao.save(act);
+		}
+		return messageSource.getMessage("cost.code.save.success", null, Locale.ENGLISH);
 	}
-
-	
 	@Override
 	public String saveCostCodeManyToOne(List<CostCodeDto> dtos) {
-	    if (dtos == null || dtos.isEmpty()) {
-	        throw new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH));
-	    }
-
-	    Projects project = findByProjectId(dtos.get(0).getProjectId());
-
-	    List<BOQ> allBoqs = dtos.stream()
-	            .flatMap(d -> d.getBoqId().stream())
-	            .filter(id -> id != 0)
-	            .map(id -> boqDao.findById(id)
-	                    .orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH))))
-	            .collect(Collectors.toList());
-
-	    if (allBoqs.isEmpty()) throw new DataNotFoundException("No BOQs found for mapping");
-
-	    Set<String> uoms = allBoqs.stream().map(b -> b.getUom().getId()).collect(Collectors.toSet());
-	    
-
-	    double qty = allBoqs.stream().mapToDouble(BOQ::getQuantity).sum();
-	    double rate = allBoqs.stream().mapToDouble(BOQ::getTotalRate).average().orElse(0.0);
-	    double amount = qty * rate;
-
-	    CostCodeDto first = dtos.get(0);
-	    CostCodeActivity act = mapCommonFields(first, project);
-	    if (uoms.size() > 1) {
-	    	for(UOM uom : uomDao.findAll()) {
-	    		if(uom.getUomCode().equalsIgnoreCase("ls")) {
-	    			act.setUom(uom);
-	    			break;
-	    		}
-	    	}
-	    			
-	    }
-	    else {
-	    	act.setUom(allBoqs.get(0).getUom());
-	    }
-	    act.setBoq(new HashSet<>(allBoqs));
-	    act.setQuantity(qty);
-	    act.setRate(rate);
-	    act.setAmount(amount);
-
-	    costCodeActivityDao.save(act);
-
-	    return messageSource.getMessage("cost.code.save.success", null, Locale.ENGLISH);
+		if (dtos == null || dtos.isEmpty()) {
+			throw new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH));
+		}
+		Projects project = findByProjectId(dtos.get(0).getProjectId());
+		List<BOQ> allBoqs = dtos.stream().flatMap(d -> d.getBoqId().stream()).filter(id -> id != null)
+				.map(id -> boqDao.findById(id)
+						.orElseThrow(() -> new DataNotFoundException(
+								messageSource.getMessage("data.not.found", null, Locale.ENGLISH))))
+				.collect(Collectors.toList());
+		if (allBoqs.isEmpty())
+			throw new DataNotFoundException("No BOQs found for mapping");
+		Set<String> uoms = allBoqs.stream().map(b -> b.getUom().getId()).collect(Collectors.toSet());
+		double qty = allBoqs.stream().mapToDouble(BOQ::getQuantity).sum();
+		double rate = allBoqs.stream().mapToDouble(BOQ::getTotalRate).average().orElse(0.0);
+		double amount = qty * rate;
+		CostCodeDto first = dtos.get(0);
+		CostCodeActivity act = mapCommonFields(first, project);
+		if (uoms.size() > 1) {
+			for (UOM uom : uomDao.findAll()) {
+				if (uom.getUomCode().equalsIgnoreCase("ls")) {
+					act.setUom(uom);
+					break;
+				}
+			}
+		} else {
+			act.setUom(allBoqs.get(0).getUom());
+		}
+		act.setBoq(new HashSet<>(allBoqs));
+		act.setQuantity(qty);
+		act.setRate(rate);
+		act.setAmount(amount);
+		costCodeActivityDao.save(act);
+		return messageSource.getMessage("cost.code.save.success", null, Locale.ENGLISH);
 	}
-
-	
-	private Set<BOQ> findBoqs(List<Integer> boqIds) {
-	    return boqIds.stream()
-	            .filter(id -> id != 0)
-	            .map(id -> boqDao.findById(id)
-	                    .orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH))))
-	            .collect(Collectors.toSet());
+	private Set<BOQ> findBoqs(List<String> boqIds) {
+		return boqIds.stream().filter(id -> id != null).map(id -> boqDao.findById(id).orElseThrow(
+				() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH))))
+				.collect(Collectors.toSet());
 	}
-	
 	private CostCodeActivity mapCommonFields(CostCodeDto dto, Projects project) {
-	    CostCodeActivity costCodeAct = new CostCodeActivity();
-	    costCodeAct.setId(UUID.randomUUID().toString());
-	    costCodeAct.setProject(project);
-
-	    if (dto.getActivityGroupId() != null && !dto.getActivityGroupId().isEmpty()) {
-	        ActivityGroup activityGroup = activityGroupsDao.findById(dto.getActivityGroupId())
-	                .orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
-	        costCodeAct.setActivityGroup(activityGroup);
-	    }
-
-	    if (dto.getCostCodeTypeId() != null && !dto.getCostCodeTypeId().isEmpty()) {
-	        CostCodeType costCodeType = costCodeTypeDao.findById(dto.getCostCodeTypeId())
-	                .orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
-	        costCodeAct.setCostCodeType(costCodeType);
-	    }
-
-	    if (dto.getUomId() != null && !dto.getUomId().isEmpty()) {
-	        UOM uom = uomDao.findById(dto.getUomId())
-	                .orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
-	        costCodeAct.setUom(uom);
-	    }
-
-	    costCodeAct.setActivityCode(dto.getActivityCode());
-	    costCodeAct.setActivityName(dto.getActivityName());
-	    costCodeAct.setMappingType(dto.getMappingType());
-
-	    return costCodeAct;
+		CostCodeActivity costCodeAct = new CostCodeActivity();
+		costCodeAct.setId(UUID.randomUUID().toString());
+		costCodeAct.setProject(project);
+		if (dto.getActivityGroupId() != null && !dto.getActivityGroupId().isEmpty()) {
+			ActivityGroup activityGroup = activityGroupsDao.findById(dto.getActivityGroupId()).orElseThrow(
+					() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
+			costCodeAct.setActivityGroup(activityGroup);
+		}
+		if (dto.getCostCodeTypeId() != null && !dto.getCostCodeTypeId().isEmpty()) {
+			CostCodeType costCodeType = costCodeTypeDao.findById(dto.getCostCodeTypeId()).orElseThrow(
+					() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
+			costCodeAct.setCostCodeType(costCodeType);
+		}
+		if (dto.getUomId() != null && !dto.getUomId().isEmpty()) {
+			UOM uom = uomDao.findById(dto.getUomId()).orElseThrow(
+					() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
+			costCodeAct.setUom(uom);
+		}
+		costCodeAct.setActivityCode(dto.getActivityCode());
+		costCodeAct.setActivityName(dto.getActivityName());
+		costCodeAct.setMappingType(dto.getMappingType());
+		return costCodeAct;
 	}
-
-	
 	@Override
 	public String deleteCostCode(String costCodeId) {
-		CostCodeActivity costCode = costCodeActivityDao.findById(costCodeId)
-				.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
+		CostCodeActivity costCode = costCodeActivityDao.findById(costCodeId).orElseThrow(
+				() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
 		costCodeActivityDao.delete(costCode);
 		return messageSource.getMessage("cost.code.delete.success", null, Locale.ENGLISH);
 	}
-	
 	@Override
 	public List<ProjectInfoDto> getAllCostCodeUpdatedProject() {
 		List<ProjectInfoDto> projects = new ArrayList<>();
-		Set<String> projectIds = costCodeActivityDao.findAll().stream()
-				.map(costCode -> costCode.getProject().getId())
+		Set<String> projectIds = costCodeActivityDao.findAll().stream().map(costCode -> costCode.getProject().getId())
 				.collect(Collectors.toSet());
-		for(String id : projectIds) {
+		for (String id : projectIds) {
 			ProjectInfoDto projectInfo = projectDao.findAllProjectInfoById(id);
-			if(projectInfo.isArchieve()) continue;
+			if (projectInfo.isArchieve())
+				continue;
 			projects.add(projectInfo);
 		}
 		return projects;
 	}
-	
 	@Override
 	public List<CostCodeActivity> getCostCodeActivityByProject(String projectId) {
 		return costCodeActivityDao.findByProjectId(projectId);
 	}
-	
 	@Override
 	public CostCodeActivity getCostCodeActivityById(String costCodeId) {
-		return costCodeActivityDao.findById(costCodeId)
-				.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
+		return costCodeActivityDao.findById(costCodeId).orElseThrow(
+				() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
 	}
-	
 	@Override
 	public double getTotalAmountByCostCodeType(String costCodeTypeId, String projectId) {
-		List<CostCodeActivity> activities = costCodeActivityDao.findByProjectIdAndCostCodeTypeId(projectId, costCodeTypeId);
-		if(activities != null && !activities.isEmpty()) {
-			return activities.stream()
-					.mapToDouble(CostCodeActivity::getAmount)
-					.sum();
+		List<CostCodeActivity> activities = costCodeActivityDao.findByProjectIdAndCostCodeTypeId(projectId,
+				costCodeTypeId);
+		if (activities != null && !activities.isEmpty()) {
+			return activities.stream().mapToDouble(CostCodeActivity::getAmount).sum();
 		}
 		return 0;
 	}
-	
 	@Override
-	public String addResourcesToTender(TenderResourceDto tenderResourceDto) {
-		TenderEstimation tenderEst = new TenderEstimation();
-		tenderEst.setId(UUID.randomUUID().toString());
-		tenderEst.setDocNumber(tenderResourceDto.getDocNumber());
-		if(tenderResourceDto.getProjectId() != null && !tenderResourceDto.getProjectId().isEmpty()) {
-			Projects project = findByProjectId(tenderResourceDto.getProjectId());
-			tenderEst.setProject(project);
-		}
-		if(tenderResourceDto.getResourceId() != null && !tenderResourceDto.getResourceId().isEmpty()) {
-			Resources resource = resourceDao.findById(tenderResourceDto.getResourceId())
-					.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
-			tenderEst.setResource(resource);
-			if(tenderResourceDto.getRate() == resource.getUnitRate()) {
-				tenderEst.setRate(resource.getUnitRate());
-			}
-			else {
-				tenderEst.setRate(tenderResourceDto.getRate());
-			}
-		}
-		if(tenderResourceDto.getQuantityTypeId() != null && !tenderResourceDto.getQuantityTypeId().isEmpty()) {
-			QuantityType qtyType = quantityTypeDao.findById(tenderResourceDto.getQuantityTypeId())
-					.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
-			tenderEst.setQuantityType(qtyType);
-		}
-		tenderEst.setCoEfficient(tenderResourceDto.getCoEfficient());
-		if(tenderResourceDto.getResourceNatureId() != null && !tenderResourceDto.getResourceNatureId().isEmpty()) {
-			ResourceNature resourceNature = resourceNatureDao.findById(tenderResourceDto.getResourceNatureId())
-					.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
-			tenderEst.setResourceNature(resourceNature);
-		}
-		if(tenderResourceDto.getResourceTypeId() != null && !tenderResourceDto.getResourceTypeId().isEmpty()) {
-			ResourceType resourceType = resourceTypeDao.findById(tenderResourceDto.getResourceTypeId())
-					.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
-			tenderEst.setResourceType(resourceType);
-		}
-		if(tenderResourceDto.getUomId() != null && !tenderResourceDto.getUomId().isEmpty()) {
-			UOM uom = uomDao.findById(tenderResourceDto.getUomId())
-					.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
-			tenderEst.setUom(uom);
-		}
-		if(tenderResourceDto.getActivityGroupId() != null && !tenderResourceDto.getActivityGroupId().isEmpty()) {
-			Set<ActivityGroup> activityGroups = new HashSet<>();
-			for(String id : tenderResourceDto.getActivityGroupId()) {
-				ActivityGroup activityGroup = activityGroupsDao.findById(id)
-						.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
-				activityGroups.add(activityGroup);
-			}
-			tenderEst.setActivityGroup(activityGroups);
-		}
-		if(tenderResourceDto.getResourceNatureId() != null && !tenderResourceDto.getResourceNatureId().isEmpty()) {
-			ResourceNature resourceNature = resourceNatureDao.findById(tenderResourceDto.getResourceNatureId())
-					.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
-			tenderEst.setResourceNature(resourceNature);
-		}
-		tenderEst.setCalculatedQuantity(tenderResourceDto.getCalculatedQuantity());
-		if(tenderResourceDto.getWastePercentage() != 0) {
-			double wasteQty = (tenderResourceDto.getCalculatedQuantity() * tenderResourceDto.getWastePercentage()) / 100;
-			tenderEst.setWastePercentage(tenderResourceDto.getWastePercentage());
-			tenderEst.setWasteQuantity(wasteQty);
-		}
-		else if(tenderResourceDto.getWasteQuantity() != 0) {
-			double wastePerc = (tenderResourceDto.getWasteQuantity() / tenderResourceDto.getCalculatedQuantity()) * 100;
-			tenderEst.setWasteQuantity(tenderResourceDto.getWasteQuantity());
-			tenderEst.setWastePercentage(wastePerc);
-		}
-		tenderEst.setNetQuantity(tenderResourceDto.getCalculatedQuantity() + tenderEst.getWasteQuantity());
-		if(tenderResourceDto.getAdditionalRate() !=0 || tenderResourceDto.getShippingPrice() !=0) {
-			double shippingPrice = tenderResourceDto.getShippingPrice() !=0 ? tenderResourceDto.getShippingPrice()/tenderResourceDto.getNetQuantity() : 0;
-			tenderEst.setCostUnitRate(shippingPrice + tenderResourceDto.getAdditionalRate() + tenderEst.getRate());
-			tenderEst.setAdditionalRate(tenderResourceDto.getAdditionalRate());
-			tenderEst.setShippingPrice(tenderResourceDto.getShippingPrice());
-		}
-		else {
-			tenderEst.setCostUnitRate(tenderEst.getRate());
-			
-		}
-		if(tenderResourceDto.getCurrencyId() != null && !tenderResourceDto.getCurrencyId().isEmpty()) {
-			Currency currency = projectCurrencyDao.findById(tenderResourceDto.getCurrencyId())
-					.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
-			tenderEst.setCurrency(currency);
-			tenderEst.setExchangeRate(tenderResourceDto.getExchangeRate());
-		}else {
-			tenderEst.setExchangeRate(1);
-		}
-		tenderEst.setTotalCostCompanyCurrency(tenderEst.getNetQuantity() * tenderEst.getCostUnitRate());
-		tenderEst.setResourceTotalCost(tenderEst.getTotalCostCompanyCurrency() * tenderEst.getExchangeRate());
-		tenderEst.setRateLock(tenderResourceDto.isRateLock());
-		if(tenderResourceDto.getCostCodeActivityId() != null && !tenderResourceDto.getCostCodeActivityId().isEmpty()) {
-			Set<CostCodeActivity> costCodes = new HashSet<>();
-			for(String id : tenderResourceDto.getCostCodeActivityId()) {
-				CostCodeActivity costCode = getCostCodeActivityById(id);
-				costCode.setResourceRate(costCode.getResourceRate() + tenderEst.getCostUnitRate());
-				costCode.setResourceAmount(costCode.getResourceAmount() + tenderEst.getTotalCostCompanyCurrency());
-				costCodeActivityDao.save(costCode);
-				costCodes.add(costCode);
-			}
-			tenderEst.setCostCodeActivity(costCodes);
-		}
-		TenderEstimation savedTender = tenderEstDao.save(tenderEst);
-		if(savedTender != null) {
-			return messageSource.getMessage("tender.resource.save.success", null, Locale.ENGLISH);
-		}
-		return messageSource.getMessage("tender.resource.save.failure", null, Locale.ENGLISH);
+	public String addResourcesToTender(TenderResourceDto dto) {
+	    TenderEstimation tenderEst;
+	    if (dto.getId() != null && !dto.getId().isEmpty()) {
+	        tenderEst = tenderEstDao.findById(dto.getId()).orElseThrow(() -> 
+	            new RuntimeException("TenderEstimation not found with ID: " + dto.getId()));
+	        BOQ targetBoq = boqDao.findById(dto.getBoqId()).orElseThrow(() -> 
+	            new RuntimeException("BOQ not found with ID: " + dto.getBoqId()));
+	        if (tenderEst.getBoq().contains(targetBoq)) {
+	            updateCostDetailsOnly(tenderEst, targetBoq, dto);
+	            return messageSource.getMessage("tender.resource.update.success", null, Locale.ENGLISH);
+	        }
+	    } else {
+	        tenderEst = new TenderEstimation();
+	        tenderEst.setId(UUID.randomUUID().toString());
+	    }
+	    updateTenderEstimationFields(tenderEst, dto);
+	    BOQ boq = boqDao.findById(dto.getBoqId()).orElseThrow(() -> 
+	        new RuntimeException("BOQ not found with ID: " + dto.getBoqId()));
+	    
+	    if (tenderEst.getBoq() == null) {
+	        tenderEst.setBoq(new HashSet<>());
+	    }
+	    tenderEst.getBoq().add(boq); 
+	    tenderEst = tenderEstDao.save(tenderEst);
+	    createOrUpdateCostDetails(tenderEst, boq, dto);
+	    updateBoqTotals(boq, dto.getTotalCostCompanyCurrency());
+	    return messageSource.getMessage("tender.resource.save.success", null, Locale.ENGLISH);
+	}
+	private void updateCostDetailsOnly(TenderEstimation tenderEst, BOQ boq, TenderResourceDto dto) {
+	    TenderEstimationCostDetails costDetails = costDetailsDao
+	        .findByTenderEstimationIdAndBoqId(tenderEst.getId(), boq.getId())
+	        .orElse(new TenderEstimationCostDetails());
+	    if (costDetails.getId() == null) {
+	        costDetails.setId(UUID.randomUUID().toString());
+	    }
+	    costDetails.setTenderEstimation(tenderEst);
+	    costDetails.setBoq(boq);
+	    costDetails.setCalculatedQuantity(dto.getCalculatedQuantity());
+	    costDetails.setWastePercentage(dto.getWastePercentage());
+	    costDetails.setWasteQuantity(dto.getWasteQuantity());
+	    costDetails.setNetQuantity(dto.getNetQuantity());
+	    costDetails.setRate(dto.getRate());
+	    costDetails.setAdditionalRate(dto.getAdditionalRate());
+	    costDetails.setShippingPrice(dto.getShippingPrice());
+	    costDetails.setCostUnitRate(dto.getCostUnitRate());
+	    costDetails.setExchangeRate(dto.getExchangeRate());
+	    costDetails.setTotalCostCompanyCurrency(dto.getTotalCostCompanyCurrency());
+	    costDetails.setResourceTotalCost(dto.getResourceTotalCost());
+	    costDetails.setCoEffSnapshot(dto.getCoEfficient());
+	    costDetails.setRateLock(dto.isRateLock());
+	    costDetailsDao.save(costDetails);
+	    updateBoqTotals(boq, dto.getTotalCostCompanyCurrency());
+	}
+	private void createOrUpdateCostDetails(TenderEstimation tenderEst, BOQ boq, TenderResourceDto dto) {
+	    TenderEstimationCostDetails costDetails = costDetailsDao
+	        .findByTenderEstimationIdAndBoqId(tenderEst.getId(), boq.getId())
+	        .orElse(new TenderEstimationCostDetails());
+	    if (costDetails.getId() == null) {
+	        costDetails.setId(UUID.randomUUID().toString());
+	    }
+	    costDetails.setTenderEstimation(tenderEst);
+	    costDetails.setBoq(boq);
+	    costDetails.setCalculatedQuantity(dto.getCalculatedQuantity());
+	    costDetails.setWastePercentage(dto.getWastePercentage());
+	    costDetails.setWasteQuantity(dto.getWasteQuantity());
+	    costDetails.setNetQuantity(dto.getNetQuantity());
+	    costDetails.setRate(dto.getRate());
+	    costDetails.setAdditionalRate(dto.getAdditionalRate());
+	    costDetails.setShippingPrice(dto.getShippingPrice());
+	    costDetails.setCostUnitRate(dto.getCostUnitRate());
+	    costDetails.setExchangeRate(dto.getExchangeRate());
+	    costDetails.setTotalCostCompanyCurrency(dto.getTotalCostCompanyCurrency());
+	    costDetails.setResourceTotalCost(dto.getResourceTotalCost());
+	    costDetails.setCoEffSnapshot(dto.getCoEfficient());
+	    costDetails.setRateLock(dto.isRateLock());
+	    costDetailsDao.save(costDetails);
+	}
+	private void updateTenderEstimationFields(TenderEstimation tenderEst, TenderResourceDto dto) {
+	    tenderEst.setDocNumber(dto.getDocNumber());
+	    tenderEst.setCoEfficient(dto.getCoEfficient());
+	    tenderEst.setWastePercentage(dto.getWastePercentage());
+	    tenderEst.setRate(dto.getRate());
+	    tenderEst.setAdditionalRate(dto.getAdditionalRate());
+	    tenderEst.setShippingPrice(dto.getShippingPrice());
+	    tenderEst.setCostUnitRate(dto.getCostUnitRate());
+	    tenderEst.setRateLock(dto.isRateLock());
+	    tenderEst.setExchangeRate(dto.getExchangeRate());
+	    
+	    tenderEst.setResourceType(dto.getResourceTypeId() != null
+	        ? resourceTypeDao.findById(dto.getResourceTypeId()).orElse(null) : null);
+	    tenderEst.setResource(dto.getResourceId() != null
+	        ? resourceDao.findById(dto.getResourceId()).orElse(null) : null);
+	    tenderEst.setUom(dto.getUomId() != null
+	        ? uomDao.findById(dto.getUomId()).orElse(null) : null);
+	    tenderEst.setResourceNature(dto.getResourceNatureId() != null
+	        ? resourceNatureDao.findById(dto.getResourceNatureId()).orElse(null) : null);
+	    tenderEst.setQuantityType(dto.getQuantityTypeId() != null
+	        ? quantityTypeDao.findById(dto.getQuantityTypeId()).orElse(null) : null);
+	    tenderEst.setCurrency(dto.getCurrencyId() != null
+	        ? projectCurrencyDao.findById(dto.getCurrencyId()).orElse(null) : null);
+	}
+	private void updateBoqTotals(BOQ boq, double totalCostCompanyCurrency) {
+	    boq.setTotalAmount(boq.getTotalAmount() + totalCostCompanyCurrency);
+	    boq.setTotalRate(boq.getTotalAmount() / boq.getQuantity());
+	    boqDao.save(boq);
+	}
+	
+	public String pasteResourceToBOQ(String boqId, List<String> tenderEstimationIds) {
+	    BOQ boq = boqDao.findById(boqId).orElseThrow(() -> 
+	        new RuntimeException("BOQ not found with ID: " + boqId));
+	    List<String> messages = new ArrayList<>();
+	    int successCount = 0;
+	    for (String existingTenderEstId : tenderEstimationIds) {
+	        TenderEstimation existingTenderEst = tenderEstDao.findById(existingTenderEstId).orElse(null);
+	        if (existingTenderEst == null) {
+	            messages.add("Failed to find existing TenderEstimation with ID: " + existingTenderEstId);
+	            continue;
+	        }
+	        boolean alreadyAssociated = existingTenderEst.getBoq().stream()
+	            .anyMatch(b -> b.getId().equals(boqId));
+	            
+	        if (alreadyAssociated) {
+	            messages.add("TenderEstimation " + existingTenderEstId + " already associated with BOQ " + boqId);
+	            continue;
+	        }
+	        TenderResourceDto dto = createTenderResourceDto(existingTenderEst, boq);
+	        String result = addResourcesToTender(dto);
+	        if (result.contains("success")) {
+	            successCount++;
+	        }
+	        messages.add(result);
+	    }
+	    if (successCount == tenderEstimationIds.size()) {
+	        return messageSource.getMessage("tender.resource.paste.success", null, Locale.ENGLISH);
+	    }
+	    return String.format(messageSource.getMessage("tender.resource.partial.success", null, Locale.ENGLISH), 
+	                        successCount, tenderEstimationIds.size());
+	}
+	private TenderResourceDto createTenderResourceDto(TenderEstimation existingTenderEst, BOQ boq) {
+	    TenderResourceDto dto = new TenderResourceDto();
+	    dto.setResourceTypeId(existingTenderEst.getResourceType() != null ? existingTenderEst.getResourceType().getId() : null);
+	    dto.setResourceId(existingTenderEst.getResource() != null ? existingTenderEst.getResource().getId() : null);
+	    dto.setUomId(existingTenderEst.getUom() != null ? existingTenderEst.getUom().getId() : null);
+	    dto.setResourceNatureId(existingTenderEst.getResourceNature() != null ? existingTenderEst.getResourceNature().getId() : null);
+	    dto.setQuantityTypeId(existingTenderEst.getQuantityType() != null ? existingTenderEst.getQuantityType().getId() : null);
+	    dto.setCurrencyId(existingTenderEst.getCurrency() != null ? existingTenderEst.getCurrency().getId() : null);
+	    dto.setBoqId(boq.getId());
+	    dto.setId(existingTenderEst.getId());
+	    dto.setDocNumber(existingTenderEst.getDocNumber());
+	    dto.setCoEfficient(existingTenderEst.getCoEfficient());
+	    dto.setWastePercentage(existingTenderEst.getWastePercentage());
+	    dto.setRate(existingTenderEst.getRate());
+	    dto.setAdditionalRate(existingTenderEst.getAdditionalRate());
+	    dto.setShippingPrice(existingTenderEst.getShippingPrice());
+	    dto.setCostUnitRate(existingTenderEst.getCostUnitRate());
+	    dto.setRateLock(existingTenderEst.isRateLock());
+	    dto.setExchangeRate(existingTenderEst.getExchangeRate());
+	    TenderEstimationCostDetails existingCostDetails = costDetailsDao
+	        .findByTenderEstimationIdAndBoqId(existingTenderEst.getId(), 
+	            existingTenderEst.getBoq().iterator().next().getId())
+	        .orElse(null);
+	    if (existingCostDetails != null) {
+	        dto.setCalculatedQuantity(boq.getQuantity() * existingCostDetails.getCoEffSnapshot());
+	        dto.setWasteQuantity((existingCostDetails.getWastePercentage() / 100) * boq.getQuantity());
+	        dto.setNetQuantity(dto.getCalculatedQuantity() + dto.getWasteQuantity());
+	        dto.setTotalCostCompanyCurrency(dto.getNetQuantity() * existingCostDetails.getCostUnitRate());
+	        dto.setResourceTotalCost(dto.getTotalCostCompanyCurrency() * dto.getExchangeRate());
+	        dto.setCoEfficient(existingCostDetails.getCoEffSnapshot());
+	    }
+	    return dto;
 	}
 	@Override
-	public List<TenderEstimation> getEstimatedResourcesByCostCode(String costCodeId) {
-		List<TenderEstimation> tenderEst = tenderEstDao.findByCostCodeActivityId(costCodeId);
-		return tenderEst;
+	public ActivityGroup getActivityGroupById(String activityGroupId) {
+		return activityGroupsDao.findById(activityGroupId).orElseThrow(
+				() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
+	}
+	@Override
+	public List<TenderEstResourceDto> getEstimatedResourcesByBoq(String boqId) {
+		List<TenderEstimation> estimations = tenderEstDao.findByBoqId(boqId);
+		List<TenderEstResourceDto> dtoList = new ArrayList<>();
+		for (TenderEstimation est : estimations) {
+			TenderEstimationCostDetails costDetails = costDetailsDao
+					.findByTenderEstimationIdAndBoqId(est.getId(), boqId)
+					.orElse(null);
+			TenderEstResourceDto dto = new TenderEstResourceDto();
+			dto.setTenderEstimation(est);
+			dto.setCostDetails(costDetails);
+			dtoList.add(dto);
+		}
+		return dtoList;
+	}
+	@Override
+	public String deleteTenderEstimationForBoq(String tenderEstimationId, String boqId) {
+	    TenderEstimation tenderEstimation = tenderEstDao.findById(tenderEstimationId)
+	       .orElseThrow(() -> new RuntimeException("TenderEstimation not found with ID: " + tenderEstimationId));
+	    BOQ boq = boqDao.findById(boqId)
+	        .orElseThrow(() -> new RuntimeException("BOQ not found with ID: " + boqId));
+	    if (!tenderEstimation.getBoq().contains(boq)) {
+	        return messageSource.getMessage("tender.resource.not.associated", null, Locale.ENGLISH);
+	    }
+	    Optional<TenderEstimationCostDetails> costDetailsOpt = costDetailsDao
+	        .findByTenderEstimationIdAndBoqId(tenderEstimationId, boqId);
+	    double costToSubtract = 0.0;
+	    if (costDetailsOpt.isPresent()) {
+	        costToSubtract = costDetailsOpt.get().getTotalCostCompanyCurrency();
+	    }
+	    boolean wasRemoved = tenderEstimation.getBoq().remove(boq);
+	    if (wasRemoved) {
+	        if (tenderEstimation.getBoq().isEmpty()) {
+	            deleteTenderEstimationCompletely(tenderEstimation, boqId);
+	        } else {
+	            tenderEstimation.setBoq(tenderEstimation.getBoq());
+	            tenderEstDao.save(tenderEstimation);
+	            costDetailsOpt.ifPresent(costDetailsDao::delete);
+	        }
+	        updateBoqTotalsAfterDeletion(boq, costToSubtract);
+	        
+	        return messageSource.getMessage("tender.resource.delete.success", null, Locale.ENGLISH);
+	    }
+	    return messageSource.getMessage("tender.resource.delete.failed", null, Locale.ENGLISH);
+	}
+
+	private void deleteTenderEstimationCompletely(TenderEstimation tenderEstimation, String boqId) {
+	    List<TenderEstimationCostDetails> allCostDetails = costDetailsDao
+	        .findByTenderEstimationId(tenderEstimation.getId());
+	    costDetailsDao.deleteAll(allCostDetails);
+	    tenderEstDao.delete(tenderEstimation);
+	}
+	private void updateBoqTotalsAfterDeletion(BOQ boq, double costToSubtract) {
+	    boq.setTotalAmount(Math.max(0, boq.getTotalAmount() - costToSubtract));
+	    if (boq.getQuantity() > 0) {
+	        boq.setTotalRate(boq.getTotalAmount() / boq.getQuantity());
+	    } else {
+	        boq.setTotalRate(0.0);
+	    }
+	    boqDao.save(boq);
+	}
+	public TenderEstResourceDto getEstimatedResourceById(String tenderEstimationId) {
+	    TenderEstimation tenderEstimation = tenderEstDao.findById(tenderEstimationId)
+	        .orElseThrow(() -> new RuntimeException("TenderEstimation not found with ID: " + tenderEstimationId));
+	    List<TenderEstimationCostDetails> costDetailsList = costDetailsDao
+	        .findByTenderEstimationId(tenderEstimationId);
+	    TenderEstResourceDto dto = new TenderEstResourceDto();
+	    dto.setTenderEstimation(tenderEstimation);
+	    dto.setCostDetailsList(costDetailsList); 
+	    if (!costDetailsList.isEmpty()) {
+	        dto.setCostDetails(costDetailsList.get(0)); 
+	    }
+	    return dto;
+	}
+	@Override
+	public TenderEstResourceDto getEstimatedResourceByIdAndBoqId(String tenderEstimationId, String boqId) {
+	    TenderEstimation tenderEstimation = tenderEstDao.findById(tenderEstimationId)
+	        .orElseThrow(() -> new RuntimeException("TenderEstimation not found with ID: " + tenderEstimationId));
+	    
+	    TenderEstimationCostDetails costDetails = costDetailsDao
+	        .findByTenderEstimationIdAndBoqId(tenderEstimationId, boqId)
+	        .orElseThrow(() -> new RuntimeException(
+	            "Cost details not found for TenderEstimation: " + tenderEstimationId + 
+	            " and BOQ: " + boqId));
+	    
+	    TenderEstResourceDto dto = new TenderEstResourceDto();
+	    dto.setTenderEstimation(tenderEstimation);
+	    dto.setCostDetails(costDetails);
+	    return dto;
 	}
 }

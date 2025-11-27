@@ -31,7 +31,7 @@
   },
   {
     "uomName": "Running Meter",
-    "uomCode": "Rm",
+    "uomCode": "Rmt",
     "isActive": true
   },
   {
@@ -98,5 +98,15 @@
       "uomName": "Lump Sum",
       "uomCode": "LS",
       "isActive": true
-    }
+  },
+  {
+    "uomName": "Metric Tonne",
+    "uomCode": "MT",
+    "isActive": true
+  },
+  {
+    "uomName": "Set",
+    "uomCode": "Set",
+    "isActive": true
+  }
 ]

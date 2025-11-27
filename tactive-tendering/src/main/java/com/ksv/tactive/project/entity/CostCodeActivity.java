@@ -1,9 +1,7 @@
 package com.ksv.tactive.project.entity;
-
 import java.util.Set;
-
 import com.fasterxml.jackson.annotation.JsonBackReference;
-
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
@@ -13,8 +11,6 @@ import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Data;
-
-
 @Data
 @Entity
 @Table(
@@ -22,7 +18,6 @@ import lombok.Data;
 	    indexes = { @Index(name = "idx_cost_code_activity_project_id", columnList = "project_id") }
 	)
 public class CostCodeActivity {
-
 	@Id
 	private String id;
 	private String activityCode;
@@ -31,11 +26,9 @@ public class CostCodeActivity {
 	private double rate;
 	private double amount;
 	private String mappingType;
-	
 	@ManyToOne
 	@JoinColumn(name = "uom_id")
 	private UOM uom;
-	
 	@JsonBackReference
 	@ManyToMany
 	@JoinTable(
@@ -44,20 +37,18 @@ public class CostCodeActivity {
 		    inverseJoinColumns = @JoinColumn(name = "boq_id")
 		)
 	private Set<BOQ>  boq;
-	
 	@ManyToOne
 	@JoinColumn(name="cost_code_type_id")
 	private CostCodeType costCodeType;
-	
 	@ManyToOne
 	@JoinColumn(name = "activity_group_id")
 	private ActivityGroup activityGroup;
-	
 	@JsonBackReference
 	@ManyToOne
 	@JoinColumn(name = "project_id")
 	private Projects project;
-	
+	@Column(nullable = true)
 	private double resourceRate;
+	@Column(nullable = true)
 	private double resourceAmount;
 }

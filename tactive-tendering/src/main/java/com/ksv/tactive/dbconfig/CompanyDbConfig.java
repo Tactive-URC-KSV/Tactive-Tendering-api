@@ -1,10 +1,7 @@
 package com.ksv.tactive.dbconfig;
-
 import java.util.HashMap;
 import java.util.Map;
-
 import javax.sql.DataSource;
-
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -15,7 +12,6 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.transaction.PlatformTransactionManager;
-
 @Configuration
 @EnableJpaRepositories(
     basePackages = "com.ksv.tactive.company.dao",
@@ -23,14 +19,11 @@ import org.springframework.transaction.PlatformTransactionManager;
     transactionManagerRef = "companyTransactionManager"
 )
 public class CompanyDbConfig {
-
 	@Bean
 	@ConfigurationProperties("spring.datasource.company")
 	DataSourceProperties companyDataSourceProperties() {
 	    return new DataSourceProperties();
 	}
-	
-	
     @Bean(name = "companyDataSource")
 	@ConfigurationProperties(prefix = "spring.datasource.company")
     DataSource companyDataSource() {
@@ -38,7 +31,6 @@ public class CompanyDbConfig {
         		.initializeDataSourceBuilder()
         		.build();
     }
-
     @Bean(name = "companyEntityManagerFactory")
     LocalContainerEntityManagerFactoryBean companyEntityManagerFactory(
             EntityManagerFactoryBuilder builder,
@@ -53,7 +45,6 @@ public class CompanyDbConfig {
                 .properties(properties)
                 .build();
     }
-
     @Bean(name = "companyTransactionManager")
     PlatformTransactionManager companyTransactionManager(
             @Qualifier("companyEntityManagerFactory") LocalContainerEntityManagerFactoryBean emf) {
