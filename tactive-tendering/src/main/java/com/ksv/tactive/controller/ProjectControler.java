@@ -30,6 +30,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.itextpdf.text.DocumentException;
+import com.ksv.tactive.dto.BOQSummaryDTO;
 import com.ksv.tactive.dto.CostCodeDto;
 import com.ksv.tactive.dto.ExcelExtractBOQ;
 import com.ksv.tactive.dto.FeasibilityApprovalDocuDTO;
@@ -572,7 +573,7 @@ public class ProjectControler {
 	@GetMapping("project/getParentBoqAndAmount/{projectId}")
 	public ResponseEntity<?> getParentBOQAndAmount(@PathVariable String projectId) {
 		try {
-			Map<BOQ, Double> parentBoqAmountMap = projectService.findTotalAmountForParentBoqs(projectId);
+			List<BOQSummaryDTO> parentBoqAmountMap = projectService.findTotalAmountForParentBoqs(projectId);
 			return ResponseEntity.status(HttpStatus.OK).body(parentBoqAmountMap);
 		} catch (DataNotFoundException e) {
 			return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());

@@ -31,6 +31,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.itextpdf.text.DocumentException;
+import com.ksv.tactive.dto.BOQSummaryDTO;
 import com.ksv.tactive.dto.CostCodeDto;
 import com.ksv.tactive.dto.ExcelExtractBOQ;
 import com.ksv.tactive.dto.FeasibilityApprovalDocuDTO;
@@ -762,27 +763,51 @@ public class ProjectServiceImpl implements ProjectService {
 		return boqCountMap;
 	}
 	@Override
-	public Map<BOQ, Double> findTotalAmountForParentBoqs(String projectId) {
+	public List<BOQSummaryDTO> findTotalAmountForParentBoqs(String projectId) {
 	    List<BOQ> boqList = getParentBOQ(projectId);
-	    Map<BOQ, Double> parentBoqTotalMap = new HashMap<>();
-	    for (BOQ boq : boqList) {
-	        double totalValue = findTotalValueForParentBoq(boq);
-	        parentBoqTotalMap.put(boq, totalValue);
-	    }
-	    return parentBoqTotalMap;
+	    List<BOQSummaryDTO> result = new ArrayList<>();
+	    for (BOQ parentBoq : boqList) {
+            double totalAmount = calculateBoqTotalRecursively(projectId, parentBoq.getId());
+            BOQSummaryDTO dto = new BOQSummaryDTO();
+            dto.setId(parentBoq.getId());
+            dto.setBoqCode(parentBoq.getBoqCode());
+            dto.setBoqName(parentBoq.getBoqName());
+            dto.setQuantity(parentBoq.getQuantity());
+            dto.setTotalAmount(totalAmount);
+            
+            result.add(dto);
+        }
+	    return result;
 	}
-	private double findTotalValueForParentBoq(BOQ boq) {
-	    if (boq.isLastLevel()) {
-	        return boq.getTotalAmount() != 0 ? boq.getTotalAmount() : 0.0;
-	    }
-	    List<BOQ> childBoqs = boqDao.findByParentBOQId(boq.getBoqCode());
-	    double totalValue = 0.0;
-	    
-	    for (BOQ childBoq : childBoqs) {
-	        totalValue += findTotalValueForParentBoq(childBoq);
-	    }
-	    return totalValue;
-	}
+	private double calculateBoqTotalRecursively(String projectId, String boqId) {
+        double total = 0.0;
+        int maxDepth = 20; 
+        total = calculateBoqTotalRecursively(projectId, boqId, 0, maxDepth);
+        return total;
+    }
+    
+    private double calculateBoqTotalRecursively(String projectId, String boqId, int currentDepth, int maxDepth) {
+        if (currentDepth >= maxDepth) {
+            return 0.0;
+        }
+        List<BOQ> childBoqs = getChildBOQ(projectId, boqId);
+        double totalAmount = 0.0;
+        for (BOQ childBoq : childBoqs) {
+            if (childBoq.isLastLevel()) {
+                totalAmount += childBoq.getTotalAmount();
+            } else {
+                totalAmount += calculateBoqTotalRecursively(
+                    projectId, 
+                    childBoq.getId(), 
+                    currentDepth + 1, 
+                    20
+                );
+            }
+        }
+        
+        return totalAmount;
+    }
+	
 	@Override
 	public void deleteBOQ(List<String> boqCode, String projectId) throws DataIntegrityViolationException {
 		for (String code : boqCode) {
