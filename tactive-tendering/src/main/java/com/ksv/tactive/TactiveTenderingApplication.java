@@ -1,13 +1,12 @@
 package com.ksv.tactive;
 import java.util.UUID;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.annotation.Bean;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ksv.tactive.user.dao.UserDao;
 import com.ksv.tactive.user.entity.User;
 @SpringBootApplication
