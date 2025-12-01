@@ -228,11 +228,14 @@ public class PdfFileService {
 	}
 
 	public List<ExcelExtractBOQ> getExtractedData(MultipartFile boqFile, Map<String, String> columnMapping,
-			int startRow, int endRow) throws IOException {
-		InputStream inputStream = boqFile.getInputStream();
-		PageIterator iterator = getPages(inputStream);
+	        int startRow, int endRow) throws IOException {
+	    InputStream inputStream = boqFile.getInputStream();
+	    PageIterator iterator = getPages(inputStream);
 	    List<String> headers = null;
 	    List<ExcelExtractBOQ> boqList = new ArrayList<>();
+	    int globalRowCounter = 0;  
+	    int serialNumber = 1;
+	    long parentindex = 0;
 	    while (iterator.hasNext()) {
 	        Page page = iterator.next();
 	        SpreadsheetExtractionAlgorithm sea = new SpreadsheetExtractionAlgorithm();
@@ -255,10 +258,18 @@ public class PdfFileService {
 	            int startIndex = (rows.get(0).equals(headers)) ? 1 : 0;
 	            for (int i = startIndex; i < rows.size(); i++) {
 	                List<String> row = rows.get(i);
+	                globalRowCounter++;
+	                if (startRow > 0 && globalRowCounter < startRow) {
+	                    continue;
+	                }
+	                if (endRow > 0 && globalRowCounter > endRow) {
+	                    return boqList; 
+	                }
 	                if (row.stream().allMatch(String::isBlank)) continue;
 	                String joinedRow = String.join(" ", row).toLowerCase();
 	                if (joinedRow.contains("total") || joinedRow.contains("grand total")) continue;
 	                ExcelExtractBOQ boq = new ExcelExtractBOQ();
+	                boq.setSno(serialNumber++);
 	                boolean hasValidData = false;
 	                for (Map.Entry<String, String> entry : columnMapping.entrySet()) {
 	                    String internalField = entry.getKey();
@@ -295,11 +306,17 @@ public class PdfFileService {
 	                            if (!value.isBlank()) {
 	                                boq.setUom(value);
 	                                hasValidData = true;
-	                            } 
+	                            }
 	                        }
 	                    }
 	                }
 	                boq.setLastLevel(boq.getQuantity() > 0 || (boq.getUom() != null && !boq.getUom().isBlank()));
+	                if(boq.isLastLevel()==true) {
+	    	        	boq.setParentSno(parentindex);
+	    	        }
+	    	        else {
+	    	        	parentindex = boq.getSno();
+	    	        }
 	                if (hasValidData) boqList.add(boq);
 	            }
 	        }
