@@ -3,7 +3,6 @@ package com.ksv.tactive.controller;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.sql.SQLIntegrityConstraintViolationException;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -30,7 +29,6 @@ import org.springframework.web.multipart.MultipartFile;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.itextpdf.text.DocumentException;
-import com.ksv.tactive.dto.BOQSummaryDTO;
 import com.ksv.tactive.dto.CostCodeDto;
 import com.ksv.tactive.dto.ExcelExtractBOQ;
 import com.ksv.tactive.dto.FeasibilityApprovalDocuDTO;
@@ -570,11 +568,11 @@ public class ProjectControler {
 	    @RequestParam String boqId) {
 	    return projectService.getEstimatedResourceByIdAndBoqId(tenderEstimationId, boqId); 
 	}
-	@GetMapping("project/getParentBoqAndAmount/{projectId}")
-	public ResponseEntity<?> getParentBOQAndAmount(@PathVariable String projectId) {
+	@GetMapping("project/getParentBoqAndAmount/{boqId}")
+	public ResponseEntity<?> getParentBOQAndAmount(@PathVariable String boqId) {
 		try {
-			List<BOQSummaryDTO> parentBoqAmountMap = projectService.findTotalAmountForParentBoqs(projectId);
-			return ResponseEntity.status(HttpStatus.OK).body(parentBoqAmountMap);
+			double parentBoqAmount = projectService.findTotalAmountForParentBoqs(boqId);
+			return ResponseEntity.status(HttpStatus.OK).body(parentBoqAmount);
 		} catch (DataNotFoundException e) {
 			return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
 		}
