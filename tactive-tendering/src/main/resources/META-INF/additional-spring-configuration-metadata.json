@@ -18,5 +18,25 @@
     "name": "file.upload.path",
     "type": "java.lang.String",
     "description": "A description for 'file.upload.path'"
+  },
+  {
+    "name": "spring.datasource.contractor.url",
+    "type": "java.lang.String",
+    "description": "A description for 'spring.datasource.contractor.url'"
+  },
+  {
+    "name": "spring.datasource.contractor.username",
+    "type": "java.lang.String",
+    "description": "A description for 'spring.datasource.contractor.username'"
+  },
+  {
+    "name": "spring.datasource.contractor.password",
+    "type": "java.lang.String",
+    "description": "A description for 'spring.datasource.contractor.password'"
+  },
+  {
+    "name": "spring.datasource.contractor.driver-class-name",
+    "type": "java.lang.String",
+    "description": "A description for 'spring.datasource.contractor.driver-class-name'"
   }
 ]}

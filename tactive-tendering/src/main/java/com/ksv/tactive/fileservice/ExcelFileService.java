@@ -6,6 +6,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+
 import org.apache.poi.EncryptedDocumentException;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.Cell;
@@ -93,7 +95,9 @@ public class ExcelFileService {
 					break;
 			}
 		}
-		return columns;
+		return columns.stream()
+				.filter(val -> val != null && !val.trim().isEmpty())
+				.collect(Collectors.toList());
 	}
 
 	public List<BOQ> mapBOQData(String sheetName, Map<String, String> columnMapping, InputStream inputStream)
@@ -334,7 +338,6 @@ public class ExcelFileService {
 	    }
 	    List<ExcelExtractBOQ> extractedData = new ArrayList<>();
 	    int serialNumber = 1;
-	    long parentindex = 0;
 	    for (int rowNum = finalStartRow; rowNum <= finalEndRow; rowNum++) {
 	        Row row = sheet.getRow(rowNum);
 	        if (row == null) continue;
@@ -365,12 +368,6 @@ public class ExcelFileService {
 	            }
 	        }
 	        boq.setLastLevel(boq.getQuantity() > 0 || (boq.getUom() != null && !boq.getUom().isBlank()));
-	        if(boq.isLastLevel()==true) {
-	        	boq.setParentSno(parentindex);
-	        }
-	        else {
-	        	parentindex = boq.getSno();
-	        }
 	        if (hasData || !columnIndex.isEmpty()) {  
 	            extractedData.add(boq);
 	        }
