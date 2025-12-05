@@ -39,6 +39,7 @@ public class PdfFileService {
 	private PageIterator getPages(InputStream boqFile) throws IOException {
 		PDDocument document = PDDocument.load(boqFile);
 		ObjectExtractor oe = new ObjectExtractor(document);
+		document.close();
 		return oe.extract();
 	}
 
@@ -185,9 +186,9 @@ public class PdfFileService {
 		title.setAlignment(Element.ALIGN_CENTER);
 		document.add(title);
 		document.add(new Paragraph("\n"));
-		String[] headers = { "S No", "ID", "BOQ Code", "BOQ Name", "UOM", "Quantity", "Rate", "Amount", "Parent Code",
+		String[] headers = { "S No", "BOQ Code", "BOQ Name", "UOM", "Quantity", "Rate", "Amount", "Parent Code",
 				"Last Level" };
-		float[] colWidths = { 1f, 1f, 2f, 4f, 1.5f, 2f, 2f, 3f, 2f, 2f };
+		float[] colWidths = { 1f, 2f, 4f, 1.5f, 2f, 2f, 3f, 2f, 2f };
 		PdfPTable table = new PdfPTable(colWidths);
 		table.setWidthPercentage(100);
 		table.setHeaderRows(1);
@@ -203,7 +204,7 @@ public class PdfFileService {
 		Font rowFont = FontFactory.getFont(FontFactory.HELVETICA, 9);
 		int slNo = 1;
 		for (BOQ boq : boqList) {
-			String[] rowData = { String.valueOf(slNo++), String.valueOf(boq.getId()), safe(boq.getBoqCode()),
+			String[] rowData = { String.valueOf(slNo++), safe(boq.getBoqCode()),
 					safe(boq.getBoqName()), boq.getUom() != null ? boq.getUom().getUomCode() : "",
 					String.valueOf(boq.getQuantity()), String.valueOf(boq.getTotalRate()),
 					String.valueOf(boq.getTotalAmount()),
@@ -235,7 +236,6 @@ public class PdfFileService {
 	    List<ExcelExtractBOQ> boqList = new ArrayList<>();
 	    int globalRowCounter = 0;  
 	    int serialNumber = 1;
-	    long parentindex = 0;
 	    while (iterator.hasNext()) {
 	        Page page = iterator.next();
 	        SpreadsheetExtractionAlgorithm sea = new SpreadsheetExtractionAlgorithm();
@@ -311,12 +311,6 @@ public class PdfFileService {
 	                    }
 	                }
 	                boq.setLastLevel(boq.getQuantity() > 0 || (boq.getUom() != null && !boq.getUom().isBlank()));
-	                if(boq.isLastLevel()==true) {
-	    	        	boq.setParentSno(parentindex);
-	    	        }
-	    	        else {
-	    	        	parentindex = boq.getSno();
-	    	        }
 	                if (hasValidData) boqList.add(boq);
 	            }
 	        }

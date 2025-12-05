@@ -628,7 +628,7 @@ public class ProjectServiceImpl implements ProjectService {
 	    Projects project = findByProjectId(projectId);
 	    saveBoqFile(boqFile, projectId);
 	    int startRow = 0;
-	    int endRow = 1000;
+	    int endRow = 10000;
 	    List<ExcelExtractBOQ> extractedRows;
 	    String fileName = boqFile.getOriginalFilename();
 	    if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
@@ -787,15 +787,19 @@ public class ProjectServiceImpl implements ProjectService {
 	public void generateBoqExcel(String projectId, HttpServletResponse response)
 			throws IOException, DataNotFoundException {
 		response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-//		List<BOQ> boqList = getAllBOQ(projectId);
-//		excelService.generateBoqFile(boqList, response);
+		List<BOQ> boqList = getAllBOQ(projectId);
+		excelService.generateBoqFile(boqList, response);
+	}
+	private List<BOQ> getAllBOQ(String projectId) {
+		List<BOQ> boqList = boqDao.findByProjectId(projectId);
+		return boqList;
 	}
 	@Override
 	public void generateBoqPdf(String projectId, HttpServletResponse response)
 			throws IOException, DocumentException, DataNotFoundException {
 		response.setContentType("application/pdf");
-//		List<BOQ> boqList = getAllBOQ(projectId);
-//		pdfService.generateBoqPdf(boqList, response);
+		List<BOQ> boqList = getAllBOQ(projectId);
+		pdfService.generateBoqPdf(boqList, response);
 	}
 	@Override
 	public List<BOQ> getParentBOQ(List<BOQ> boqList) {
