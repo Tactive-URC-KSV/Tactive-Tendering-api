@@ -19,6 +19,7 @@ import org.springframework.transaction.PlatformTransactionManager;
     transactionManagerRef = "companyTransactionManager"
 )
 public class CompanyDbConfig {
+	
 	@Bean
 	@ConfigurationProperties("spring.datasource.company")
 	DataSourceProperties companyDataSourceProperties() {
