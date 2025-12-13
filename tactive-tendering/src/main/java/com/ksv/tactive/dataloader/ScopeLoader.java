@@ -10,8 +10,9 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ksv.tactive.project.dao.ScopeOfPackDao;
-import com.ksv.tactive.project.entity.ScopeOfPackage;
+import com.ksv.tactive.master.dao.ScopeOfPackDao;
+import com.ksv.tactive.master.entity.ScopeOfPackage;
+
 import jakarta.transaction.Transactional;
 @Component
 public class ScopeLoader implements MasterDataLoader<ScopeOfPackage> {

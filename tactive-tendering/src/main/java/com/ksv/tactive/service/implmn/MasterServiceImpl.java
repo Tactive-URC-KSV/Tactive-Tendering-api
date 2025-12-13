@@ -2,34 +2,40 @@ package com.ksv.tactive.service.implmn;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Service;
+
+import com.ksv.tactive.currency.dao.CurrencyDao;
+import com.ksv.tactive.currency.entity.Currency;
 import com.ksv.tactive.exception.DuplicateEntryException;
+import com.ksv.tactive.location.dao.CitiesDao;
+import com.ksv.tactive.location.dao.CountryDao;
+import com.ksv.tactive.location.entity.Cities;
+import com.ksv.tactive.location.entity.Country;
+import com.ksv.tactive.master.dao.ListOfApprovalsDao;
+import com.ksv.tactive.master.dao.ProjectStatusDao;
+import com.ksv.tactive.master.dao.QuantityTypeDao;
+import com.ksv.tactive.master.dao.RegionDao;
+import com.ksv.tactive.master.dao.ResourceDao;
+import com.ksv.tactive.master.dao.ResourceNatureDao;
+import com.ksv.tactive.master.dao.ResourceTypeDao;
+import com.ksv.tactive.master.dao.ScopeOfPackDao;
+import com.ksv.tactive.master.dao.SectorDao;
+import com.ksv.tactive.master.dao.UOMDao;
+import com.ksv.tactive.master.entity.ListOfApprovals;
+import com.ksv.tactive.master.entity.ProjectStatus;
+import com.ksv.tactive.master.entity.QuantityType;
+import com.ksv.tactive.master.entity.Region;
+import com.ksv.tactive.master.entity.ResourceNature;
+import com.ksv.tactive.master.entity.ResourceType;
+import com.ksv.tactive.master.entity.Resources;
+import com.ksv.tactive.master.entity.ScopeOfPackage;
+import com.ksv.tactive.master.entity.Sector;
+import com.ksv.tactive.master.entity.UOM;
 import com.ksv.tactive.project.dao.CostCodeTypeDao;
-import com.ksv.tactive.project.dao.ListOfApprovalsDao;
-import com.ksv.tactive.project.dao.ProjectCurrencyDao;
-import com.ksv.tactive.project.dao.ProjectStatusDao;
-import com.ksv.tactive.project.dao.QuantityTypeDao;
-import com.ksv.tactive.project.dao.RegionDao;
-import com.ksv.tactive.project.dao.ResourceNatureDao;
-import com.ksv.tactive.project.dao.ResourceDao;
-import com.ksv.tactive.project.dao.ResourceTypeDao;
-import com.ksv.tactive.project.dao.ScopeOfPackDao;
-import com.ksv.tactive.project.dao.SectorDao;
-import com.ksv.tactive.project.dao.UOMDao;
 import com.ksv.tactive.project.entity.CostCodeType;
-import com.ksv.tactive.project.entity.Currency;
-import com.ksv.tactive.project.entity.ListOfApprovals;
-import com.ksv.tactive.project.entity.ProjectStatus;
-import com.ksv.tactive.project.entity.QuantityType;
-import com.ksv.tactive.project.entity.Region;
-import com.ksv.tactive.project.entity.Resources;
-import com.ksv.tactive.project.entity.ResourceNature;
-import com.ksv.tactive.project.entity.ResourceType;
-import com.ksv.tactive.project.entity.ScopeOfPackage;
-import com.ksv.tactive.project.entity.Sector;
-import com.ksv.tactive.project.entity.UOM;
 import com.ksv.tactive.service.MasterService;
 @Service
 public class MasterServiceImpl implements MasterService{
@@ -58,7 +64,12 @@ public class MasterServiceImpl implements MasterService{
 	@Autowired
 	private ResourceNatureDao resouceNatureDao;
 	@Autowired
-	private ProjectCurrencyDao currencyDao;
+	private CurrencyDao currencyDao;
+	@Autowired
+	private CountryDao countryDao;
+	@Autowired
+	private CitiesDao citiesDao;
+	
 	@Override
 	public String addSector(Sector sector) {
 		sector.setId(UUID.randomUUID().toString());
@@ -82,6 +93,10 @@ public class MasterServiceImpl implements MasterService{
 		return regionRepo.findAll();
 	}
 	@Override
+	public Region findRegionById(String regionId) {
+		return regionRepo.findById(regionId).orElse(null);
+	}
+	@Override
 	public String addRegion(Region region) {
 		if(regionRepo.findByRegionName(region.getRegionName()) != null) {
 			throw new DuplicateEntryException(messageSource.getMessage("region.duplicate", null, Locale.ENGLISH));
@@ -100,16 +115,37 @@ public class MasterServiceImpl implements MasterService{
 		return uom;
 	}
 	@Override
+	public UOM findUomById(String uomId) {
+		UOM uom = uomDao.findById(uomId).orElse(null);
+		return uom;
+	}
+	@Override
 	public List<Sector> getAllSector() {
 		return sectorDao.findAll();
+	}
+	@Override
+	public Sector findSectorById(String sectorId) {
+		return sectorDao.findById(sectorId).orElse(null);
 	}
 	@Override
 	public List<ScopeOfPackage> getAllScopes() {
 		return scopeOfPackDao.findAll();
 	}
 	@Override
+	public ScopeOfPackage findScopeOfPackageById(String id) {
+		return scopeOfPackDao.findById(id).orElse(null);
+	}
+	@Override
 	public List<ProjectStatus> getAllProjectStatus() {
 		return statusDao.findAll();
+	}
+	@Override
+	public ProjectStatus findStatusById(String projectStatusId) {
+		return statusDao.findById(projectStatusId).orElse(null);
+	}
+	@Override
+	public ProjectStatus findStatusByProcessUrl(String requestURI) {
+		return statusDao.findByProcessUrl(requestURI);
 	}
 	@Override
 	public String addProjectStatus(ProjectStatus projectStatus) {
@@ -146,20 +182,40 @@ public class MasterServiceImpl implements MasterService{
 		return resourceTypeDao.findAll();
 	}
 	@Override
+	public ResourceType findResourceTypeById(String resourceTypeId) {
+		return resourceTypeDao.findById(resourceTypeId).orElse(null);
+	}
+	@Override
 	public List<Resources> getAllResources() {
 		return resourceDao.findAll();
+	}
+	@Override
+	public Resources findResourceById(String resourceId) {
+		return resourceDao.findById(resourceId).orElse(null);
 	}
 	@Override
 	public List<QuantityType> getAllQuantityTypes() {
 		return quantityTypeDao.findAll();
 	}
 	@Override
+	public QuantityType findQuantityTypeById(String quantityTypeId) {
+		return quantityTypeDao.findById(quantityTypeId).orElse(null);
+	}
+	@Override
 	public List<ResourceNature> getAllResourceNatures() {
 		return resouceNatureDao.findAll();
 	}
 	@Override
+	public ResourceNature findResourceNatureById(String resourceNatureId) {
+		return resouceNatureDao.findById(resourceNatureId).orElse(null);
+	}
+	@Override
 	public List<Currency> getAllCurrencies() {
 		return currencyDao.findAll();
+	}
+	@Override
+	public Currency findCurrencyById(String currencyId) {
+		return currencyDao.findById(currencyId).orElse(null);
 	}
 	@Override
 	public String addResourceNature(ResourceNature resourceNature) {
@@ -169,5 +225,13 @@ public class MasterServiceImpl implements MasterService{
 		resourceNature.setId(UUID.randomUUID().toString());
 		resouceNatureDao.save(resourceNature);
 		return null;
+	}
+	@Override
+	public List<Country> getAllCountries() {
+		return countryDao.findAll();
+	}
+	@Override
+	public List<Cities> getCitiesByCountry(String countryId) {
+		return citiesDao.findByCountryId(countryId);
 	}
 }

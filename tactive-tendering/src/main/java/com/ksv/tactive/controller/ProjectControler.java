@@ -128,9 +128,9 @@ public class ProjectControler {
 			@RequestParam Map<String, MultipartFile> approvalDoc, @PathVariable String projectId) {
 		String techFeasibilityId = projectService.saveTechFeasibility(techFeasibility);
 		String finFeasibilityId = projectService.saveFinancialFeasibility(financialFeasibility);
-		String response = projectService.saveApprovalDoc(approvalDoc, approvalDocDTO, techFeasibilityId, projectId);
-		if (response != null) {
-			String message = projectService.saveFeasibilityStudy(techFeasibilityId, finFeasibilityId, projectId);
+		projectService.saveApprovalDoc(approvalDoc, approvalDocDTO, techFeasibilityId, projectId);
+		String message = projectService.saveFeasibilityStudy(techFeasibilityId, finFeasibilityId, projectId);
+		if (message != null) {
 			return ResponseEntity.status(HttpStatus.OK).body(message);
 		}
 		return ResponseEntity.status(HttpStatus.CONFLICT)
@@ -482,11 +482,7 @@ public class ProjectControler {
 	@GetMapping("costCodeActivity/{projectId}")
 	public ResponseEntity<?> getCostCodeActivityByProject(@PathVariable String projectId) {
 		List<CostCodeActivity> costCode = projectService.getCostCodeActivityByProject(projectId);
-		if (!costCode.isEmpty()) {
-			return ResponseEntity.status(HttpStatus.OK).body(costCode);
-		}
-		return ResponseEntity.status(HttpStatus.CONFLICT)
-				.body(messageSource.getMessage("cost.code.not.found", null, Locale.ENGLISH));
+		return ResponseEntity.status(HttpStatus.OK).body(costCode);
 	}
 
 	@GetMapping("costCodeActivity/totalAmount/{costCodeTypeId}/{projectId}")

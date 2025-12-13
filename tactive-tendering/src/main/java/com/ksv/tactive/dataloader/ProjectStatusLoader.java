@@ -10,8 +10,9 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ksv.tactive.project.dao.ProjectStatusDao;
-import com.ksv.tactive.project.entity.ProjectStatus;
+import com.ksv.tactive.master.dao.ProjectStatusDao;
+import com.ksv.tactive.master.entity.ProjectStatus;
+
 import jakarta.transaction.Transactional;
 @Component
 public class ProjectStatusLoader implements MasterDataLoader<ProjectStatus>{

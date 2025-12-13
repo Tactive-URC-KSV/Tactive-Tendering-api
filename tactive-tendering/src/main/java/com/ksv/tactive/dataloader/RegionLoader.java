@@ -10,8 +10,9 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ksv.tactive.project.dao.RegionDao;
-import com.ksv.tactive.project.entity.Region;
+import com.ksv.tactive.master.dao.RegionDao;
+import com.ksv.tactive.master.entity.Region;
+
 import jakarta.transaction.Transactional;
 @Component
 public class RegionLoader implements MasterDataLoader<Region>{

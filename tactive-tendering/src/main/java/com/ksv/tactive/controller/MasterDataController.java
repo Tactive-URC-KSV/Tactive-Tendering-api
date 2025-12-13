@@ -1,6 +1,7 @@
 package com.ksv.tactive.controller;
 import java.util.List;
 import java.util.Locale;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.http.HttpStatus;
@@ -11,19 +12,20 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import com.ksv.tactive.currency.entity.Currency;
 import com.ksv.tactive.exception.DuplicateEntryException;
+import com.ksv.tactive.master.entity.ListOfApprovals;
+import com.ksv.tactive.master.entity.ProjectStatus;
+import com.ksv.tactive.master.entity.QuantityType;
+import com.ksv.tactive.master.entity.Region;
+import com.ksv.tactive.master.entity.ResourceNature;
+import com.ksv.tactive.master.entity.ResourceType;
+import com.ksv.tactive.master.entity.Resources;
+import com.ksv.tactive.master.entity.ScopeOfPackage;
+import com.ksv.tactive.master.entity.Sector;
+import com.ksv.tactive.master.entity.UOM;
 import com.ksv.tactive.project.entity.CostCodeType;
-import com.ksv.tactive.project.entity.Currency;
-import com.ksv.tactive.project.entity.ListOfApprovals;
-import com.ksv.tactive.project.entity.ProjectStatus;
-import com.ksv.tactive.project.entity.QuantityType;
-import com.ksv.tactive.project.entity.Region;
-import com.ksv.tactive.project.entity.Resources;
-import com.ksv.tactive.project.entity.ResourceNature;
-import com.ksv.tactive.project.entity.ResourceType;
-import com.ksv.tactive.project.entity.ScopeOfPackage;
-import com.ksv.tactive.project.entity.Sector;
-import com.ksv.tactive.project.entity.UOM;
 import com.ksv.tactive.service.MasterService;
 @RestController
 @RequestMapping("/tactive")
@@ -190,5 +192,13 @@ public class MasterDataController {
 			return ResponseEntity.status(HttpStatus.CONFLICT)
 					.body(e.getMessage());
 		}
+	}
+	@GetMapping("/countries")
+	public ResponseEntity<?> getAllCountries(){
+		return ResponseEntity.status(HttpStatus.OK).body(masterService.getAllCountries());
+	}
+	@GetMapping("/cities/{countryId}")
+	public ResponseEntity<?> getCitiesByCountry(@PathVariable String countryId){
+		return ResponseEntity.status(HttpStatus.OK).body(masterService.getCitiesByCountry(countryId));
 	}
 }

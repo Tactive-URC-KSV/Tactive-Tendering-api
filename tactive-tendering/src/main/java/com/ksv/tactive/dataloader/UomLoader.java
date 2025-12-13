@@ -10,8 +10,9 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ksv.tactive.project.dao.UOMDao;
-import com.ksv.tactive.project.entity.UOM;
+import com.ksv.tactive.master.dao.UOMDao;
+import com.ksv.tactive.master.entity.UOM;
+
 import jakarta.transaction.Transactional;
 @Component
 public class UomLoader implements MasterDataLoader<UOM> {

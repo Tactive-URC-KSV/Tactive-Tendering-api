@@ -23,7 +23,10 @@ import com.itextpdf.text.pdf.PdfPTable;
 import com.itextpdf.text.pdf.PdfWriter;
 import com.ksv.tactive.dto.ExcelExtractBOQ;
 import com.ksv.tactive.exception.DataNotFoundException;
+import com.ksv.tactive.master.entity.UOM;
 import com.ksv.tactive.project.entity.BOQ;
+import com.ksv.tactive.service.MasterService;
+
 import jakarta.servlet.http.HttpServletResponse;
 import technology.tabula.ObjectExtractor;
 import technology.tabula.Page;
@@ -34,7 +37,7 @@ import technology.tabula.extractors.SpreadsheetExtractionAlgorithm;
 @Service
 public class PdfFileService {
 	@Autowired
-	private ExcelFileService excelFileService;
+	private MasterService masterService;
 
 	private PageIterator getPages(InputStream boqFile) throws IOException {
 		PDDocument document = PDDocument.load(boqFile);
@@ -137,7 +140,7 @@ public class PdfFileService {
 	                        }
 	                        case "uom" -> {
 	                            if (!value.isBlank()) {
-	                                boq.setUom(excelFileService.findUOM(value));
+//	                                boq.setUom(excelFileService.findUOM(value));
 	                                boq.setLastLevel(true);
 	                                hasValidData = true;
 	                            } else {
@@ -205,7 +208,7 @@ public class PdfFileService {
 		int slNo = 1;
 		for (BOQ boq : boqList) {
 			String[] rowData = { String.valueOf(slNo++), safe(boq.getBoqCode()),
-					safe(boq.getBoqName()), boq.getUom() != null ? boq.getUom().getUomCode() : "",
+					safe(boq.getBoqName()), boq.getUomId() != null ? getUomCode(boq.getUomId()) : "",
 					String.valueOf(boq.getQuantity()), String.valueOf(boq.getTotalRate()),
 					String.valueOf(boq.getTotalAmount()),
 					boq.getParentBOQ() != null ? boq.getParentBOQ().getBoqCode() : "",
@@ -224,6 +227,14 @@ public class PdfFileService {
 		document.add(table);
 		document.close();
 	}
+	private String getUomCode(String uomId) {
+		UOM uom = masterService.findUomById(uomId);
+		if (uom != null) {
+			return uom.getUomCode();
+		}
+		return null;
+	}
+
 	private String safe(String val) {
 		return val == null ? "" : val;
 	}
