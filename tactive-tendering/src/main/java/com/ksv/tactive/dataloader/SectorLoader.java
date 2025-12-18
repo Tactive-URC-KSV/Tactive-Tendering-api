@@ -9,8 +9,9 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ksv.tactive.project.dao.SectorDao;
-import com.ksv.tactive.project.entity.Sector;
+import com.ksv.tactive.master.dao.SectorDao;
+import com.ksv.tactive.master.entity.Sector;
+
 import jakarta.transaction.Transactional;
 @Component
 public class SectorLoader implements MasterDataLoader<Sector>{

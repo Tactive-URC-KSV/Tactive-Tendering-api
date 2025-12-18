@@ -25,8 +25,18 @@ public class TactiveTenderingApplication implements CommandLineRunner{
 			user.setId(UUID.randomUUID().toString());
 			user.setEmail("admin@gmail.com");
 			user.setPassword(encoder.encode("admin@123"));
+			user.setName("admin");
 			user.setUsername(user.getEmail());
 			user.setPhoneNumber(9876543210L);
+			user.setRole("admin");
+			userDao.save(user);
+			user.setId(UUID.randomUUID().toString());
+			user.setEmail("user@gmail.com");
+			user.setPassword(encoder.encode("user@123"));
+			user.setName("user");
+			user.setUsername(user.getEmail());
+			user.setPhoneNumber(9876543210L);
+			user.setRole("user");
 			userDao.save(user);
 		}
 	}

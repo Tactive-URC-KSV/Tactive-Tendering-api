@@ -3,6 +3,10 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import javax.crypto.SecretKey;
+
+import com.ksv.tactive.config.CustomUserDetailsService;
+import com.ksv.tactive.config.UserPrincipal;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import io.jsonwebtoken.Claims;
@@ -14,11 +18,20 @@ import io.jsonwebtoken.security.Keys;
 public class JwtService {
 	private static final String SECRET_KEY = "YWVpdGtyb3lhbHNtZmp2bHdlc3ZtZnV3dm9zZ2t4ZXlzd3N6b3h0ag==";
 	Map<String,Object> claims=new HashMap<>();
-	public String generateToken(String username) {
+	public String generateToken(UserPrincipal userDetails) {
+		claims.put("role", userDetails.getRole());
+		claims.put(
+				"authorities",
+				userDetails.getAuthorities()
+						.stream()
+						.map(GrantedAuthority::getAuthority)
+						.toList()
+		);
+		claims.put("name", userDetails.getUserName());
 		return Jwts.builder()
 				.claims()
 				.add(claims)
-				.subject(username)
+				.subject(userDetails.getUsername())
 				.issuedAt(new Date(System.currentTimeMillis()))
 				.expiration(new Date(System.currentTimeMillis()+3*60*60*1000))
 				.and()

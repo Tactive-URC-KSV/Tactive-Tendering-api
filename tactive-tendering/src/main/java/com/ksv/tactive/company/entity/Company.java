@@ -1,4 +1,5 @@
 package com.ksv.tactive.company.entity;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -19,30 +20,16 @@ public class Company {
 	@ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
 	@JoinColumn(name = "parent_company_id")
 	private Company parentCompany;
-	@ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-	@JoinColumn(name = "type_id")
-	private CompanyType type;
-	@ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-	@JoinColumn(name = "level_id")
-	private CompanyLevel level;
-	@ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-	@JoinColumn(name = "com_nature_id")
-	private CompanyNature comNature;
-	@ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-	@JoinColumn(name = "business_nature_id")
-	private BusinesssNature businessNature;
-	@ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-	@JoinColumn(name = "constitution_id")
-	private CompanyConstitution constitution;
-	@ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-	@JoinColumn(name = "status_id")
-	private CompanyStatus status;
+	private String comTypeId;
+	private String comLevelId;
+	private String comNatureId;
+	private String businessNatureId;
+	private String companyConstitutionId;
+	private String statusId;
 	@ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
 	@JoinColumn(name = "language_id")
 	private Language language;
-	@ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-	@JoinColumn(name = "currency_id")
-	private Currency currency;
+	private String currencyId;
 	@ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
 	@JoinColumn(name = "bank")
 	private Bank bank;

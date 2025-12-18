@@ -9,8 +9,9 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ksv.tactive.project.dao.ListOfApprovalsDao;
-import com.ksv.tactive.project.entity.ListOfApprovals;
+import com.ksv.tactive.master.dao.ListOfApprovalsDao;
+import com.ksv.tactive.master.entity.ListOfApprovals;
+
 import jakarta.transaction.Transactional;
 @Component
 public class ApprovalDocLoader implements MasterDataLoader<ListOfApprovals>{

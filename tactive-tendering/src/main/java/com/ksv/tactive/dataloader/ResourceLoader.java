@@ -8,14 +8,15 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ksv.tactive.project.dao.QuantityTypeDao;
-import com.ksv.tactive.project.dao.ResourceDao;
-import com.ksv.tactive.project.dao.ResourceTypeDao;
-import com.ksv.tactive.project.dao.UOMDao;
-import com.ksv.tactive.project.entity.QuantityType;
-import com.ksv.tactive.project.entity.Resources;
-import com.ksv.tactive.project.entity.ResourceType;
-import com.ksv.tactive.project.entity.UOM;
+import com.ksv.tactive.master.dao.QuantityTypeDao;
+import com.ksv.tactive.master.dao.ResourceDao;
+import com.ksv.tactive.master.dao.ResourceTypeDao;
+import com.ksv.tactive.master.dao.UOMDao;
+import com.ksv.tactive.master.entity.QuantityType;
+import com.ksv.tactive.master.entity.ResourceType;
+import com.ksv.tactive.master.entity.Resources;
+import com.ksv.tactive.master.entity.UOM;
+
 import jakarta.transaction.Transactional;
 @Component
 public class ResourceLoader implements MasterDataLoader<Resources> {
