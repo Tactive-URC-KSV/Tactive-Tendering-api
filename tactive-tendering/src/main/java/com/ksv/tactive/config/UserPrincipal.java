@@ -1,6 +1,9 @@
 package com.ksv.tactive.config;
 import java.util.Collection;
+import java.util.List;
+
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import com.ksv.tactive.user.entity.User;
 public class UserPrincipal implements UserDetails{
@@ -14,7 +17,15 @@ public class UserPrincipal implements UserDetails{
 	}
 	@Override
 	public Collection<? extends GrantedAuthority> getAuthorities() {
-		return null;
+		return List.of(
+				new SimpleGrantedAuthority("ROLE_" + user.getRole().toUpperCase())
+		);
+	}
+	public String getRole(){
+		return user.getRole().toUpperCase();
+	}
+	public String getUserName(){
+		return user.getName();
 	}
 	@Override
 	public String getPassword() {

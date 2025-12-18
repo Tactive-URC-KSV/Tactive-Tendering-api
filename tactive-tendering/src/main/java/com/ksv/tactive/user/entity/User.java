@@ -31,4 +31,5 @@ public class User {
 	@JsonIgnore
 	@Column(length = 36)
 	private String companyId;
+	private String role;
 }
