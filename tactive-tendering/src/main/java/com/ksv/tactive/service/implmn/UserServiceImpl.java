@@ -27,8 +27,6 @@ public class UserServiceImpl implements UserService{
 		if(authentication.isAuthenticated()) {
 			UserPrincipal userDetails =
 					(UserPrincipal) authentication.getPrincipal();
-
-			// ✅ Generate token with role
 			return jwtService.generateToken(userDetails);
 		}
 		return null;

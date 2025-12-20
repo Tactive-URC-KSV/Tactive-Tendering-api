@@ -14,4 +14,5 @@ public class ActivityGroup {
 	@ManyToOne
 	@JoinColumn(name = "cost_code_type_id")
 	private CostCodeType costCodeType;
+	private boolean active;
 }

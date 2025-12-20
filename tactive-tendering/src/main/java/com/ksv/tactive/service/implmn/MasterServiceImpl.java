@@ -3,6 +3,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
+import com.ksv.tactive.exception.DataNotFoundException;
+import com.ksv.tactive.master.dao.*;
+import com.ksv.tactive.master.entity.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Service;
@@ -14,26 +17,6 @@ import com.ksv.tactive.location.dao.CitiesDao;
 import com.ksv.tactive.location.dao.CountryDao;
 import com.ksv.tactive.location.entity.Cities;
 import com.ksv.tactive.location.entity.Country;
-import com.ksv.tactive.master.dao.ListOfApprovalsDao;
-import com.ksv.tactive.master.dao.ProjectStatusDao;
-import com.ksv.tactive.master.dao.QuantityTypeDao;
-import com.ksv.tactive.master.dao.RegionDao;
-import com.ksv.tactive.master.dao.ResourceDao;
-import com.ksv.tactive.master.dao.ResourceNatureDao;
-import com.ksv.tactive.master.dao.ResourceTypeDao;
-import com.ksv.tactive.master.dao.ScopeOfPackDao;
-import com.ksv.tactive.master.dao.SectorDao;
-import com.ksv.tactive.master.dao.UOMDao;
-import com.ksv.tactive.master.entity.ListOfApprovals;
-import com.ksv.tactive.master.entity.ProjectStatus;
-import com.ksv.tactive.master.entity.QuantityType;
-import com.ksv.tactive.master.entity.Region;
-import com.ksv.tactive.master.entity.ResourceNature;
-import com.ksv.tactive.master.entity.ResourceType;
-import com.ksv.tactive.master.entity.Resources;
-import com.ksv.tactive.master.entity.ScopeOfPackage;
-import com.ksv.tactive.master.entity.Sector;
-import com.ksv.tactive.master.entity.UOM;
 import com.ksv.tactive.project.dao.CostCodeTypeDao;
 import com.ksv.tactive.project.entity.CostCodeType;
 import com.ksv.tactive.service.MasterService;
@@ -69,6 +52,14 @@ public class MasterServiceImpl implements MasterService{
 	private CountryDao countryDao;
 	@Autowired
 	private CitiesDao citiesDao;
+	@Autowired
+	private AddressTypeDao addressTypeDao;
+	@Autowired
+	private IdentityTypeDao identityTypeDao;
+	@Autowired
+	private TaxTypeDao taxTypeDao;
+	@Autowired
+	private TerritoryTypeDao territoryTypeDao;
 	
 	@Override
 	public String addSector(Sector sector) {
@@ -233,5 +224,35 @@ public class MasterServiceImpl implements MasterService{
 	@Override
 	public List<Cities> getCitiesByCountry(String countryId) {
 		return citiesDao.findByCountryId(countryId);
+	}
+
+	@Override
+	public AddressType findAddressTypeById(String addressTypeId) {
+		return addressTypeDao.findById(addressTypeId).orElseThrow(()-> new DataNotFoundException(messageSource.getMessage("data.not.found",null,Locale.ENGLISH)));
+	}
+
+	@Override
+	public Country findCountryById(String countryId) {
+		return countryDao.findById(countryId).orElseThrow(()-> new DataNotFoundException(messageSource.getMessage("data.not.found",null,Locale.ENGLISH)));
+	}
+
+	@Override
+	public Cities findCityById(String cityId) {
+		return citiesDao.findById(cityId).orElseThrow(()-> new DataNotFoundException(messageSource.getMessage("data.not.found",null,Locale.ENGLISH)));
+	}
+
+	@Override
+	public IdentityType findIdentityTypeById(String identityId) {
+		return identityTypeDao.findById(identityId).orElseThrow(()-> new DataNotFoundException(messageSource.getMessage("data.not.found",null,Locale.ENGLISH)));
+	}
+
+	@Override
+	public TaxType findTaxTypeById(String taxTypeId) {
+		return taxTypeDao.findById(taxTypeId).orElseThrow(()-> new DataNotFoundException(messageSource.getMessage("data.not.found", null,Locale.ENGLISH)));
+	}
+
+	@Override
+	public TerritoryType findterritoryTypeId(String territoryTypeId) {
+		return territoryTypeDao.findById(territoryTypeId).orElseThrow(()-> new DataNotFoundException(messageSource.getMessage("data.not.found",null,Locale.ENGLISH)));
 	}
 }

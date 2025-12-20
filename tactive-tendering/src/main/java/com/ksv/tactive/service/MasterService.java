@@ -1,21 +1,12 @@
 package com.ksv.tactive.service;
 import java.util.List;
 
+import com.ksv.tactive.master.entity.*;
 import org.springframework.stereotype.Service;
 
 import com.ksv.tactive.currency.entity.Currency;
 import com.ksv.tactive.location.entity.Cities;
 import com.ksv.tactive.location.entity.Country;
-import com.ksv.tactive.master.entity.ListOfApprovals;
-import com.ksv.tactive.master.entity.ProjectStatus;
-import com.ksv.tactive.master.entity.QuantityType;
-import com.ksv.tactive.master.entity.Region;
-import com.ksv.tactive.master.entity.ResourceNature;
-import com.ksv.tactive.master.entity.ResourceType;
-import com.ksv.tactive.master.entity.Resources;
-import com.ksv.tactive.master.entity.ScopeOfPackage;
-import com.ksv.tactive.master.entity.Sector;
-import com.ksv.tactive.master.entity.UOM;
 import com.ksv.tactive.project.entity.CostCodeType;
 @Service
 public interface MasterService {
@@ -53,6 +44,12 @@ public interface MasterService {
 	Currency findCurrencyById(String currencyId);
 	List<Country> getAllCountries();
 	List<Cities> getCitiesByCountry(String countryId);
+	AddressType findAddressTypeById(String addressTypeId);
+	Country findCountryById(String countryId);
+	Cities findCityById(String cityId);
+	IdentityType findIdentityTypeById(String identityId);
+	TaxType findTaxTypeById(String taxTypeId);
+	TerritoryType findterritoryTypeId(String territoryTypeId);
 	
 	
 	

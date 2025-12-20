@@ -10,4 +10,5 @@ public class ListOfApprovals {
 	@Column(length = 36)
 	private String id;
 	private String documentName;
+	private boolean active;
 }
