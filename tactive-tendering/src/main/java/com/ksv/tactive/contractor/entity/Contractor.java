@@ -2,6 +2,7 @@ package com.ksv.tactive.contractor.entity;
 
 import java.sql.Date;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import jakarta.persistence.Entity;
@@ -21,7 +22,7 @@ public class Contractor {
 	private String entityCode;
 	private String entityName;
 	private Date effectiveDate;
-	private String attachmentUrl;
+	private List<String> attachmentUrls;
 	@ManyToOne
 	@JoinColumn(name = "con_type_id")
 	private ContractorType contractorType;
