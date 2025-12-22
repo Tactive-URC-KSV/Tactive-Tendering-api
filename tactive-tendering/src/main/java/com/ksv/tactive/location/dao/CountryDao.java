@@ -9,5 +9,9 @@ import com.ksv.tactive.location.entity.Country;
 public interface CountryDao extends JpaRepository<Country, String>{
 
 	Country findByCountry(String country);
+	boolean existsByCountryIgnoreCaseAndActiveTrue(String country);
+	boolean existsByCountryCodeIgnoreCaseAndActiveTrue(String countryCode);
+	boolean existsByCountryIgnoreCaseAndActiveTrueAndIdNot(String country, String id);
+	boolean existsByCountryCodeIgnoreCaseAndActiveTrueAndIdNot(String countryCode, String id);
 
 }

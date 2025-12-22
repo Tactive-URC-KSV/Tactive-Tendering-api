@@ -2,6 +2,7 @@ package com.ksv.tactive.service;
 import java.util.List;
 
 import com.ksv.tactive.master.entity.*;
+import org.apache.commons.math3.analysis.function.Add;
 import org.springframework.stereotype.Service;
 
 import com.ksv.tactive.currency.entity.Currency;
@@ -13,11 +14,13 @@ public interface MasterService {
 	String addRegion(Region region);
 	List<Region> getAllRegions();
 	Region findRegionById(String regionId);
+	void editRegion(Region region);
 	String addSector(Sector sector);
 	List<Sector> getAllSector();
 	Sector findSectorById(String sectorId);
 	String addScope(ScopeOfPackage scope);
 	List<ScopeOfPackage> getAllScopes();
+	void editScopeOfPackage(ScopeOfPackage scope);
 	String addUom(UOM uom);
 	UOM findUomById(String uomId);
 	List<UOM> getAllUOMs();
@@ -50,10 +53,12 @@ public interface MasterService {
 	IdentityType findIdentityTypeById(String identityId);
 	TaxType findTaxTypeById(String taxTypeId);
 	TerritoryType findterritoryTypeId(String territoryTypeId);
-	
-	
-	
-	
-	
-	
+    AddressType addAddressType(AddressType addressType);
+	List<AddressType> getAllAddressTypes();
+	AddressType editAddressType(AddressType addressType);
+	Country addCountry(Country country);
+	void editCountry(Country country);
+
+
+
 }

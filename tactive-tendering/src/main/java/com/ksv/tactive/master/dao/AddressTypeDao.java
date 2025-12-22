@@ -7,5 +7,5 @@ import com.ksv.tactive.master.entity.AddressType;
 
 @Repository
 public interface AddressTypeDao extends JpaRepository<AddressType, String>{
-
+    boolean existsByAddressTypeIgnoreCaseAndActiveTrueAndIdNot(String addressType, String id);
 }
