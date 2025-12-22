@@ -15,6 +15,9 @@ public class Cities {
 	private String city;
 	private boolean active;
 	@ManyToOne
+	@JoinColumn(name = "state_id")
+	private States states;
+	@ManyToOne
 	@JoinColumn(name = "country_id")
 	private Country country;
 
