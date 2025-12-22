@@ -73,6 +73,17 @@ public class MasterServiceImpl implements MasterService{
 		scopeOfPackDao.save(scope);
 		return messageSource.getMessage("data.save.success", null, Locale.ENGLISH);
 	}
+
+	@Override
+	public void editScopeOfPackage(ScopeOfPackage scope) {
+		ScopeOfPackage existingScope = scopeOfPackDao.findById(scope.getId()).orElseThrow(
+				()->new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH))
+		);
+		if(scopeOfPackDao.findByScopeIgnoreCase(existingScope.getScope()).equals(scope)) {
+			throw new DuplicateEntryException(messageSource.getMessage("data.duplicate", null, Locale.ENGLISH));
+		}
+	}
+
 	@Override
 	public String addUom(UOM uom) {
 		uom.setId(UUID.randomUUID().toString());
@@ -86,6 +97,18 @@ public class MasterServiceImpl implements MasterService{
 	@Override
 	public Region findRegionById(String regionId) {
 		return regionRepo.findById(regionId).orElse(null);
+	}
+	@Override
+	public void editRegion(Region region) {
+		Region existingRegion = regionRepo.findById(region.getId()).orElseThrow(
+				() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH))
+		);
+		if(regionRepo.findByRegionNameIgnoreCase(existingRegion.getRegionName()).isActive()) {
+			throw new DuplicateEntryException(messageSource.getMessage("data.duplicate", null, Locale.ENGLISH));
+		}
+		existingRegion.setRegionName(region.getRegionName());
+		existingRegion.setActive(region.isActive());
+		regionRepo.save(existingRegion);
 	}
 	@Override
 	public String addRegion(Region region) {
@@ -254,5 +277,79 @@ public class MasterServiceImpl implements MasterService{
 	@Override
 	public TerritoryType findterritoryTypeId(String territoryTypeId) {
 		return territoryTypeDao.findById(territoryTypeId).orElseThrow(()-> new DataNotFoundException(messageSource.getMessage("data.not.found",null,Locale.ENGLISH)));
+	}
+	@Override
+	public AddressType addAddressType(AddressType addressType) {
+		List<AddressType> addressTypes = addressTypeDao.findAll();
+		for(AddressType addressType1 : addressTypes) {
+			if(addressType.getAddressType().equalsIgnoreCase(addressType1.getAddressType())) {
+				throw new DuplicateEntryException(messageSource.getMessage("data.duplicate", null, Locale.ENGLISH));
+			}
+		}
+		addressType.setId(UUID.randomUUID().toString());
+		return addressTypeDao.save(addressType);
+	}
+
+	@Override
+	public List<AddressType> getAllAddressTypes() {
+		return addressTypeDao.findAll();
+	}
+
+	@Override
+	public AddressType editAddressType(AddressType addressType) {
+		AddressType existing = addressTypeDao.findById(addressType.getId())
+				.orElseThrow(() -> new DataNotFoundException(
+						messageSource.getMessage("data.not.found", null, Locale.ENGLISH)
+				));
+		if (addressType.isActive()) {
+			boolean duplicateExists =
+					addressTypeDao.existsByAddressTypeIgnoreCaseAndActiveTrueAndIdNot(
+							addressType.getAddressType(),
+							addressType.getId()
+					);
+			if (duplicateExists) {
+				throw new DuplicateEntryException(
+						messageSource.getMessage("data.duplicate", null, Locale.ENGLISH)
+				);
+			}
+		}
+		existing.setAddressType(addressType.getAddressType());
+		existing.setActive(addressType.isActive());
+		return addressTypeDao.save(existing);
+	}
+
+	@Override
+	public Country addCountry(Country country) {
+		if (countryDao.existsByCountryIgnoreCaseAndActiveTrue(country.getCountry())
+				|| countryDao.existsByCountryCodeIgnoreCaseAndActiveTrue(country.getCountryCode())) {
+			throw new DuplicateEntryException(
+					messageSource.getMessage("data.duplicate", null, Locale.ENGLISH)
+			);
+		}
+		country.setId(UUID.randomUUID().toString());
+		country.setActive(true);
+		return countryDao.save(country);
+	}
+
+	@Override
+	public void editCountry(Country country) {
+		Country existing = countryDao.findById(country.getId())
+				.orElseThrow(() -> new DataNotFoundException(
+						messageSource.getMessage("data.not.found", null, Locale.ENGLISH)
+				));
+		if (country.isActive()) {
+			if (countryDao.existsByCountryIgnoreCaseAndActiveTrueAndIdNot(
+					country.getCountry(), country.getId())
+					|| countryDao.existsByCountryCodeIgnoreCaseAndActiveTrueAndIdNot(
+					country.getCountryCode(), country.getId())) {
+				throw new DuplicateEntryException(
+						messageSource.getMessage("data.duplicate", null, Locale.ENGLISH)
+				);
+			}
+		}
+		existing.setCountry(country.getCountry());
+		existing.setActive(country.isActive());
+		existing.setCountryCode(country.getCountryCode());
+		countryDao.save(existing);
 	}
 }

@@ -2,29 +2,16 @@ package com.ksv.tactive.controller;
 import java.util.List;
 import java.util.Locale;
 
+import com.ksv.tactive.location.entity.Country;
+import com.ksv.tactive.master.entity.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.ksv.tactive.currency.entity.Currency;
 import com.ksv.tactive.exception.DuplicateEntryException;
-import com.ksv.tactive.master.entity.ListOfApprovals;
-import com.ksv.tactive.master.entity.ProjectStatus;
-import com.ksv.tactive.master.entity.QuantityType;
-import com.ksv.tactive.master.entity.Region;
-import com.ksv.tactive.master.entity.ResourceNature;
-import com.ksv.tactive.master.entity.ResourceType;
-import com.ksv.tactive.master.entity.Resources;
-import com.ksv.tactive.master.entity.ScopeOfPackage;
-import com.ksv.tactive.master.entity.Sector;
-import com.ksv.tactive.master.entity.UOM;
 import com.ksv.tactive.project.entity.CostCodeType;
 import com.ksv.tactive.service.MasterService;
 @RestController
@@ -34,7 +21,7 @@ public class MasterDataController {
 	private MasterService masterService;
 	@Autowired
 	private MessageSource messageSource;
-	@PostMapping("/regions/addRegion")
+	@PostMapping("/addRegion")
 	public ResponseEntity<String> addRegion(@RequestBody Region region) {
 		try {
 			return ResponseEntity.status(HttpStatus.OK).body(masterService.addRegion(region));
@@ -55,9 +42,19 @@ public class MasterDataController {
 	public ResponseEntity<String> addSector(@RequestBody Sector sector){
 		return ResponseEntity.status(HttpStatus.OK).body(masterService.addSector(sector));
 	}
-	@PostMapping("/scope/addScope")
+	@PutMapping("/region/edit")
+	public ResponseEntity<String> editRegion(@RequestBody Region region){
+		masterService.editRegion(region);
+		return ResponseEntity.status(HttpStatus.OK).body(messageSource.getMessage("data.updated", null, Locale.ENGLISH));
+	}
+	@PostMapping("/scope")
 	public ResponseEntity<String> addScope(@RequestBody ScopeOfPackage scope){
 		return ResponseEntity.status(HttpStatus.OK).body(masterService.addScope(scope));
+	}
+	@PutMapping("/scope/edit")
+	public ResponseEntity<String> editScope(@RequestBody ScopeOfPackage scope){
+		masterService.editScopeOfPackage(scope);
+		return ResponseEntity.status(HttpStatus.OK).body(messageSource.getMessage("data.updated", null, Locale.ENGLISH));
 	}
 	@PostMapping("/uom/addUom")
 	public ResponseEntity<String> addUOM(@RequestBody UOM uom){
@@ -200,5 +197,39 @@ public class MasterDataController {
 	@GetMapping("/cities/{countryId}")
 	public ResponseEntity<?> getCitiesByCountry(@PathVariable String countryId){
 		return ResponseEntity.status(HttpStatus.OK).body(masterService.getCitiesByCountry(countryId));
+	}
+	@PostMapping("/addressType")
+	public ResponseEntity<?> addAddressType(@RequestBody AddressType addressType){
+		AddressType addressType1 = masterService.addAddressType(addressType);
+		if(addressType1 != null){
+			return ResponseEntity.status(HttpStatus.OK).body(messageSource.getMessage("addressType.save.success", null, Locale.ENGLISH));
+		}
+		return ResponseEntity.status(HttpStatus.CONFLICT).body(messageSource.getMessage("addressType.save.failure", null, Locale.ENGLISH));
+	}
+	@GetMapping("/addressType")
+	public ResponseEntity<?> getAllAddressTypes(){
+		return ResponseEntity.status(HttpStatus.OK).body(masterService.getAllAddressTypes());
+	}
+	@PutMapping("/addressType/edit")
+	public ResponseEntity<?> editAddressType(@RequestBody AddressType addressType){
+		AddressType savedAddressType = masterService.editAddressType(addressType);
+		if(savedAddressType != null){
+			return ResponseEntity.status(HttpStatus.OK).body(messageSource.getMessage("addressType.edit.success", null, Locale.ENGLISH));
+		}
+		return ResponseEntity.status(HttpStatus.CONFLICT).body(messageSource.getMessage("addressType.edit.failure", null, Locale.ENGLISH));
+	}
+	@PostMapping("/country")
+	public ResponseEntity<?> addCountry(@RequestBody Country country) {
+		masterService.addCountry(country);
+		return ResponseEntity.ok(
+				messageSource.getMessage("country.save.success", null, Locale.ENGLISH)
+		);
+	}
+	@PutMapping("/country/edit")
+	public ResponseEntity<?> editCountry(@RequestBody Country country) {
+		masterService.editCountry(country);
+		return ResponseEntity.ok(
+				messageSource.getMessage("country.edit.success", null, Locale.ENGLISH)
+		);
 	}
 }
