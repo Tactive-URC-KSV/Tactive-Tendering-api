@@ -10,4 +10,5 @@ public class ResourceType {
 	@Column(length = 36)
 	private String id;
 	private String resourceTypeName;
+	private boolean active;
 }

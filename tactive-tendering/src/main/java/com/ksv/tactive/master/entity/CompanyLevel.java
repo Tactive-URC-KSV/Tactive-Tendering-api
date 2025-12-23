@@ -10,5 +10,5 @@ public class CompanyLevel {
 	@Column(name = "id", length = 36)
 	private String id;
 	private String level;
-	private boolean isActive;
+	private boolean active;
 }

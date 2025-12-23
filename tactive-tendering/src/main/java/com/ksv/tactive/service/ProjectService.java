@@ -5,21 +5,13 @@ import java.sql.SQLIntegrityConstraintViolationException;
 import java.util.List;
 import java.util.Map;
 
+import com.ksv.tactive.dto.*;
 import org.springframework.core.io.Resource;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.itextpdf.text.DocumentException;
-import com.ksv.tactive.dto.CostCodeDto;
-import com.ksv.tactive.dto.ExcelExtractBOQ;
-import com.ksv.tactive.dto.FeasibilityApprovalDocuDTO;
-import com.ksv.tactive.dto.PaginatedResponse;
-import com.ksv.tactive.dto.ProjectInfoDto;
-import com.ksv.tactive.dto.ProjectInputDTO;
-import com.ksv.tactive.dto.TemplateDto;
-import com.ksv.tactive.dto.TenderEstResourceDto;
-import com.ksv.tactive.dto.TenderResourceDto;
 import com.ksv.tactive.exception.DataNotFoundException;
 import com.ksv.tactive.project.entity.ActivityGroup;
 import com.ksv.tactive.project.entity.ApprovalDocuments;
@@ -75,7 +67,8 @@ public interface ProjectService {
 	String saveTemplate(Template template, Map<String, String> mapping);
 	List<Template> getAllTemplate();
 	TemplateDto getTemplateById(String templateId);
-	String addActivityGroup(ActivityGroup activityGroup);
+	String addActivityGroup(ActivityGroupDto activityGroupDto);
+	void editActivityGroup(ActivityGroupDto activityGroupDto);
 	List<ActivityGroup> getAllActivityGroups();
 	String saveCostCodeOneToOne(List<CostCodeDto> costCodeDto);
 	String saveCostCodeOneToMany(List<CostCodeDto> costCodeDto);
@@ -96,8 +89,7 @@ public interface ProjectService {
 	TenderEstResourceDto getEstimatedResourceByIdAndBoqId(String tenderEstimationId, String boqId);
 	PaginatedResponse<ExcelExtractBOQ> extractBOQDataPaginated(String sheetName,
 			Map<String, String> columnMapping, MultipartFile boqFile, int startRow, int endRow, int page, int size, String search) throws IOException;
-	
-	
-	
-	
+
+
+
 }

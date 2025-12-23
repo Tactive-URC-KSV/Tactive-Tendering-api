@@ -9,4 +9,5 @@ public class ProjectStatus {
 	private String id;
 	private String status;
 	private String processUrl;
+	private boolean active;
 }

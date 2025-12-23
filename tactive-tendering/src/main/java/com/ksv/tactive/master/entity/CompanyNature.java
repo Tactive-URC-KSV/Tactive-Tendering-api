@@ -11,5 +11,5 @@ public class CompanyNature {
 	private String id;
 	@Column(unique = true)
 	private String comNature;
-	private boolean isActive; 
+	private boolean active;
 }

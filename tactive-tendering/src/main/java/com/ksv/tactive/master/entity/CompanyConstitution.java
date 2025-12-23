@@ -11,5 +11,5 @@ public class CompanyConstitution {
 	private String id;
 	@Column(unique = true)
 	private String comConstitution;
-	private boolean isActive; 
+	private boolean active;
 }

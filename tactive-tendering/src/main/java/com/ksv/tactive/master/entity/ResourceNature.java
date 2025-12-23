@@ -10,4 +10,5 @@ public class ResourceNature {
 	@Column(length = 36)
 	private String id;
 	private String nature;
+	private boolean active;
 }

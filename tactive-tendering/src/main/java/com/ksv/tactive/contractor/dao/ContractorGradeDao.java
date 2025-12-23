@@ -7,5 +7,5 @@ import com.ksv.tactive.contractor.entity.ContractorGrade;
 
 @Repository
 public interface ContractorGradeDao extends JpaRepository<ContractorGrade, String>{
-
+    boolean existsByGradeNameIgnoreCase(String gradeName);
 }

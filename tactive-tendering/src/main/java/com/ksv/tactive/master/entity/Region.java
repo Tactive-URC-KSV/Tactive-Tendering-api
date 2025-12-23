@@ -12,6 +12,5 @@ public class Region {
 	private String id;
 	@Column(unique = true)
 	private String regionName;
-	@JsonProperty("isActive")
-	private boolean isActive;
+	private boolean active;
 }

@@ -11,5 +11,5 @@ public class CompanyStatus {
 	private String id;
 	@Column(unique = true)
 	private String comStatus;
-	private boolean isActive; 
+	private boolean active;
 }

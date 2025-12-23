@@ -5,11 +5,11 @@ import jakarta.persistence.Id;
 import lombok.Data;
 @Data
 @Entity
-public class BusinesssNature {
+public class BusinessNature {
 	@Id
 	@Column(name = "id", length = 36)
 	private String id;
 	@Column(unique = true)
 	private String businessNature;
-	private boolean isActive; 
+	private boolean active;
 }

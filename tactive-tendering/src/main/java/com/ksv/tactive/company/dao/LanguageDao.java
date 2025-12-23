@@ -4,4 +4,5 @@ import org.springframework.stereotype.Repository;
 import com.ksv.tactive.company.entity.Language;
 @Repository
 public interface LanguageDao extends JpaRepository<Language, String>{
+    boolean existsByLanguageIgnoreCase(String language);
 }

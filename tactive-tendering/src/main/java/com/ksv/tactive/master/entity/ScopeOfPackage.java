@@ -11,6 +11,5 @@ public class ScopeOfPackage {
 	@Column(length = 36)
 	private String id;
 	private String scope;
-	@JsonProperty("isActive")
-	private boolean isActive;
+	private boolean active;
 }

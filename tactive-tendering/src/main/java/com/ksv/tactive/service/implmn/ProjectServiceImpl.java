@@ -20,6 +20,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import com.ksv.tactive.dto.*;
+import com.ksv.tactive.exception.DuplicateEntryException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
@@ -32,15 +34,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.itextpdf.text.DocumentException;
 import com.ksv.tactive.currency.entity.Currency;
-import com.ksv.tactive.dto.CostCodeDto;
-import com.ksv.tactive.dto.ExcelExtractBOQ;
-import com.ksv.tactive.dto.FeasibilityApprovalDocuDTO;
-import com.ksv.tactive.dto.PaginatedResponse;
-import com.ksv.tactive.dto.ProjectInfoDto;
-import com.ksv.tactive.dto.ProjectInputDTO;
-import com.ksv.tactive.dto.TemplateDto;
-import com.ksv.tactive.dto.TenderEstResourceDto;
-import com.ksv.tactive.dto.TenderResourceDto;
 import com.ksv.tactive.exception.DataNotFoundException;
 import com.ksv.tactive.exception.DuplicateProjectCodeException;
 import com.ksv.tactive.exception.FileNotSaveException;
@@ -95,7 +88,6 @@ import jakarta.servlet.http.HttpServletResponse;
 public class ProjectServiceImpl implements ProjectService {
 	@Value("${file.upload.path}")
 	private String uploadDir;
-
 	@Autowired
 	private MasterService masterService;
 	@Autowired
@@ -891,13 +883,59 @@ public class ProjectServiceImpl implements ProjectService {
 		return projects;
 	}
 	@Override
-	public String addActivityGroup(ActivityGroup activityGroup) {
-		if (activityGroupsDao.findByActivityName(activityGroup.getActivityName()) == null) {
-			activityGroup.setId(UUID.randomUUID().toString());
-			activityGroupsDao.save(activityGroup);
-			return messageSource.getMessage("activity.group.save.success", null, Locale.ENGLISH);
+	public String addActivityGroup(ActivityGroupDto activityGroupDto) {
+		activityGroupsDao
+				.findByActivityCodeIgnoreCaseAndActiveTrue(activityGroupDto.getActivityCode())
+				.ifPresent(a -> {
+					throw new DuplicateEntryException(
+							messageSource.getMessage("data.duplicate", null, Locale.ENGLISH)
+					);
+				});
+		CostCodeType costCodeType = costCodeTypeDao.findById(activityGroupDto.getCostCodeTypeId())
+				.orElseThrow(() -> new DataNotFoundException(
+						messageSource.getMessage("data.not.found", null, Locale.ENGLISH)
+				));
+		ActivityGroup activityGroup = new ActivityGroup();
+		activityGroup.setId(UUID.randomUUID().toString());
+		activityGroup.setActivityCode(activityGroupDto.getActivityCode());
+		activityGroup.setActivityName(activityGroupDto.getActivityName());
+		activityGroup.setCostCodeType(costCodeType);
+		activityGroup.setActive(activityGroupDto.isActive());
+		activityGroupsDao.save(activityGroup);
+		return messageSource.getMessage("data.save.success", null, Locale.ENGLISH);
+	}
+	@Override
+	public void editActivityGroup(ActivityGroupDto activityGroupDto) {
+		ActivityGroup existingActivityGroup = activityGroupsDao.findById(activityGroupDto.getId())
+				.orElseThrow(() -> new DataNotFoundException(
+						messageSource.getMessage("data.not.found", null, Locale.ENGLISH)
+				));
+		if (activityGroupDto.isActive() &&
+				(
+						!existingActivityGroup.getActivityCode()
+								.equalsIgnoreCase(activityGroupDto.getActivityCode())
+								||
+								!existingActivityGroup.getActivityName()
+										.equalsIgnoreCase(activityGroupDto.getActivityName())
+				)
+		) {
+			activityGroupsDao
+					.findByActivityCodeIgnoreCaseAndActiveTrue(activityGroupDto.getActivityCode())
+					.ifPresent(a -> {
+						throw new DuplicateEntryException(
+								messageSource.getMessage("data.duplicate", null, Locale.ENGLISH)
+						);
+					});
 		}
-		return messageSource.getMessage("activity.group.duplicate", null, Locale.ENGLISH);
+		CostCodeType costCodeType = costCodeTypeDao.findById(activityGroupDto.getCostCodeTypeId())
+				.orElseThrow(() -> new DataNotFoundException(
+						messageSource.getMessage("data.not.found", null, Locale.ENGLISH)
+				));
+		existingActivityGroup.setActivityCode(activityGroupDto.getActivityCode());
+		existingActivityGroup.setActivityName(activityGroupDto.getActivityName());
+		existingActivityGroup.setCostCodeType(costCodeType);
+		existingActivityGroup.setActive(activityGroupDto.isActive());
+		activityGroupsDao.save(existingActivityGroup);
 	}
 	@Override
 	public List<ActivityGroup> getAllActivityGroups() {
