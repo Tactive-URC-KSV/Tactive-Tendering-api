@@ -12,6 +12,5 @@ public class Sector {
 	private String id;
 	@Column(unique = true)
 	private String sectorName;
-	@JsonProperty("isActive")
-	private boolean isActive;
+	private boolean active;
 }

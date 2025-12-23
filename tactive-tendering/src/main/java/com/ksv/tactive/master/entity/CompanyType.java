@@ -10,5 +10,5 @@ public class CompanyType {
 	@Column(name = "id", length = 36)
 	private String id;
 	private String type;
-	private boolean isActive;
+	private boolean active;
 }

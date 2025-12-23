@@ -5,4 +5,5 @@ import org.springframework.stereotype.Repository;
 import com.ksv.tactive.master.entity.CompanyLevel;
 @Repository
 public interface CompanyLevelDao extends JpaRepository<CompanyLevel, String>{
+    boolean existsByLevelIgnoreCase(String level);
 }

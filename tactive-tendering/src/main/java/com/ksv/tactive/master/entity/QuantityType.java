@@ -10,4 +10,5 @@ public class QuantityType {
 	@Column(length = 36)
 	private String id;
 	private String quantityType;
+	private boolean active;
 }

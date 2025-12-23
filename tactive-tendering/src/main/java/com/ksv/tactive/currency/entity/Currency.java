@@ -14,5 +14,5 @@ public class Currency {
 	private String currencyName;
 	private String currencyCode;
 	private String symbol;
-	private boolean isActive;
+	private boolean active;
 }

@@ -7,7 +7,6 @@ import lombok.Data;
 @Data
 @Entity
 public class TaxType {
-
     @Id
     private String id;
     private String taxType;

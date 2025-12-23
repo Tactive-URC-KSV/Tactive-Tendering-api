@@ -5,4 +5,5 @@ import org.springframework.stereotype.Repository;
 import com.ksv.tactive.master.entity.CompanyNature;
 @Repository
 public interface CompanyNatureDao extends JpaRepository<CompanyNature, String>{
+    boolean existsByComNatureIgnoreCase(String comNature);
 }

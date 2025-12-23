@@ -2,6 +2,7 @@ package com.ksv.tactive.service;
 
 import com.ksv.tactive.contractor.entity.*;
 import com.ksv.tactive.dto.ContractorInputDto;
+import com.ksv.tactive.dto.ContractorNatureDto;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -15,4 +16,13 @@ public interface ContractorService {
                          ContractorBankDetails contractorBankDetails,ContractorAddInfo contractorAddInfo);
 
     List<String> saveDocuments(List<MultipartFile> files);
+    void addContractorType(ContractorType contractorType);
+    void editContractorType(ContractorType contractorType);
+    void addContractorNature(ContractorNatureDto contractorNatureDto);
+    void addContractorGrade(ContractorGrade contractorGrade);
+    void editContractorNature(ContractorNatureDto contractorNatureDto);
+    void editContractorGrade(ContractorGrade contractorGrade);
+    List<ContractorType> getAllContractorType();
+    List<ContractorNature> getAllContractorNature();
+    List<ContractorGrade> getAllContractorGrade();
 }

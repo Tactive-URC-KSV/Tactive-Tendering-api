@@ -12,6 +12,5 @@ public class UOM {
 	private String id;
 	private String uomName;
 	private String uomCode;
-	@JsonProperty("isActive")
-	private boolean isActive;
+	private boolean active;
 }
