@@ -278,7 +278,7 @@ public class MasterDataController {
 		masterService.editStates(statesDto);
 		return ResponseEntity.status(HttpStatus.OK).body(messageSource.getMessage("data.updated",null,Locale.ENGLISH));
 	}
-	@GetMapping("/cities/{countryId}")
+	@GetMapping("/cities/byCountry/{countryId}")
 	public ResponseEntity<?> getCitiesByCountry(@PathVariable String countryId){
 		return ResponseEntity.status(HttpStatus.OK).body(masterService.getCitiesByCountry(countryId));
 	}
@@ -286,7 +286,7 @@ public class MasterDataController {
 	public ResponseEntity<?> getAllCities(){
 		return ResponseEntity.status(HttpStatus.OK).body(masterService.getAllCities());
 	}
-	@GetMapping("/cities/{stateId}")
+	@GetMapping("/cities/byState/{stateId}")
 	public ResponseEntity<?> getCitiesByStates(@PathVariable String stateId){
 		return ResponseEntity.status(HttpStatus.OK).body(masterService.getCitiesByStates(stateId));
 	}
