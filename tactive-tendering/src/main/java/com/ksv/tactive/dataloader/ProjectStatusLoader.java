@@ -35,6 +35,7 @@ public class ProjectStatusLoader implements MasterDataLoader<ProjectStatus>{
 						continue;
 					}else {
 						projectStatus.setId(UUID.randomUUID().toString());
+						projectStatus.setActive(true);
 						projectStatusDao.save(projectStatus);
 					}
 				}

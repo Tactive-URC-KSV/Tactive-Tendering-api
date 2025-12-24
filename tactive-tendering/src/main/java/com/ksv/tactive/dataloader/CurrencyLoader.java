@@ -38,6 +38,7 @@ public class CurrencyLoader implements MasterDataLoader<Currency> {
 				currency.setCurrencyCode(currencyDto.getCurrencyCode());
 				currency.setCurrencyName(currencyDto.getCurrencyName());
 				currency.setSymbol(currencyDto.getSymbol());
+				currency.setActive(true);
 				currencyDao.save(currency);
 			}
 			

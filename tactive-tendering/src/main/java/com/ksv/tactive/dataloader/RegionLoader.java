@@ -35,6 +35,7 @@ public class RegionLoader implements MasterDataLoader<Region>{
 						continue;
 					}
 					region.setId(UUID.randomUUID().toString());
+					region.setActive(true);
 					regionDao.save(region);
 				}
 		}

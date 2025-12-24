@@ -39,6 +39,7 @@ public class ActivityGroupLoader implements MasterDataLoader<ActivityGroup> {
                 	CostCodeType costCodeType = findCostCodeTypeByName(costCode.getCostCodeType().getCostCodeName());
                     costCode.setId(UUID.randomUUID().toString());
                     costCode.setCostCodeType(costCodeType);
+                    costCode.setActive(true);
                     activityGroupDao.save(costCode);
                 }
         }
@@ -49,6 +50,7 @@ public class ActivityGroupLoader implements MasterDataLoader<ActivityGroup> {
 			costCodeType = new CostCodeType();
 			costCodeType.setId(UUID.randomUUID().toString());
 			costCodeType.setCostCodeName(name);
+            costCodeType.setActive(true);
 			costCodeTypeDao.save(costCodeType);
 		}
 		return costCodeType;

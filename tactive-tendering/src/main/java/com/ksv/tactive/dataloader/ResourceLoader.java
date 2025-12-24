@@ -62,22 +62,26 @@ public class ResourceLoader implements MasterDataLoader<Resources> {
 		ResourceType existsResourceType = resourceTypeDao.findByResourceTypeNameIgnoreCase(res.getResourceType().getResourceTypeName());
 		if(existsResourceType == null) {
 			res.getResourceType().setId(UUID.randomUUID().toString());
+			res.getResourceType().setActive(true);
 			existsResourceType = resourceTypeDao.save(res.getResourceType());
 		}
 		res.setResourceType(existsResourceType);
 		QuantityType existsQuantityType = quantityTypeDao.findByQuantityTypeIgnoreCase(res.getQuantityType().getQuantityType());
 		if(existsQuantityType == null) {
 			res.getQuantityType().setId(UUID.randomUUID().toString());
+			res.getQuantityType().setActive(true);
 			existsQuantityType = quantityTypeDao.save(res.getQuantityType());
 		}
 		res.setQuantityType(existsQuantityType);
 		UOM existsUom = uomDao.findByUomCodeIgnoreCase(res.getUom().getUomCode()); 
 		if(existsUom == null) {
 			res.getUom().setId(UUID.randomUUID().toString());
+			res.getUom().setActive(true);
 			existsUom = uomDao.save(res.getUom());
 		}
 		res.setUom(existsUom);
 		res.setId(UUID.randomUUID().toString());
+		res.setActive(true);
 		resourceDao.save(res);
 	}
 }
