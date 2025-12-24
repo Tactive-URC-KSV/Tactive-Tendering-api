@@ -1,7 +1,5 @@
 package com.ksv.tactive.company.entity;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.Data;
 @Data
 @Entity
@@ -18,4 +16,7 @@ public class ComAddressDetails {
 	private String faxNo;
 	private String phone;
 	private String addressTypeId;
+	@OneToOne
+	@JoinColumn(name = "company_id")
+	private Company company;
 }
