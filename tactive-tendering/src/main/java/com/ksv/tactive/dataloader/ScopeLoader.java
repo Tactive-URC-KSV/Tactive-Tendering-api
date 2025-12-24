@@ -35,6 +35,7 @@ public class ScopeLoader implements MasterDataLoader<ScopeOfPackage> {
 						continue;
 					}
 					sc.setId(UUID.randomUUID().toString());
+					sc.setActive(true);
 					scopeOfPackDao.save(sc);
 				}
 		}

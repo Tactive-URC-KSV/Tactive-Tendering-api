@@ -47,6 +47,7 @@ public class CountryDataLoader implements MasterDataLoader<Country>{
 				else {
 					Country countries = new Country();
 					countries.setId(UUID.randomUUID().toString());
+					countries.setActive(true);
 					countries.setCountry(country.getCountry());
 					countries.setCountryCode(country.getCountryCode());
 					savedCountry = countryDao.save(countries);

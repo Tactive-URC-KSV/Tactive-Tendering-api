@@ -36,6 +36,7 @@ public class UomLoader implements MasterDataLoader<UOM> {
 					continue;
 				}
 				uom.setId(UUID.randomUUID().toString());
+				uom.setActive(true);
 				uomDao.save(uom);
 			}
 		}
