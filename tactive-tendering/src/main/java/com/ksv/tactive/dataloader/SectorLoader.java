@@ -34,6 +34,7 @@ public class SectorLoader implements MasterDataLoader<Sector>{
 						continue;
 					}
 					sector.setId(UUID.randomUUID().toString());
+					sector.setActive(true);
 					sectorDao.save(sector);
 				}
 		}

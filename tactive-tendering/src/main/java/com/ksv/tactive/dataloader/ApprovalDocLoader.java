@@ -34,6 +34,7 @@ public class ApprovalDocLoader implements MasterDataLoader<ListOfApprovals>{
 						continue;
 					}
 					approval.setId(java.util.UUID.randomUUID().toString());
+					approval.setActive(true);
 					approvalDao.save(approval);
 				}
 		}
