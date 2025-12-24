@@ -16,28 +16,28 @@ import com.ksv.tactive.master.entity.ProjectStatus;
 import jakarta.transaction.Transactional;
 @Component
 public class ProjectStatusLoader implements MasterDataLoader<ProjectStatus>{
-	private static final Logger logger = LoggerFactory.getLogger(ProjectStatusLoader.class);
-	@Autowired
-	private ObjectMapper objectMapper;
-	@Autowired
-	private ProjectStatusDao projectStatusDao;
-	@Transactional
-	@Override
-	public void loadData() throws IOException, DataAccessException {
-		logger.info("Starting data load for ProjectStatus");
-		try(InputStream inputStream = getClass().getResourceAsStream("/data/project-status.json")){
-			if(inputStream == null) {
-				throw new IOException("Resource file 'project-status.json' not found");
-			}
-			List<ProjectStatus> projectStatuses = objectMapper.readValue(inputStream, new TypeReference<>() {});
-				for(ProjectStatus projectStatus : projectStatuses) {
-					if(projectStatusDao.findByStatusIgnoreCase(projectStatus.getStatus()) != null) {
-						continue;
-					}else {
-						projectStatus.setId(UUID.randomUUID().toString());
-						projectStatusDao.save(projectStatus);
-					}
-				}
-		}
-	}
+    private static final Logger logger = LoggerFactory.getLogger(ProjectStatusLoader.class);
+    @Autowired
+    private ObjectMapper objectMapper;
+    @Autowired
+    private ProjectStatusDao projectStatusDao;
+    @Transactional
+    @Override
+    public void loadData() throws IOException, DataAccessException {
+        logger.info("Starting data load for ProjectStatus");
+        try(InputStream inputStream = getClass().getResourceAsStream("/data/project-status.json")){
+            if(inputStream == null) {
+                throw new IOException("Resource file 'project-status.json' not found");
+            }
+            List<ProjectStatus> projectStatuses = objectMapper.readValue(inputStream, new TypeReference<>() {});
+            for(ProjectStatus projectStatus : projectStatuses) {
+                if(projectStatusDao.findByStatusIgnoreCase(projectStatus.getStatus()) != null) {
+                    continue;
+                }else {
+                    projectStatus.setId(UUID.randomUUID().toString());
+                    projectStatusDao.save(projectStatus);
+                }
+            }
+        }
+    }
 }
