@@ -7,5 +7,5 @@ import com.ksv.tactive.contractor.entity.ContractorType;
 
 @Repository
 public interface ContractorTypeDao extends JpaRepository<ContractorType, String>{
-
+    boolean existsByTypeIgnoreCase(String type);
 }

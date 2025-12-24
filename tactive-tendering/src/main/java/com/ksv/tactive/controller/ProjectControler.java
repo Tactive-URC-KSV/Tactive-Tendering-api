@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import com.ksv.tactive.dto.*;
+import com.ksv.tactive.project.entity.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.core.io.Resource;
@@ -29,28 +31,10 @@ import org.springframework.web.multipart.MultipartFile;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.itextpdf.text.DocumentException;
-import com.ksv.tactive.dto.CostCodeDto;
-import com.ksv.tactive.dto.ExcelExtractBOQ;
-import com.ksv.tactive.dto.FeasibilityApprovalDocuDTO;
-import com.ksv.tactive.dto.PaginatedResponse;
-import com.ksv.tactive.dto.ProjectInfoDto;
-import com.ksv.tactive.dto.ProjectInputDTO;
-import com.ksv.tactive.dto.TemplateDto;
-import com.ksv.tactive.dto.TenderEstResourceDto;
-import com.ksv.tactive.dto.TenderResourceDto;
 import com.ksv.tactive.exception.DataNotFoundException;
 import com.ksv.tactive.exception.DuplicateProjectCodeException;
 import com.ksv.tactive.exception.FileNotSaveException;
 import com.ksv.tactive.exception.ProjectNotFoundException;
-import com.ksv.tactive.project.entity.ActivityGroup;
-import com.ksv.tactive.project.entity.ApprovalDocuments;
-import com.ksv.tactive.project.entity.BOQ;
-import com.ksv.tactive.project.entity.CostCodeActivity;
-import com.ksv.tactive.project.entity.FeasibilityStudy;
-import com.ksv.tactive.project.entity.FinancialFeasibility;
-import com.ksv.tactive.project.entity.Projects;
-import com.ksv.tactive.project.entity.TechnicalFeasibility;
-import com.ksv.tactive.project.entity.Template;
 import com.ksv.tactive.service.ProjectService;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -128,9 +112,9 @@ public class ProjectControler {
 			@RequestParam Map<String, MultipartFile> approvalDoc, @PathVariable String projectId) {
 		String techFeasibilityId = projectService.saveTechFeasibility(techFeasibility);
 		String finFeasibilityId = projectService.saveFinancialFeasibility(financialFeasibility);
-		String response = projectService.saveApprovalDoc(approvalDoc, approvalDocDTO, techFeasibilityId, projectId);
-		if (response != null) {
-			String message = projectService.saveFeasibilityStudy(techFeasibilityId, finFeasibilityId, projectId);
+		projectService.saveApprovalDoc(approvalDoc, approvalDocDTO, techFeasibilityId, projectId);
+		String message = projectService.saveFeasibilityStudy(techFeasibilityId, finFeasibilityId, projectId);
+		if (message != null) {
 			return ResponseEntity.status(HttpStatus.OK).body(message);
 		}
 		return ResponseEntity.status(HttpStatus.CONFLICT)
@@ -420,12 +404,15 @@ public class ProjectControler {
 			return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
 		}
 	}
-
-	@PostMapping("/activityGroup/add")
-	public ResponseEntity<?> addActivityGroup(@RequestBody ActivityGroup activityGroup) {
-		return ResponseEntity.status(HttpStatus.OK).body(projectService.addActivityGroup(activityGroup));
+	@PostMapping("/activityGroup")
+	public ResponseEntity<?> addActivityGroup(@RequestBody ActivityGroupDto activityGroupDto) {
+		return ResponseEntity.status(HttpStatus.OK).body(projectService.addActivityGroup(activityGroupDto));
 	}
-
+	@PutMapping("/activityGroup/edit")
+	public ResponseEntity<?> editActivityGroup(@RequestBody ActivityGroupDto activityGroupDto){
+		projectService.editActivityGroup(activityGroupDto);
+		return ResponseEntity.status(HttpStatus.OK).body(messageSource.getMessage("data.updated", null, Locale.ENGLISH));
+	}
 	@GetMapping("/activityGroups")
 	public ResponseEntity<?> getAllActivityGroups() {
 		return ResponseEntity.status(HttpStatus.OK).body(projectService.getAllActivityGroups());
@@ -482,11 +469,7 @@ public class ProjectControler {
 	@GetMapping("costCodeActivity/{projectId}")
 	public ResponseEntity<?> getCostCodeActivityByProject(@PathVariable String projectId) {
 		List<CostCodeActivity> costCode = projectService.getCostCodeActivityByProject(projectId);
-		if (!costCode.isEmpty()) {
-			return ResponseEntity.status(HttpStatus.OK).body(costCode);
-		}
-		return ResponseEntity.status(HttpStatus.CONFLICT)
-				.body(messageSource.getMessage("cost.code.not.found", null, Locale.ENGLISH));
+		return ResponseEntity.status(HttpStatus.OK).body(costCode);
 	}
 
 	@GetMapping("costCodeActivity/totalAmount/{costCodeTypeId}/{projectId}")

@@ -8,4 +8,5 @@ public class CostCodeType {
 	@Id
 	private String id;
 	private String costCodeName;
+	private boolean active;
 }

@@ -1,4 +1,6 @@
 package com.ksv.tactive.service.implmn;
+import com.ksv.tactive.config.CustomUserDetailsService;
+import com.ksv.tactive.config.UserPrincipal;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -23,7 +25,9 @@ public class UserServiceImpl implements UserService{
 	public String login(String username, String password) {
 		Authentication authentication = authManager.authenticate(new UsernamePasswordAuthenticationToken(username, password));
 		if(authentication.isAuthenticated()) {
-			return jwtService.generateToken(username);
+			UserPrincipal userDetails =
+					(UserPrincipal) authentication.getPrincipal();
+			return jwtService.generateToken(userDetails);
 		}
 		return null;
 	}

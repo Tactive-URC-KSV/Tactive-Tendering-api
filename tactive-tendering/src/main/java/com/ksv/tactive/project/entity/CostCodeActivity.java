@@ -20,15 +20,15 @@ import lombok.Data;
 public class CostCodeActivity {
 	@Id
 	private String id;
+	@Column(length = 1000)
 	private String activityCode;
+	@Column(length = 3000)
 	private String activityName;
 	private double quantity;
 	private double rate;
 	private double amount;
 	private String mappingType;
-	@ManyToOne
-	@JoinColumn(name = "uom_id")
-	private UOM uom;
+	private String uomId;
 	@JsonBackReference
 	@ManyToMany
 	@JoinTable(
@@ -51,4 +51,5 @@ public class CostCodeActivity {
 	private double resourceRate;
 	@Column(nullable = true)
 	private double resourceAmount;
+	
 }

@@ -10,5 +10,5 @@ public class Language {
 	@Column(name = "id", length = 36)
 	private String id;
 	private String language;
-	private boolean isActive;
+	private boolean active;
 }

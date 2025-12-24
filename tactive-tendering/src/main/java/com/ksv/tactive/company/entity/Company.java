@@ -1,13 +1,10 @@
 package com.ksv.tactive.company.entity;
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToOne;
+
+import jakarta.persistence.*;
 import lombok.Data;
+
+import java.util.List;
+
 @Data
 @Entity
 public class Company {
@@ -19,34 +16,40 @@ public class Company {
 	@ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
 	@JoinColumn(name = "parent_company_id")
 	private Company parentCompany;
-	@ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-	@JoinColumn(name = "type_id")
-	private CompanyType type;
-	@ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-	@JoinColumn(name = "level_id")
-	private CompanyLevel level;
-	@ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-	@JoinColumn(name = "com_nature_id")
-	private CompanyNature comNature;
-	@ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-	@JoinColumn(name = "business_nature_id")
-	private BusinesssNature businessNature;
-	@ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-	@JoinColumn(name = "constitution_id")
-	private CompanyConstitution constitution;
-	@ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-	@JoinColumn(name = "status_id")
-	private CompanyStatus status;
+	private String comTypeId;
+	private String comLevelId;
+	private String comNatureId;
+	private String businessNatureId;
+	private String companyConstitutionId;
+	private String statusId;
 	@ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
 	@JoinColumn(name = "language_id")
 	private Language language;
-	@ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-	@JoinColumn(name = "currency_id")
-	private Currency currency;
-	@ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-	@JoinColumn(name = "bank")
-	private Bank bank;
-	@OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-	@JoinColumn(name = "address_details")
+	private String currencyId;
+	private String bank;
+	@OneToOne(mappedBy = "company")
 	private ComAddressDetails addressDetails;
+
+	/* One-to-Many */
+	@OneToMany(mappedBy = "company")
+	private List<CompanyContact> contacts;
+
+	@OneToMany(mappedBy = "company")
+	private List<CompanyTax> taxDetails;
+
+	@OneToMany(mappedBy = "company")
+	private List<CompanyDirector> directors;
+
+	@OneToMany(mappedBy = "company")
+	private List<CompanyJointVenture> jointVentures;
+
+	@OneToOne(mappedBy = "company")
+	private CompanyProfile profile;
+
+	@OneToMany(mappedBy = "company")
+	private List<CompanyAdditionalInfo> additionalInfos;
+
+	@OneToMany(mappedBy = "company")
+	private List<CompanyLocalName> localNames;
+
 }

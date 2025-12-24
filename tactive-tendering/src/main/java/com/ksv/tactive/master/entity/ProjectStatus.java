@@ -1,0 +1,13 @@
+package com.ksv.tactive.master.entity;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import lombok.Data;
+@Data
+@Entity
+public class ProjectStatus {
+	@Id
+	private String id;
+	private String status;
+	private String processUrl;
+	private boolean active;
+}

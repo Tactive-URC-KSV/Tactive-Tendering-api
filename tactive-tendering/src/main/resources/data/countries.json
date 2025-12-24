@@ -2,1246 +2,1246 @@
   {
     "country": "Aruba",
     "countryCode": "AW",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Afghanistan",
     "countryCode": "AF",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Angola",
     "countryCode": "AO",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Anguilla",
     "countryCode": "AI",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Åland Islands",
     "countryCode": "AX",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Albania",
     "countryCode": "AL",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Andorra",
     "countryCode": "AD",
-    "isActive": true
+    "active": true
   },
   {
     "country": "United Arab Emirates",
     "countryCode": "AE",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Argentina",
     "countryCode": "AR",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Armenia",
     "countryCode": "AM",
-    "isActive": true
+    "active": true
   },
   {
     "country": "American Samoa",
     "countryCode": "AS",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Antarctica",
     "countryCode": "AQ",
-    "isActive": true
+    "active": true
   },
   {
     "country": "French Southern Territories",
     "countryCode": "TF",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Antigua and Barbuda",
     "countryCode": "AG",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Australia",
     "countryCode": "AU",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Austria",
     "countryCode": "AT",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Azerbaijan",
     "countryCode": "AZ",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Burundi",
     "countryCode": "BI",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Belgium",
     "countryCode": "BE",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Benin",
     "countryCode": "BJ",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Bonaire, Sint Eustatius and Saba",
     "countryCode": "BQ",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Burkina Faso",
     "countryCode": "BF",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Bangladesh",
     "countryCode": "BD",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Bulgaria",
     "countryCode": "BG",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Bahrain",
     "countryCode": "BH",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Bahamas",
     "countryCode": "BS",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Bosnia and Herzegovina",
     "countryCode": "BA",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Saint Barthélemy",
     "countryCode": "BL",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Belarus",
     "countryCode": "BY",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Belize",
     "countryCode": "BZ",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Bermuda",
     "countryCode": "BM",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Bolivia, Plurinational State of",
     "countryCode": "BO",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Brazil",
     "countryCode": "BR",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Barbados",
     "countryCode": "BB",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Brunei Darussalam",
     "countryCode": "BN",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Bhutan",
     "countryCode": "BT",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Bouvet Island",
     "countryCode": "BV",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Botswana",
     "countryCode": "BW",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Central African Republic",
     "countryCode": "CF",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Canada",
     "countryCode": "CA",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Cocos (Keeling) Islands",
     "countryCode": "CC",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Switzerland",
     "countryCode": "CH",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Chile",
     "countryCode": "CL",
-    "isActive": true
+    "active": true
   },
   {
     "country": "China",
     "countryCode": "CN",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Côte d'Ivoire",
     "countryCode": "CI",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Cameroon",
     "countryCode": "CM",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Congo, The Democratic Republic of the",
     "countryCode": "CD",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Congo",
     "countryCode": "CG",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Cook Islands",
     "countryCode": "CK",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Colombia",
     "countryCode": "CO",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Comoros",
     "countryCode": "KM",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Cabo Verde",
     "countryCode": "CV",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Costa Rica",
     "countryCode": "CR",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Cuba",
     "countryCode": "CU",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Curaçao",
     "countryCode": "CW",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Christmas Island",
     "countryCode": "CX",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Cayman Islands",
     "countryCode": "KY",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Cyprus",
     "countryCode": "CY",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Czechia",
     "countryCode": "CZ",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Germany",
     "countryCode": "DE",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Djibouti",
     "countryCode": "DJ",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Dominica",
     "countryCode": "DM",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Denmark",
     "countryCode": "DK",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Dominican Republic",
     "countryCode": "DO",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Algeria",
     "countryCode": "DZ",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Ecuador",
     "countryCode": "EC",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Egypt",
     "countryCode": "EG",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Eritrea",
     "countryCode": "ER",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Western Sahara",
     "countryCode": "EH",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Spain",
     "countryCode": "ES",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Estonia",
     "countryCode": "EE",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Ethiopia",
     "countryCode": "ET",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Finland",
     "countryCode": "FI",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Fiji",
     "countryCode": "FJ",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Falkland Islands (Malvinas)",
     "countryCode": "FK",
-    "isActive": true
+    "active": true
   },
   {
     "country": "France",
     "countryCode": "FR",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Faroe Islands",
     "countryCode": "FO",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Micronesia, Federated States of",
     "countryCode": "FM",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Gabon",
     "countryCode": "GA",
-    "isActive": true
+    "active": true
   },
   {
     "country": "United Kingdom",
     "countryCode": "GB",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Georgia",
     "countryCode": "GE",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Guernsey",
     "countryCode": "GG",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Ghana",
     "countryCode": "GH",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Gibraltar",
     "countryCode": "GI",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Guinea",
     "countryCode": "GN",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Guadeloupe",
     "countryCode": "GP",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Gambia",
     "countryCode": "GM",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Guinea-Bissau",
     "countryCode": "GW",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Equatorial Guinea",
     "countryCode": "GQ",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Greece",
     "countryCode": "GR",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Grenada",
     "countryCode": "GD",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Greenland",
     "countryCode": "GL",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Guatemala",
     "countryCode": "GT",
-    "isActive": true
+    "active": true
   },
   {
     "country": "French Guiana",
     "countryCode": "GF",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Guam",
     "countryCode": "GU",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Guyana",
     "countryCode": "GY",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Hong Kong",
     "countryCode": "HK",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Heard Island and McDonald Islands",
     "countryCode": "HM",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Honduras",
     "countryCode": "HN",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Croatia",
     "countryCode": "HR",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Haiti",
     "countryCode": "HT",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Hungary",
     "countryCode": "HU",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Indonesia",
     "countryCode": "ID",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Isle of Man",
     "countryCode": "IM",
-    "isActive": true
+    "active": true
   },
   {
     "country": "India",
     "countryCode": "IN",
-    "isActive": true
+    "active": true
   },
   {
     "country": "British Indian Ocean Territory",
     "countryCode": "IO",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Ireland",
     "countryCode": "IE",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Iran, Islamic Republic of",
     "countryCode": "IR",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Iraq",
     "countryCode": "IQ",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Iceland",
     "countryCode": "IS",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Israel",
     "countryCode": "IL",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Italy",
     "countryCode": "IT",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Jamaica",
     "countryCode": "JM",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Jersey",
     "countryCode": "JE",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Jordan",
     "countryCode": "JO",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Japan",
     "countryCode": "JP",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Kazakhstan",
     "countryCode": "KZ",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Kenya",
     "countryCode": "KE",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Kyrgyzstan",
     "countryCode": "KG",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Cambodia",
     "countryCode": "KH",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Kiribati",
     "countryCode": "KI",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Saint Kitts and Nevis",
     "countryCode": "KN",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Korea, Republic of",
     "countryCode": "KR",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Kuwait",
     "countryCode": "KW",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Lao People's Democratic Republic",
     "countryCode": "LA",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Lebanon",
     "countryCode": "LB",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Liberia",
     "countryCode": "LR",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Libya",
     "countryCode": "LY",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Saint Lucia",
     "countryCode": "LC",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Liechtenstein",
     "countryCode": "LI",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Sri Lanka",
     "countryCode": "LK",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Lesotho",
     "countryCode": "LS",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Lithuania",
     "countryCode": "LT",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Luxembourg",
     "countryCode": "LU",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Latvia",
     "countryCode": "LV",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Macao",
     "countryCode": "MO",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Saint Martin (French part)",
     "countryCode": "MF",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Morocco",
     "countryCode": "MA",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Monaco",
     "countryCode": "MC",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Moldova, Republic of",
     "countryCode": "MD",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Madagascar",
     "countryCode": "MG",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Maldives",
     "countryCode": "MV",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Mexico",
     "countryCode": "MX",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Marshall Islands",
     "countryCode": "MH",
-    "isActive": true
+    "active": true
   },
   {
     "country": "North Macedonia",
     "countryCode": "MK",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Mali",
     "countryCode": "ML",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Malta",
     "countryCode": "MT",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Myanmar",
     "countryCode": "MM",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Montenegro",
     "countryCode": "ME",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Mongolia",
     "countryCode": "MN",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Northern Mariana Islands",
     "countryCode": "MP",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Mozambique",
     "countryCode": "MZ",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Mauritania",
     "countryCode": "MR",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Montserrat",
     "countryCode": "MS",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Martinique",
     "countryCode": "MQ",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Mauritius",
     "countryCode": "MU",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Malawi",
     "countryCode": "MW",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Malaysia",
     "countryCode": "MY",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Mayotte",
     "countryCode": "YT",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Namibia",
     "countryCode": "NA",
-    "isActive": true
+    "active": true
   },
   {
     "country": "New Caledonia",
     "countryCode": "NC",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Niger",
     "countryCode": "NE",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Norfolk Island",
     "countryCode": "NF",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Nigeria",
     "countryCode": "NG",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Nicaragua",
     "countryCode": "NI",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Niue",
     "countryCode": "NU",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Netherlands",
     "countryCode": "NL",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Norway",
     "countryCode": "NO",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Nepal",
     "countryCode": "NP",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Nauru",
     "countryCode": "NR",
-    "isActive": true
+    "active": true
   },
   {
     "country": "New Zealand",
     "countryCode": "NZ",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Oman",
     "countryCode": "OM",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Pakistan",
     "countryCode": "PK",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Panama",
     "countryCode": "PA",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Pitcairn",
     "countryCode": "PN",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Peru",
     "countryCode": "PE",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Philippines",
     "countryCode": "PH",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Palau",
     "countryCode": "PW",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Papua New Guinea",
     "countryCode": "PG",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Poland",
     "countryCode": "PL",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Puerto Rico",
     "countryCode": "PR",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Korea, Democratic People's Republic of",
     "countryCode": "KP",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Portugal",
     "countryCode": "PT",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Paraguay",
     "countryCode": "PY",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Palestine, State of",
     "countryCode": "PS",
-    "isActive": true
+    "active": true
   },
   {
     "country": "French Polynesia",
     "countryCode": "PF",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Qatar",
     "countryCode": "QA",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Réunion",
     "countryCode": "RE",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Romania",
     "countryCode": "RO",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Russian Federation",
     "countryCode": "RU",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Rwanda",
     "countryCode": "RW",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Saudi Arabia",
     "countryCode": "SA",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Sudan",
     "countryCode": "SD",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Senegal",
     "countryCode": "SN",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Singapore",
     "countryCode": "SG",
-    "isActive": true
+    "active": true
   },
   {
     "country": "South Georgia and the South Sandwich Islands",
     "countryCode": "GS",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Saint Helena, Ascension and Tristan da Cunha",
     "countryCode": "SH",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Svalbard and Jan Mayen",
     "countryCode": "SJ",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Solomon Islands",
     "countryCode": "SB",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Sierra Leone",
     "countryCode": "SL",
-    "isActive": true
+    "active": true
   },
   {
     "country": "El Salvador",
     "countryCode": "SV",
-    "isActive": true
+    "active": true
   },
   {
     "country": "San Marino",
     "countryCode": "SM",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Somalia",
     "countryCode": "SO",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Saint Pierre and Miquelon",
     "countryCode": "PM",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Serbia",
     "countryCode": "RS",
-    "isActive": true
+    "active": true
   },
   {
     "country": "South Sudan",
     "countryCode": "SS",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Sao Tome and Principe",
     "countryCode": "ST",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Suriname",
     "countryCode": "SR",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Slovakia",
     "countryCode": "SK",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Slovenia",
     "countryCode": "SI",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Sweden",
     "countryCode": "SE",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Eswatini",
     "countryCode": "SZ",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Sint Maarten (Dutch part)",
     "countryCode": "SX",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Seychelles",
     "countryCode": "SC",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Syrian Arab Republic",
     "countryCode": "SY",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Turks and Caicos Islands",
     "countryCode": "TC",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Chad",
     "countryCode": "TD",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Togo",
     "countryCode": "TG",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Thailand",
     "countryCode": "TH",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Tajikistan",
     "countryCode": "TJ",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Tokelau",
     "countryCode": "TK",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Turkmenistan",
     "countryCode": "TM",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Timor-Leste",
     "countryCode": "TL",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Tonga",
     "countryCode": "TO",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Trinidad and Tobago",
     "countryCode": "TT",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Tunisia",
     "countryCode": "TN",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Turkey",
     "countryCode": "TR",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Tuvalu",
     "countryCode": "TV",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Taiwan, Province of China",
     "countryCode": "TW",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Tanzania, United Republic of",
     "countryCode": "TZ",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Uganda",
     "countryCode": "UG",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Ukraine",
     "countryCode": "UA",
-    "isActive": true
+    "active": true
   },
   {
     "country": "United States Minor Outlying Islands",
     "countryCode": "UM",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Uruguay",
     "countryCode": "UY",
-    "isActive": true
+    "active": true
   },
   {
     "country": "United States",
     "countryCode": "US",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Uzbekistan",
     "countryCode": "UZ",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Holy See (Vatican City State)",
     "countryCode": "VA",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Saint Vincent and the Grenadines",
     "countryCode": "VC",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Venezuela, Bolivarian Republic of",
     "countryCode": "VE",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Virgin Islands, British",
     "countryCode": "VG",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Virgin Islands, U.S.",
     "countryCode": "VI",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Viet Nam",
     "countryCode": "VN",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Vanuatu",
     "countryCode": "VU",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Wallis and Futuna",
     "countryCode": "WF",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Samoa",
     "countryCode": "WS",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Yemen",
     "countryCode": "YE",
-    "isActive": true
+    "active": true
   },
   {
     "country": "South Africa",
     "countryCode": "ZA",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Zambia",
     "countryCode": "ZM",
-    "isActive": true
+    "active": true
   },
   {
     "country": "Zimbabwe",
     "countryCode": "ZW",
-    "isActive": true
+    "active": true
   }
 ]

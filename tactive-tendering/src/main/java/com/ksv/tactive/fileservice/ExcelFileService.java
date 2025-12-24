@@ -28,15 +28,17 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.ksv.tactive.dto.ExcelExtractBOQ;
 import com.ksv.tactive.exception.DataNotFoundException;
-import com.ksv.tactive.project.dao.UOMDao;
+import com.ksv.tactive.master.entity.UOM;
 import com.ksv.tactive.project.entity.BOQ;
-import com.ksv.tactive.project.entity.UOM;
+import com.ksv.tactive.service.MasterService;
+
 import jakarta.servlet.http.HttpServletResponse;
 
 @Service
 public class ExcelFileService {
+	
 	@Autowired
-	private UOMDao uomDao;
+	private MasterService masterService;
 
 	private Workbook readXlsxFile(MultipartFile file) throws IOException {
 		InputStream inputStream = file.getInputStream();
@@ -130,7 +132,7 @@ public class ExcelFileService {
 								}
 								case "uom" -> {
 									if (isNotEmpty(value)) {
-										boq.setUom(findUOM(value));
+//										boq.setUom(findUOM(value));
 										boq.setLastLevel(true);
 									}
 									else {
@@ -146,16 +148,7 @@ public class ExcelFileService {
 		}
 		return boqList;
 	}
-//	private Integer parseInteger(String value) {
-//		if (isNotEmpty(value)) {
-//			try {
-//				return (int) Double.parseDouble(value);
-//			} catch (NumberFormatException e) {
-//				return null;
-//			}
-//		}
-//		return null;
-//	}
+
 
 	private boolean isNotEmpty(String value) {
 		return value != null && !value.trim().isEmpty();
@@ -256,16 +249,6 @@ public class ExcelFileService {
 		return sheet != null ? sheet : null;
 	}
 
-	protected UOM findUOM(String value) {
-		String sanitizedValue = value.trim().replaceAll("[., /]", "");
-		List<UOM> uoms = uomDao.findAll();
-		for (UOM uom : uoms) {
-			if (uom.getUomCode().equalsIgnoreCase(sanitizedValue) || uom.getUomName().equalsIgnoreCase(value)) {
-				return uom;
-			}
-		}
-		return null;
-	}
 
 	public void generateBoqFile(List<BOQ> boqList, HttpServletResponse response) throws IOException {
 		String projectName = boqList.get(0).getProject().getProjectName().trim().replaceAll("\\s+", "_");
@@ -294,11 +277,19 @@ public class ExcelFileService {
 			row.createCell(1).setCellValue(boq.getId());
 			row.createCell(2).setCellValue(boq.getBoqCode());
 			row.createCell(3).setCellValue(boq.getBoqName());
-			row.createCell(4).setCellValue(boq.getUom() != null ? boq.getUom().getUomCode() : "");
+			row.createCell(4).setCellValue(boq.getUomId() != null ? getUOMCode(boq.getUomId()) : "");
 			row.createCell(5).setCellValue(boq.getQuantity());
 			row.createCell(8).setCellValue(boq.getParentBOQ() != null ? boq.getParentBOQ().getBoqCode() : "");
 			row.createCell(9).setCellValue(boq.isLastLevel() ? "Yes" : "No");
 		}
+	}
+
+	private String getUOMCode(String uomId) {
+		UOM uom = masterService.findUomById(uomId);
+		if (uom != null) {
+			return uom.getUomCode();
+		}
+		return null;
 	}
 
 	private void addHeader(XSSFSheet sheet) {

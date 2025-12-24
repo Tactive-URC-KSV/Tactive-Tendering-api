@@ -7,5 +7,5 @@ import com.ksv.tactive.contractor.entity.ContractorNature;
 
 @Repository
 public interface ContractorNatureDao extends JpaRepository<ContractorNature, String>{
-
+    boolean existsByNatureIgnoreCaseAndContractorType_Id(String nature, String id);
 }
