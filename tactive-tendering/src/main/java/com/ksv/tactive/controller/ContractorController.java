@@ -1,8 +1,8 @@
 package com.ksv.tactive.controller;
 
-import com.ksv.tactive.contractor.entity.*;
 import com.ksv.tactive.dto.ContractorInputDto;
 import com.ksv.tactive.dto.ContractorNatureDto;
+import com.ksv.tactive.project.entity.*;
 import com.ksv.tactive.service.ContractorService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
@@ -66,12 +66,12 @@ public class ContractorController {
 		return ResponseEntity.status(HttpStatus.OK).body(contractorService.getAllContractorGrade());
 	}
 	@PostMapping("/addContractor")
-	public ResponseEntity<?> addContractor(@RequestBody ContractorInputDto contractorInputDto,
-										   @RequestBody ContractorAddress contractorAddress,
-										   @RequestBody ContractorContacts contractorContacts,
-										   @RequestBody ContractorTaxDetails contractorTaxDetails,
-										   @RequestBody ContractorBankDetails contractorBankDetails,
-										   @RequestBody ContractorAddInfo contractorAddInfo,
+	public ResponseEntity<?> addContractor(@RequestPart ContractorInputDto contractorInputDto,
+										   @RequestPart ContractorAddress contractorAddress,
+										   @RequestPart ContractorContacts contractorContacts,
+										   @RequestPart ContractorTaxDetails contractorTaxDetails,
+										   @RequestPart ContractorBankDetails contractorBankDetails,
+										   @RequestPart ContractorAddInfo contractorAddInfo,
 										   @RequestParam List<MultipartFile> files){
 		List<String> paths = contractorService.saveDocuments(files);
 		contractorInputDto.setPaths(paths);

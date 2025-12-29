@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
 
 import com.ksv.tactive.dto.*;
 import com.ksv.tactive.exception.DuplicateEntryException;
+import com.ksv.tactive.util.QuantityType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
@@ -33,21 +34,20 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.itextpdf.text.DocumentException;
-import com.ksv.tactive.currency.entity.Currency;
+import com.ksv.tactive.project.entity.Currency;
 import com.ksv.tactive.exception.DataNotFoundException;
 import com.ksv.tactive.exception.DuplicateProjectCodeException;
 import com.ksv.tactive.exception.FileNotSaveException;
 import com.ksv.tactive.fileservice.ExcelFileService;
 import com.ksv.tactive.fileservice.PdfFileService;
-import com.ksv.tactive.master.entity.ProjectStatus;
-import com.ksv.tactive.master.entity.QuantityType;
-import com.ksv.tactive.master.entity.Region;
-import com.ksv.tactive.master.entity.ResourceNature;
-import com.ksv.tactive.master.entity.ResourceType;
-import com.ksv.tactive.master.entity.Resources;
-import com.ksv.tactive.master.entity.ScopeOfPackage;
-import com.ksv.tactive.master.entity.Sector;
-import com.ksv.tactive.master.entity.UOM;
+import com.ksv.tactive.project.entity.ProjectStatus;
+import com.ksv.tactive.project.entity.Region;
+import com.ksv.tactive.project.entity.ResourceNature;
+import com.ksv.tactive.project.entity.ResourceType;
+import com.ksv.tactive.project.entity.Resources;
+import com.ksv.tactive.project.entity.ScopeOfPackage;
+import com.ksv.tactive.project.entity.Sector;
+import com.ksv.tactive.project.entity.UOM;
 import com.ksv.tactive.project.dao.ActivityGroupDao;
 import com.ksv.tactive.project.dao.ApprovalsDao;
 import com.ksv.tactive.project.dao.BOQDao;
@@ -136,7 +136,7 @@ public class ProjectServiceImpl implements ProjectService {
 			throw new DataNotFoundException(messageSource.getMessage("project.not.found", null, Locale.ENGLISH));
 		} else {
 			for (Projects project : projects) {
-				if (project != null && !project.isArchieve()) {
+				if (project != null && !project.isArchive()) {
 					ProjectInfoDto projectInfo = new ProjectInfoDto();
 					projectInfo.setProjectId(project.getId());
 					projectInfo.setProjectName(project.getProjectName());
@@ -145,16 +145,7 @@ public class ProjectServiceImpl implements ProjectService {
 					projectInfo.setEndDate(project.getEndDate());	
 					projectInfo.setEstimatedValue(project.getEstimatedValue());
 					projectInfo.setCreatedAt(project.getCreatedAt());
-					projectInfo.setArchieve(project.isArchieve());
-					if (project.getSectorId() != null) {
-						Sector sector = masterService.findSectorById(project.getSectorId());
-						projectInfo.setSectorName(sector != null ? sector.getSectorName() : null);
-					}
-					if (project.getRegionId() != null) {
-						Region region = masterService.findRegionById(project.getRegionId());
-						projectInfo.setRegionName(region != null ? region.getRegionName() : null);
-					}
-					projectInfo.setStatus(project.getProjectStatusId());
+					projectInfo.setArchieve(project.isArchive());
 					filteredProjects.add(projectInfo);
 				}
 			}
@@ -183,19 +174,19 @@ public class ProjectServiceImpl implements ProjectService {
 		if (!projectInputDTO.getRegionId().isEmpty()) {
 			Region region = masterService.findRegionById(projectInputDTO.getRegionId());
 			if(region != null) {
-				project.setRegionId(region.getId());
+				project.setRegion(region);
 			}
 		}
 		if (!projectInputDTO.getSectorId().isEmpty()) {
 			Sector sector = masterService.findSectorById(projectInputDTO.getSectorId());
 			if(sector != null) {
-				project.setSectorId(sector.getId());
+				project.setSector(sector);
 			}
 		}
 		if (!projectInputDTO.getUomId().isEmpty()) {
 			UOM uom = masterService.findUomById(projectInputDTO.getUomId());
 			if(uom != null) {
-				project.setUomId(uom.getId());
+				project.setUom(uom);
 			}
 		}
 		if (!projectInputDTO.getScopeOfPackageIds().isEmpty()) {
@@ -203,10 +194,10 @@ public class ProjectServiceImpl implements ProjectService {
 					.filter(id -> id != null && !id.trim().isEmpty())
 					.map(id -> masterService.findScopeOfPackageById(id))
 					.collect(Collectors.toSet());
-			project.setScopeOfPackages(scopePackages.stream()
+			project.setScopeOfPackage(scopePackages.stream()
 					.filter(scope -> scope != null)
 					.map(scope -> {
-						return scope.getId();
+						return scope;
 					})
 					.collect(Collectors.toSet()));
 		}
@@ -216,7 +207,7 @@ public class ProjectServiceImpl implements ProjectService {
 		project.setCompanyId(userService.findLoggedInUser().getCompanyId());
 		ProjectStatus status = masterService.findStatusByProcessUrl(request.getRequestURI());
 		if (status != null) {
-			project.setProjectStatusId(status.getId());
+			project.setProjectStatus(status);
 		} 
 		Projects savedProject = projectDao.save(project);
 		if (savedProject != null) {
@@ -271,26 +262,26 @@ public class ProjectServiceImpl implements ProjectService {
 		project.setCreatedAt(existingProject.getCreatedAt());
 		project.setCreatedBy(existingProject.getCreatedBy());
 		project.setCompanyId(existingProject.getCompanyId());
-		project.setProjectStatusId(existingProject.getProjectStatusId());
-		project.setArchieve(existingProject.isArchieve());
+		project.setProjectStatus(existingProject.getProjectStatus());
+		project.setArchive(existingProject.isArchive());
 		project.setProjectCode(existingProject.getProjectCode());
 		project.setEstimatedValue(project.getBuildingArea() * project.getRatePerUnit());
 		if (!projectInputDTO.getRegionId().isEmpty()) {
 			Region region = masterService.findRegionById(projectInputDTO.getRegionId());
 			if(region != null) {
-				project.setRegionId(region.getId());
+				project.setRegion(region);
 			}
 		}
 		if (!projectInputDTO.getSectorId().isEmpty()) {
 			Sector sector = masterService.findSectorById(projectInputDTO.getSectorId());
 			if(sector != null) {
-				project.setSectorId(sector.getId());
+				project.setSector(sector);
 			}
 		}
 		if (!projectInputDTO.getUomId().isEmpty()) {
 			UOM uom = masterService.findUomById(projectInputDTO.getUomId());
 			if(uom != null) {
-				project.setUomId(uom.getId());
+				project.setUom(uom);
 			}
 		}
 		if (!projectInputDTO.getScopeOfPackageIds().isEmpty()) {
@@ -298,10 +289,10 @@ public class ProjectServiceImpl implements ProjectService {
 					.filter(id -> id != null && !id.trim().isEmpty())
 					.map(id -> masterService.findScopeOfPackageById(id))
 					.collect(Collectors.toSet());
-			project.setScopeOfPackages(scopePackages.stream()
+			project.setScopeOfPackage(scopePackages.stream()
 					.filter(scope -> scope != null)
 					.map(scope -> {
-						return scope.getId();
+						return scope;
 					})
 					.collect(Collectors.toSet()));
 		}
@@ -311,7 +302,7 @@ public class ProjectServiceImpl implements ProjectService {
 	@Override
 	public String deleteProject(String projectId) {
 		Projects project = projectDao.findById(projectId).orElse(null);
-		project.setArchieve(true);
+		project.setArchive(true);
 		if (project != null) {
 			projectDao.save(project);
 		}
@@ -422,7 +413,7 @@ public class ProjectServiceImpl implements ProjectService {
 		return messageSource.getMessage("feasibility.study.status.update.success", null, Locale.ENGLISH);
 	}
 	private Projects updateProjectStatus(Projects project, ProjectStatus status) {
-		project.setProjectStatusId(status.getId());
+		project.setProjectStatus(status);
 		return projectDao.save(project);
 	}
 	@Override
@@ -661,7 +652,7 @@ public class ProjectServiceImpl implements ProjectService {
 	        boq.setProject(project);
 	        if (row.getUom() != null) {
 	            UOM uom = findUOM(row.getUom());
-	            boq.setUomId(uom != null ? uom.getId() : null);
+	            boq.setUom(uom);
 	        }
 	        if (!isValidText(row.getBoqCode()) && !isNotEmpty(row.getBoqCode())) {
 	            return;
@@ -983,7 +974,7 @@ public class ProjectServiceImpl implements ProjectService {
 					List<UOM> uomList = masterService.getAllUOMs();
 					for (UOM uom : uomList) {
 						if (uom.getUomCode().equalsIgnoreCase("ls")) {
-							act.setUomId(uom.getId());
+							act.setUom(uom);
 							break;
 						}
 					}
@@ -1020,8 +1011,8 @@ public class ProjectServiceImpl implements ProjectService {
 				.collect(Collectors.toList());
 		if (allBoqs.isEmpty())
 			throw new DataNotFoundException("No BOQs found for mapping");
-		Set<String> uoms = allBoqs.stream()
-				.map(b -> b.getUomId())
+		Set<UOM> uoms = allBoqs.stream()
+				.map(b -> b.getUom())
 				.collect(Collectors.toSet());
 		double qty = allBoqs.stream().mapToDouble(BOQ::getQuantity).sum();
 		double rate = allBoqs.stream().mapToDouble(BOQ::getTotalRate).average().orElse(0.0);
@@ -1032,12 +1023,12 @@ public class ProjectServiceImpl implements ProjectService {
 			List<UOM> uomList = masterService.getAllUOMs();
 			for (UOM uom : uomList) {
 				if (uom.getUomCode().equalsIgnoreCase("ls")) {
-					act.setUomId(uom.getId());
+					act.setUom(uom);
 					break;
 				}
 			}
 		} else {
-			act.setUomId(allBoqs.get(0).getUomId());
+			act.setUom(allBoqs.get(0).getUom());
 		}
 		act.setBoq(new HashSet<>(allBoqs));
 		act.setQuantity(qty);
@@ -1067,7 +1058,7 @@ public class ProjectServiceImpl implements ProjectService {
 		}
 		if (dto.getUomId() != null && !dto.getUomId().isEmpty()) {
 			UOM uom = masterService.findUomById(dto.getUomId());
-			costCodeAct.setUomId(uom.getId());
+			costCodeAct.setUom(uom);
 		}
 		costCodeAct.setActivityCode(dto.getActivityCode());
 		costCodeAct.setActivityName(dto.getActivityName());
@@ -1199,22 +1190,28 @@ public class ProjectServiceImpl implements ProjectService {
 	    tenderEst.setExchangeRate(dto.getExchangeRate());
 	    ResourceType resourceType = dto.getResourceTypeId() != null
 	        ? masterService.findResourceTypeById(dto.getResourceTypeId()) : null;
-	    tenderEst.setResourceTypeId(resourceType != null ? resourceType.getId() : null);
+	    tenderEst.setResourceType(resourceType != null ? resourceType : null);
 	    Resources resource = dto.getResourceId() != null
 	        ? masterService.findResourceById(dto.getResourceId()) : null;
-	    tenderEst.setResourceId(resource != null ? resource.getId() : null);
+	    tenderEst.setResources(resource != null ? resource : null);
 	    UOM uom = dto.getUomId() != null
 	        ? masterService.findUomById(dto.getUomId()) : null;
-	    tenderEst.setUomId(uom != null ? uom.getId() : null);
+	    tenderEst.setUom(uom != null ? uom : null);
 	    ResourceNature resourceNature = dto.getResourceNatureId() != null
 	        ? masterService.findResourceNatureById(dto.getResourceNatureId()) : null;
-	    tenderEst.setResourceNatureId(resourceNature != null ? resourceNature.getId() : null);
-	    QuantityType quantityType = dto.getQuantityTypeId() != null
-	        ? masterService.findQuantityTypeById(dto.getQuantityTypeId()) : null;
-	    tenderEst.setQuantityTypeId(quantityType != null ? quantityType.getId() : null);
+	    tenderEst.setResourceNature(resourceNature != null ? resourceNature : null);
+		QuantityType quantityType = null;
+		if (dto.getQuantityTypeId() != null) {
+			try {
+				quantityType = QuantityType.valueOf(dto.getQuantityTypeId().toUpperCase());
+			} catch (IllegalArgumentException e) {
+				throw new IllegalArgumentException("Invalid quantity type: " + dto.getQuantityTypeId());
+			}
+		}
+		tenderEst.setQuantityType(quantityType);
 	    Currency currency = dto.getCurrencyId() != null
 	        ? masterService.findCurrencyById(dto.getCurrencyId()) : null;
-	    tenderEst.setCurrencyId(currency != null ? currency.getId() : null);
+	    tenderEst.setCurrency(currency != null ? currency : null);
 	}
 	private void updateBoqTotals(BOQ boq, double totalCostCompanyCurrency) {
 	    boq.setTotalAmount(boq.getTotalAmount() + totalCostCompanyCurrency);
@@ -1255,12 +1252,12 @@ public class ProjectServiceImpl implements ProjectService {
 	}
 	private TenderResourceDto createTenderResourceDto(TenderEstimation existingTenderEst, BOQ boq) {
 	    TenderResourceDto dto = new TenderResourceDto();
-	    dto.setResourceTypeId(existingTenderEst.getResourceTypeId() != null ? existingTenderEst.getResourceTypeId() : null);
-	    dto.setResourceId(existingTenderEst.getResourceId() != null ? existingTenderEst.getResourceId() : null);
-	    dto.setUomId(existingTenderEst.getUomId() != null ? existingTenderEst.getUomId() : null);
-	    dto.setResourceNatureId(existingTenderEst.getResourceNatureId() != null ? existingTenderEst.getResourceNatureId() : null);
-	    dto.setQuantityTypeId(existingTenderEst.getQuantityTypeId() != null ? existingTenderEst.getQuantityTypeId() : null);
-	    dto.setCurrencyId(existingTenderEst.getCurrencyId() != null ? existingTenderEst.getCurrencyId() : null);
+	    dto.setResourceTypeId(existingTenderEst.getResourceType() != null ? existingTenderEst.getResourceType().getId() : null);
+	    dto.setResourceId(existingTenderEst.getResources() != null ? existingTenderEst.getResources().getId() : null);
+	    dto.setUomId(existingTenderEst.getUom() != null ? existingTenderEst.getUom().getId() : null);
+	    dto.setResourceNatureId(existingTenderEst.getResourceNature() != null ? existingTenderEst.getResourceNature().getId() : null);
+	    dto.setQuantityTypeId(existingTenderEst.getQuantityType() != null ? existingTenderEst.getQuantityType().name() : null);
+	    dto.setCurrencyId(existingTenderEst.getCurrency() != null ? existingTenderEst.getCurrency().getId() : null);
 	    dto.setBoqId(boq.getId());
 	    dto.setId(existingTenderEst.getId());
 	    dto.setDocNumber(existingTenderEst.getDocNumber());

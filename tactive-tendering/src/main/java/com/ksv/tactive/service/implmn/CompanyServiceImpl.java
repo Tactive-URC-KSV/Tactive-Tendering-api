@@ -1,7 +1,9 @@
 package com.ksv.tactive.service.implmn;
-import com.ksv.tactive.company.dao.ComapanyDao;
-import com.ksv.tactive.company.entity.*;
+import com.ksv.tactive.project.dao.ComapanyDao;
 import com.ksv.tactive.dto.*;
+import com.ksv.tactive.project.entity.*;
+import com.ksv.tactive.service.MasterService;
+import com.ksv.tactive.util.CompanyType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -26,6 +28,9 @@ public class CompanyServiceImpl implements CompanyService {
 	@Value("${file.company.upload.path}")
 	private String fileDir;
 
+	@Autowired
+	private MasterService masterService;
+
 	@Override
 	public void saveCompany(CompanySaveDTO dto, List<MultipartFile> files) {
 
@@ -37,20 +42,20 @@ public class CompanyServiceImpl implements CompanyService {
 		if (company.getId() == null) {
 			company.setId(UUID.randomUUID().toString());
 		}
-
-		/* ===== BASIC INFO ===== */
 		company.setCompanyName(dto.getCompanyName());
 		company.setShortName(dto.getShortName());
-		company.setComTypeId(dto.getComTypeId());
-		company.setComLevelId(dto.getComLevelId());
-		company.setComNatureId(dto.getComNatureId());
-		company.setBusinessNatureId(dto.getBusinessNatureId());
-		company.setCompanyConstitutionId(dto.getCompanyConstitutionId());
-		company.setStatusId(dto.getStatusId());
-		company.setCurrencyId(dto.getCurrencyId());
+		CompanyType comType = null;
+		if (dto.getComTypeId() != null && !dto.getComTypeId().isBlank()) {
+			comType = CompanyType.valueOf(dto.getComTypeId().trim().toUpperCase());
+		}
+		company.setComType(comType);
+		company.setCompanyLevel(masterService.getCompanyLevelById(dto.getComLevelId()));
+		company.setCompanyNature(masterService.getCompanyNatureById(dto.getComNatureId()));
+		company.setBusinessNature(masterService.getBusinessNatureById(dto.getBusinessNatureId()));
+		company.setCompanyConstitution(masterService.getCompanyConstitutionById(dto.getCompanyConstitutionId()));
+		company.setCompanyStatus(masterService.getCompanyStatusById(dto.getStatusId()));
+		company.setCurrency(masterService.getCurrencyById(dto.getCurrencyId()));
 		company.setBank(dto.getBank());
-
-		/* ===== ADDRESS ===== */
 		if (dto.getAddress() != null) {
 			ComAddressDetails address = new ComAddressDetails();
 			address.setId(
@@ -70,9 +75,6 @@ public class CompanyServiceImpl implements CompanyService {
 
 			company.setAddressDetails(address);
 		}
-
-		/* ===== CONTACTS ===== */
-		company.getContacts().clear();
 		if (dto.getContacts() != null) {
 			List<CompanyContact> contacts = new ArrayList<>();
 			for (ContactDTO c : dto.getContacts()) {
@@ -87,9 +89,6 @@ public class CompanyServiceImpl implements CompanyService {
 			}
 			company.setContacts(contacts);
 		}
-
-		/* ===== TAX DETAILS ===== */
-		company.getTaxDetails().clear();
 		if (dto.getTaxDetails() != null) {
 			List<CompanyTax> taxes = new ArrayList<>();
 			for (TaxDTO t : dto.getTaxDetails()) {
@@ -108,9 +107,6 @@ public class CompanyServiceImpl implements CompanyService {
 			}
 			company.setTaxDetails(taxes);
 		}
-
-		/* ===== DIRECTORS ===== */
-		company.getDirectors().clear();
 		if (dto.getDirectors() != null) {
 			List<CompanyDirector> directors = new ArrayList<>();
 			for (DirectorDTO d : dto.getDirectors()) {
@@ -125,7 +121,6 @@ public class CompanyServiceImpl implements CompanyService {
 			}
 			company.setDirectors(directors);
 		}
-		/* ===== COMPANY PROFILE ===== */
 		if (dto.getProfile() != null) {
 			CompanyProfile profile = new CompanyProfile();
 			profile.setId(
@@ -141,8 +136,6 @@ public class CompanyServiceImpl implements CompanyService {
 			profile.setAttachmentUrl(attachmentUrl);
 			company.setProfile(profile);
 		}
-		/* ===== ADDITIONAL INFO ===== */
-		company.getAdditionalInfos().clear();
 		if (dto.getAdditionalInfos() != null) {
 			List<CompanyAdditionalInfo> infos = new ArrayList<>();
 			for (AdditionalInfoDTO a : dto.getAdditionalInfos()) {
@@ -155,8 +148,6 @@ public class CompanyServiceImpl implements CompanyService {
 			}
 			company.setAdditionalInfos(infos);
 		}
-		/* ===== JOINT VENTURES ===== */
-		company.getJointVentures().clear();
 		if (dto.getJointVentures() != null) {
 			List<CompanyJointVenture> ventures = new ArrayList<>();
 			for (JointVentureDTO j : dto.getJointVentures()) {
@@ -169,8 +160,6 @@ public class CompanyServiceImpl implements CompanyService {
 			}
 			company.setJointVentures(ventures);
 		}
-		/* ===== LOCAL NAMES ===== */
-		company.getLocalNames().clear();
 		if (dto.getLocalNames() != null) {
 			List<CompanyLocalName> localNames = new ArrayList<>();
 			for (LocalNameDTO l : dto.getLocalNames()) {
@@ -187,16 +176,21 @@ public class CompanyServiceImpl implements CompanyService {
 	}
 	private List<String> saveDocuments(List<MultipartFile> files) {
 		List<String> paths = new ArrayList<>();
+		if (files == null || files.isEmpty()) {
+			return paths;
+		}
 		Path directory = Paths.get(fileDir);
 		try {
 			Files.createDirectories(directory);
-			for(MultipartFile file:files){
-				Path targetLoc = directory.resolve(StringUtils.cleanPath(file.getOriginalFilename()));
-				Files.copy(file.getInputStream(), targetLoc, StandardCopyOption.REPLACE_EXISTING);
-				paths.add(targetLoc.toString());
+			for (MultipartFile file : files) {
+				if (file.isEmpty()) continue;
+				String filename = StringUtils.cleanPath(file.getOriginalFilename());
+				Path targetLocation = directory.resolve(filename);
+				Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
+				paths.add(targetLocation.toString());
 			}
 		} catch (IOException e) {
-			throw new RuntimeException(e);
+			throw new RuntimeException("Could not save file", e);
 		}
 		return paths;
 	}

@@ -1,0 +1,11 @@
+package com.ksv.tactive.project.dao;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import com.ksv.tactive.project.entity.ContractorAddress;
+
+@Repository
+public interface ContractorAddressDao extends JpaRepository<ContractorAddress, String>{
+
+}

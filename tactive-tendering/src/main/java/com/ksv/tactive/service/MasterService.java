@@ -1,19 +1,19 @@
 package com.ksv.tactive.service;
 import java.util.List;
 
-import com.ksv.tactive.company.entity.Language;
+import com.ksv.tactive.project.entity.Language;
 import com.ksv.tactive.dto.CitiesDto;
 import com.ksv.tactive.dto.ResourceDto;
 import com.ksv.tactive.dto.StatesDto;
 import com.ksv.tactive.location.entity.States;
-import com.ksv.tactive.master.entity.*;
-import org.apache.commons.math3.analysis.function.Add;
+import com.ksv.tactive.project.entity.*;
+import com.ksv.tactive.util.*;
 import org.springframework.stereotype.Service;
 
-import com.ksv.tactive.currency.entity.Currency;
+import com.ksv.tactive.project.entity.Currency;
 import com.ksv.tactive.location.entity.Cities;
 import com.ksv.tactive.location.entity.Country;
-import com.ksv.tactive.project.entity.CostCodeType;
+
 @Service
 public interface MasterService {
 	String addRegion(Region region);
@@ -47,7 +47,7 @@ public interface MasterService {
 	ResourceType findResourceTypeById(String resourceTypeId);
 	String addResourceType(ResourceType resourceType);
 	List<Resources> getAllResources();
-	List<QuantityType> getAllQuantityTypes();
+	List<QuantityTypeDto> getAllQuantityTypes();
 	List<ResourceNature> getAllResourceNatures();
 	ResourceNature findResourceNatureById(String resourceNatureId);
 	List<Currency> getAllCurrencies();
@@ -55,7 +55,7 @@ public interface MasterService {
 	void editResourceNature(ResourceNature resourceNature);
 	ScopeOfPackage findScopeOfPackageById(String id);
 	Resources findResourceById(String resourceId);
-	QuantityType findQuantityTypeById(String quantityTypeId);
+//	QuantityType findQuantityTypeById(String quantityTypeId);
 	Currency findCurrencyById(String currencyId);
 	List<Country> getAllCountries();
 	List<Cities> getCitiesByCountry(String countryId);
@@ -64,7 +64,7 @@ public interface MasterService {
 	Cities findCityById(String cityId);
 	IdentityType findIdentityTypeById(String identityId);
 	TaxType findTaxTypeById(String taxTypeId);
-	TerritoryType findterritoryTypeId(String territoryTypeId);
+//	TerritoryType findterritoryTypeId(String territoryTypeId);
     AddressType addAddressType(AddressType addressType);
 	List<AddressType> getAllAddressTypes();
 	AddressType editAddressType(AddressType addressType);
@@ -78,24 +78,24 @@ public interface MasterService {
 	List<Cities> getCitiesByStates(String stateId);
 	void addCities(CitiesDto citiesDto);
 	void editCities(CitiesDto citiesDto);
-	String addQuantityType(QuantityType quantityType);
-	void editQuantityType(QuantityType quantityType);
+//	String addQuantityType(QuantityType quantityType);
+//	void editQuantityType(QuantityType quantityType);
 	String addResource(ResourceDto resourceDto);
 	void editResource(ResourceDto resourceDto);
 	void addTaxType(TaxType taxType);
 	void editTaxType(TaxType taxType);
 	List<TaxType> getAllTaxType();
-	void addTerritoryType(TerritoryType territoryType);
-	void editTerritoryType(TerritoryType territoryType);
-	List<TerritoryType> getAllTerritoryType();
+//	void addTerritoryType(TerritoryType territoryType);
+//	void editTerritoryType(TerritoryType territoryType);
+	List<TerritoryTypeDto> getAllTerritoryType();
 	void addIdentityType(IdentityType identityType);
 	void editIdentityType(IdentityType identityType);
 	List<IdentityType> getAllIdentityType();
 	void addCurrency(Currency currency);
 	void editCurrency(Currency currency);
-    void addCompanyType(CompanyType companyType);
-	void editCompanyType(CompanyType companyType);
-	List<CompanyType> getAllCompanyTypes();
+//    void addCompanyType(CompanyType companyType);
+//	void editCompanyType(CompanyType companyType);
+	List<CompanyTypeDto> getAllCompanyTypes();
 	void addCompanyLevel(CompanyLevel companyLevel);
 	void editCompanyLevel(CompanyLevel companyLevel);
 	List<CompanyLevel> getAllCompanyLevel();
@@ -114,4 +114,10 @@ public interface MasterService {
 	void addBusinessNature(BusinessNature businessNature);
 	void editBusinessNature(BusinessNature businessNature);
 	List<BusinessNature> getAllBusinessNature();
+	CompanyLevel getCompanyLevelById(String comLevelId);
+	CompanyNature getCompanyNatureById(String comNatureId);
+	BusinessNature getBusinessNatureById(String businessNatureId);
+	CompanyConstitution getCompanyConstitutionById(String companyConstitutionId);
+	CompanyStatus getCompanyStatusById(String statusId);
+	Currency getCurrencyById(String currencyId);
 }
