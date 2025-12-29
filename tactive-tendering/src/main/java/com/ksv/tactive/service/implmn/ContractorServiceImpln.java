@@ -1,19 +1,18 @@
 package com.ksv.tactive.service.implmn;
 
-import com.ksv.tactive.contractor.dao.*;
-import com.ksv.tactive.contractor.entity.*;
 import com.ksv.tactive.dto.ContractorInputDto;
 import com.ksv.tactive.dto.ContractorNatureDto;
 import com.ksv.tactive.exception.DataNotFoundException;
 import com.ksv.tactive.exception.DuplicateEntryException;
 import com.ksv.tactive.location.entity.Cities;
 import com.ksv.tactive.location.entity.Country;
-import com.ksv.tactive.master.entity.AddressType;
-import com.ksv.tactive.master.entity.IdentityType;
-import com.ksv.tactive.master.entity.TaxType;
-import com.ksv.tactive.master.entity.TerritoryType;
+import com.ksv.tactive.project.entity.AddressType;
+import com.ksv.tactive.project.entity.IdentityType;
+import com.ksv.tactive.project.dao.*;
+import com.ksv.tactive.project.entity.*;
 import com.ksv.tactive.service.ContractorService;
 import com.ksv.tactive.service.MasterService;
+import com.ksv.tactive.util.TerritoryType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
@@ -128,14 +127,12 @@ public class ContractorServiceImpln implements ContractorService {
 
     private void saveContractorTaxDetails(ContractorTaxDetails contractorTaxDetails) {
         TaxType taxType = masterService.findTaxTypeById(contractorTaxDetails.getTaxType());
-        TerritoryType territoryType = masterService.findterritoryTypeId(contractorTaxDetails.getTerritoryType());
         String territoryId = contractorTaxDetails.getTerritory();
-    }
 
+    }
     private void saveContractorBankDetails(ContractorBankDetails contractorBankDetails) {
         bankDetailsDao.save(contractorBankDetails);
     }
-
     private void saveContractorAddInfo(ContractorAddInfo contractorAddInfo) {
         if (contractorAddInfo.getInfoType() == null) {
             return;
@@ -145,8 +142,6 @@ public class ContractorServiceImpln implements ContractorService {
         contractorAddInfo.setInfoType(identityType.getId());
         addInfoDao.save(contractorAddInfo);
     }
-
-
     @Override
     public List<String> saveDocuments(List<MultipartFile> files) {
         List<String> paths = new ArrayList<>();

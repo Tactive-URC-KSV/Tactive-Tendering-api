@@ -28,7 +28,9 @@ public class CostCodeActivity {
 	private double rate;
 	private double amount;
 	private String mappingType;
-	private String uomId;
+	@ManyToOne
+	@JoinColumn(name = "uom")
+	private UOM uom;
 	@JsonBackReference
 	@ManyToMany
 	@JoinTable(

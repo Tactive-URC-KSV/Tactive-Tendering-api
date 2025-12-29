@@ -2,21 +2,22 @@ package com.ksv.tactive.controller;
 import java.util.List;
 import java.util.Locale;
 
-import com.ksv.tactive.company.entity.Language;
+import com.ksv.tactive.project.entity.Language;
 import com.ksv.tactive.dto.CitiesDto;
 import com.ksv.tactive.dto.ResourceDto;
 import com.ksv.tactive.dto.StatesDto;
 import com.ksv.tactive.location.entity.Country;
-import com.ksv.tactive.master.entity.*;
+import com.ksv.tactive.project.entity.*;
+import com.ksv.tactive.util.QuantityType;
+import com.ksv.tactive.util.QuantityTypeDto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import com.ksv.tactive.currency.entity.Currency;
+import com.ksv.tactive.project.entity.Currency;
 import com.ksv.tactive.exception.DuplicateEntryException;
-import com.ksv.tactive.project.entity.CostCodeType;
 import com.ksv.tactive.service.MasterService;
 @RestController
 @RequestMapping("/tactive")
@@ -65,7 +66,7 @@ public class MasterDataController {
 		masterService.editScopeOfPackage(scope);
 		return ResponseEntity.status(HttpStatus.OK).body(messageSource.getMessage("data.updated", null, Locale.ENGLISH));
 	}
-	@PostMapping("/uom")
+	@PostMapping("/addUom")
 	public ResponseEntity<String> addUOM(@RequestBody UOM uom){
 		return ResponseEntity.status(HttpStatus.OK).body(masterService.addUom(uom));
 	}
@@ -191,26 +192,14 @@ public class MasterDataController {
 
 	@GetMapping("/quantityType")
 	public ResponseEntity<?> getAllQuantityTypes() {
-		List<QuantityType> quantityTypes = masterService.getAllQuantityTypes();
+		List<QuantityTypeDto> quantityTypes = masterService.getAllQuantityTypes();
 		if (quantityTypes.isEmpty()) {
 			return ResponseEntity.status(HttpStatus.NO_CONTENT)
 					.body(messageSource.getMessage("data.not.found", null, Locale.ENGLISH));
 		}
 		return ResponseEntity.status(HttpStatus.OK).body(quantityTypes);
 	}
-	@PostMapping("/quantityType")
-	public ResponseEntity<?> addQuantityType(@RequestBody QuantityType quantityType) {
-		return ResponseEntity
-				.status(HttpStatus.OK)
-				.body(masterService.addQuantityType(quantityType));
-	}
-	@PutMapping("/quantityType/edit")
-	public ResponseEntity<?> editQuantityType(@RequestBody QuantityType quantityType) {
-		masterService.editQuantityType(quantityType);
-		return ResponseEntity
-				.status(HttpStatus.OK)
-				.body(messageSource.getMessage("data.updated", null, Locale.ENGLISH));
-	}
+
 	@GetMapping("/resourceNature")
 	public ResponseEntity<?> getAllResourceNatures() {
 		List<ResourceNature> resourceNatures = masterService.getAllResourceNatures();
@@ -348,16 +337,16 @@ public class MasterDataController {
 	public ResponseEntity<?> getAllTaxType(){
 		return ResponseEntity.status(HttpStatus.OK).body(masterService.getAllTaxType());
 	}
-	@PostMapping("/territoryType/add")
-	public ResponseEntity<?> addTerritoryType(@RequestBody TerritoryType territoryType){
-		masterService.addTerritoryType(territoryType);
-		return ResponseEntity.status(HttpStatus.OK).body(messageSource.getMessage("data.save.success",null,Locale.ENGLISH));
-	}
-	@PutMapping("/territoryType/edit")
-	public ResponseEntity<?> editTaxType(@RequestBody TerritoryType territoryType){
-		masterService.editTerritoryType(territoryType);
-		return ResponseEntity.status(HttpStatus.OK).body(messageSource.getMessage("data.updated",null,Locale.ENGLISH));
-	}
+//	@PostMapping("/territoryType/add")
+//	public ResponseEntity<?> addTerritoryType(@RequestBody TerritoryType territoryType){
+//		masterService.addTerritoryType(territoryType);
+//		return ResponseEntity.status(HttpStatus.OK).body(messageSource.getMessage("data.save.success",null,Locale.ENGLISH));
+//	}
+//	@PutMapping("/territoryType/edit")
+//	public ResponseEntity<?> editTaxType(@RequestBody TerritoryType territoryType){
+//		masterService.editTerritoryType(territoryType);
+//		return ResponseEntity.status(HttpStatus.OK).body(messageSource.getMessage("data.updated",null,Locale.ENGLISH));
+//	}
 	@GetMapping("/territoryType")
 	public ResponseEntity<?> getAllTerritoryType(){
 		return ResponseEntity.status(HttpStatus.OK).body(masterService.getAllTerritoryType());
@@ -386,16 +375,16 @@ public class MasterDataController {
 		masterService.editCurrency(currency);
 		return ResponseEntity.status(HttpStatus.OK).body(messageSource.getMessage("data.updated",null,Locale.ENGLISH));
 	}
-	@PostMapping("/companyType/add")
-	public ResponseEntity<?> addCompanyType(@RequestBody CompanyType companyType){
-		masterService.addCompanyType(companyType);
-		return ResponseEntity.status(HttpStatus.OK).body(messageSource.getMessage("data.save.success",null,Locale.ENGLISH));
-	}
-	@PutMapping("/companyType/edit")
-	public ResponseEntity<?> editCompanyType(@RequestBody CompanyType companyType){
-		masterService.editCompanyType(companyType);
-		return ResponseEntity.status(HttpStatus.OK).body(messageSource.getMessage("data.updated",null,Locale.ENGLISH));
-	}
+//	@PostMapping("/companyType/add")
+//	public ResponseEntity<?> addCompanyType(@RequestBody CompanyType companyType){
+//		masterService.addCompanyType(companyType);
+//		return ResponseEntity.status(HttpStatus.OK).body(messageSource.getMessage("data.save.success",null,Locale.ENGLISH));
+//	}
+//	@PutMapping("/companyType/edit")
+//	public ResponseEntity<?> editCompanyType(@RequestBody CompanyType companyType){
+//		masterService.editCompanyType(companyType);
+//		return ResponseEntity.status(HttpStatus.OK).body(messageSource.getMessage("data.updated",null,Locale.ENGLISH));
+//	}
 	@GetMapping("/companyType")
 	public ResponseEntity<?> getAllCompanyType(){
 		return ResponseEntity.status(HttpStatus.OK).body(masterService.getAllCompanyTypes());

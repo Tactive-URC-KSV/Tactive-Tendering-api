@@ -3,11 +3,8 @@ import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.JoinTable;
-import jakarta.persistence.ManyToMany;
+import com.ksv.tactive.util.QuantityType;
+import jakarta.persistence.*;
 import lombok.Data;
 @Data
 @Entity
@@ -31,11 +28,23 @@ public class TenderEstimation {
 	private double shippingPrice;
 	private double costUnitRate;
 	private boolean rateLock;
-	private String resourceTypeId;
-	private String resourceId;
-	private String uomId;
-	private String resourceNatureId;
-	private String quantityTypeId;
-	private String currencyId;
+	@ManyToOne
+	@JoinColumn(name = "resource_type")
+	private ResourceType resourceType;
+	@ManyToOne
+	@JoinColumn(name = "resource")
+	private Resources resources;
+	@ManyToOne
+	@JoinColumn(name = "uom")
+	private UOM uom;
+	@ManyToOne
+	@JoinColumn(name = "resource_nature")
+	private ResourceNature resourceNature;
+	@Enumerated(EnumType.STRING)
+	@Column(name = "quantity_type")
+	private QuantityType quantityType;
+	@ManyToOne
+	@JoinColumn(name = "currency")
+	private Currency currency;
 	private double exchangeRate;
 }

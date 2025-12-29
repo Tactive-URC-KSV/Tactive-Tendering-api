@@ -23,7 +23,7 @@ import com.itextpdf.text.pdf.PdfPTable;
 import com.itextpdf.text.pdf.PdfWriter;
 import com.ksv.tactive.dto.ExcelExtractBOQ;
 import com.ksv.tactive.exception.DataNotFoundException;
-import com.ksv.tactive.master.entity.UOM;
+import com.ksv.tactive.project.entity.UOM;
 import com.ksv.tactive.project.entity.BOQ;
 import com.ksv.tactive.service.MasterService;
 
@@ -208,7 +208,7 @@ public class PdfFileService {
 		int slNo = 1;
 		for (BOQ boq : boqList) {
 			String[] rowData = { String.valueOf(slNo++), safe(boq.getBoqCode()),
-					safe(boq.getBoqName()), boq.getUomId() != null ? getUomCode(boq.getUomId()) : "",
+					safe(boq.getBoqName()), boq.getUom() != null ? getUomCode(boq.getUom().getId()) : "",
 					String.valueOf(boq.getQuantity()), String.valueOf(boq.getTotalRate()),
 					String.valueOf(boq.getTotalAmount()),
 					boq.getParentBOQ() != null ? boq.getParentBOQ().getBoqCode() : "",
@@ -234,11 +234,9 @@ public class PdfFileService {
 		}
 		return null;
 	}
-
 	private String safe(String val) {
 		return val == null ? "" : val;
 	}
-
 	public List<ExcelExtractBOQ> getExtractedData(MultipartFile boqFile, Map<String, String> columnMapping,
 	        int startRow, int endRow) throws IOException {
 	    InputStream inputStream = boqFile.getInputStream();
