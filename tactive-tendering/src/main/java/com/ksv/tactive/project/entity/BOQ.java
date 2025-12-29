@@ -26,7 +26,9 @@ public class BOQ {
 	private String boqCode;
 	@Column(name = "boq_name", length = 3000)
 	private String boqName;
-	private String uomId;
+	@ManyToOne
+	@JoinColumn(name = "uom")
+	private UOM uom;
 	private int level;
 	private double quantity;
 	private double totalRate;

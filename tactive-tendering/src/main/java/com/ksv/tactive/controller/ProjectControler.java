@@ -50,12 +50,13 @@ public class ProjectControler {
 
 	@GetMapping("project/allProjects")
 	public ResponseEntity<?> getAllProjects() {
-		List<ProjectInfoDto> projects = projectService.getAllProjects();
-		if (projects.isEmpty()) {
-			return ResponseEntity.status(HttpStatus.NO_CONTENT)
-					.body(messageSource.getMessage("project.all.notfound", null, Locale.ENGLISH));
+		try{
+			List<ProjectInfoDto> projects = projectService.getAllProjects();
+			return ResponseEntity.status(HttpStatus.OK).body(projects);
 		}
-		return ResponseEntity.status(HttpStatus.OK).body(projects);
+		catch (DataNotFoundException e) {
+			return ResponseEntity.status(HttpStatus.NO_CONTENT).body(e.getMessage());
+		}
 	}
 
 	@PostMapping("project/createProject")
@@ -155,8 +156,13 @@ public class ProjectControler {
 
 	@GetMapping("/project/approved/projects")
 	public ResponseEntity<?> getApprovedProjects() {
-		List<ProjectInfoDto> approvedProjects = projectService.getAllApprovedProjects();
-		return ResponseEntity.status(HttpStatus.OK).body(approvedProjects);
+		try {
+			List<ProjectInfoDto> approvedProjects = projectService.getAllApprovedProjects();
+			return ResponseEntity.status(HttpStatus.OK).body(approvedProjects);
+		} catch (DataNotFoundException e) {
+			return ResponseEntity.status(HttpStatus.NO_CONTENT).body(e.getMessage());
+		}
+
 	}
 
 	@GetMapping("/feasibility/approvalDoc/{techId}")
@@ -401,7 +407,7 @@ public class ProjectControler {
 			List<ProjectInfoDto> projects = projectService.getAllBoqUploadedProject();
 			return ResponseEntity.status(HttpStatus.OK).body(projects);
 		} catch (DataNotFoundException e) {
-			return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+			return ResponseEntity.status(HttpStatus.NO_CONTENT).body(e.getMessage());
 		}
 	}
 	@PostMapping("/activityGroup")

@@ -1,31 +1,32 @@
 package com.ksv.tactive.service.implmn;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
-import com.ksv.tactive.company.dao.LanguageDao;
-import com.ksv.tactive.company.entity.Language;
+import com.ksv.tactive.project.dao.LanguageDao;
+import com.ksv.tactive.project.entity.Language;
 import com.ksv.tactive.dto.CitiesDto;
 import com.ksv.tactive.dto.ResourceDto;
 import com.ksv.tactive.dto.StatesDto;
 import com.ksv.tactive.exception.DataNotFoundException;
 import com.ksv.tactive.location.dao.StatesDao;
 import com.ksv.tactive.location.entity.States;
-import com.ksv.tactive.master.dao.*;
-import com.ksv.tactive.master.entity.*;
+import com.ksv.tactive.project.dao.*;
+import com.ksv.tactive.project.entity.*;
+import com.ksv.tactive.util.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Service;
 
-import com.ksv.tactive.currency.dao.CurrencyDao;
-import com.ksv.tactive.currency.entity.Currency;
+import com.ksv.tactive.project.dao.CurrencyDao;
+import com.ksv.tactive.project.entity.Currency;
 import com.ksv.tactive.exception.DuplicateEntryException;
 import com.ksv.tactive.location.dao.CitiesDao;
 import com.ksv.tactive.location.dao.CountryDao;
 import com.ksv.tactive.location.entity.Cities;
 import com.ksv.tactive.location.entity.Country;
-import com.ksv.tactive.project.dao.CostCodeTypeDao;
-import com.ksv.tactive.project.entity.CostCodeType;
 import com.ksv.tactive.service.MasterService;
 @Service
 public class MasterServiceImpl implements MasterService{
@@ -50,8 +51,6 @@ public class MasterServiceImpl implements MasterService{
 	@Autowired
 	private ResourceDao resourceDao;
 	@Autowired
-	private QuantityTypeDao quantityTypeDao;
-	@Autowired
 	private ResourceNatureDao resouceNatureDao;
 	@Autowired
 	private CurrencyDao currencyDao;
@@ -67,10 +66,6 @@ public class MasterServiceImpl implements MasterService{
 	private IdentityTypeDao identityTypeDao;
 	@Autowired
 	private TaxTypeDao taxTypeDao;
-	@Autowired
-	private TerritoryTypeDao territoryTypeDao;
-	@Autowired
-	private CompanyTypeDao companyTypeDao;
 	@Autowired
 	private CompanyLevelDao companyLevelDao;
 	@Autowired
@@ -389,56 +384,59 @@ public class MasterServiceImpl implements MasterService{
 	public Resources findResourceById(String resourceId) {
 		return resourceDao.findById(resourceId).orElse(null);
 	}
+
 	@Override
-	public List<QuantityType> getAllQuantityTypes() {
-		return quantityTypeDao.findAll();
+	public List<QuantityTypeDto> getAllQuantityTypes() {
+		return Arrays.stream(QuantityType.values())
+				.map(qt -> new QuantityTypeDto(qt.name(), qt.getLabel()))
+				.toList();
 	}
-	@Override
-	public String addQuantityType(QuantityType quantityType) {
-		quantityTypeDao
-				.findByQuantityTypeIgnoreCaseAndActiveTrue(
-						quantityType.getQuantityType()
-				)
-				.ifPresent(q -> {
-					throw new DuplicateEntryException(
-							messageSource.getMessage("data.duplicate", null, Locale.ENGLISH)
-					);
-				});
-		quantityType.setId(UUID.randomUUID().toString());
-		quantityType.setActive(true);
-		quantityTypeDao.save(quantityType);
-		return messageSource.getMessage(
-				"data.save.success", null, Locale.ENGLISH
-		);
-	}
-	@Override
-	public void editQuantityType(QuantityType quantityType) {
-		QuantityType existingQuantityType = quantityTypeDao.findById(quantityType.getId())
-				.orElseThrow(() -> new DataNotFoundException(
-						messageSource.getMessage("data.not.found", null, Locale.ENGLISH)
-				));
-		if (quantityType.isActive() &&
-				!existingQuantityType.getQuantityType()
-						.equalsIgnoreCase(quantityType.getQuantityType())
-		) {
-			quantityTypeDao
-					.findByQuantityTypeIgnoreCaseAndActiveTrue(
-							quantityType.getQuantityType()
-					)
-					.ifPresent(q -> {
-						throw new DuplicateEntryException(
-								messageSource.getMessage("data.duplicate", null, Locale.ENGLISH)
-						);
-					});
-		}
-		existingQuantityType.setQuantityType(quantityType.getQuantityType());
-		existingQuantityType.setActive(quantityType.isActive());
-		quantityTypeDao.save(existingQuantityType);
-	}
-	@Override
-	public QuantityType findQuantityTypeById(String quantityTypeId) {
-		return quantityTypeDao.findById(quantityTypeId).orElse(null);
-	}
+//	@Override
+//	public String addQuantityType(QuantityType quantityType) {
+//		quantityTypeDao
+//				.findByQuantityTypeIgnoreCaseAndActiveTrue(
+//						quantityType.getQuantityType()
+//				)
+//				.ifPresent(q -> {
+//					throw new DuplicateEntryException(
+//							messageSource.getMessage("data.duplicate", null, Locale.ENGLISH)
+//					);
+//				});
+//		quantityType.setId(UUID.randomUUID().toString());
+//		quantityType.setActive(true);
+//		quantityTypeDao.save(quantityType);
+//		return messageSource.getMessage(
+//				"data.save.success", null, Locale.ENGLISH
+//		);
+//	}
+//	@Override
+//	public void editQuantityType(QuantityType quantityType) {
+//		QuantityType existingQuantityType = quantityTypeDao.findById(quantityType.getId())
+//				.orElseThrow(() -> new DataNotFoundException(
+//						messageSource.getMessage("data.not.found", null, Locale.ENGLISH)
+//				));
+//		if (quantityType.isActive() &&
+//				!existingQuantityType.getQuantityType()
+//						.equalsIgnoreCase(quantityType.getQuantityType())
+//		) {
+//			quantityTypeDao
+//					.findByQuantityTypeIgnoreCaseAndActiveTrue(
+//							quantityType.getQuantityType()
+//					)
+//					.ifPresent(q -> {
+//						throw new DuplicateEntryException(
+//								messageSource.getMessage("data.duplicate", null, Locale.ENGLISH)
+//						);
+//					});
+//		}
+//		existingQuantityType.setQuantityType(quantityType.getQuantityType());
+//		existingQuantityType.setActive(quantityType.isActive());
+//		quantityTypeDao.save(existingQuantityType);
+//	}
+//	@Override
+//	public QuantityType findQuantityTypeById(String quantityTypeId) {
+//		return quantityTypeDao.findById(quantityTypeId).orElse(null);
+//	}
 	@Override
 	public List<ResourceNature> getAllResourceNatures() {
 		return resouceNatureDao.findAll();
@@ -522,10 +520,10 @@ public class MasterServiceImpl implements MasterService{
 		return taxTypeDao.findById(taxTypeId).orElseThrow(()-> new DataNotFoundException(messageSource.getMessage("data.not.found", null,Locale.ENGLISH)));
 	}
 
-	@Override
-	public TerritoryType findterritoryTypeId(String territoryTypeId) {
-		return territoryTypeDao.findById(territoryTypeId).orElseThrow(()-> new DataNotFoundException(messageSource.getMessage("data.not.found",null,Locale.ENGLISH)));
-	}
+//	@Override
+//	public TerritoryType findterritoryTypeId(String territoryTypeId) {
+//		return territoryTypeDao.findById(territoryTypeId).orElseThrow(()-> new DataNotFoundException(messageSource.getMessage("data.not.found",null,Locale.ENGLISH)));
+//	}
 	@Override
 	public AddressType addAddressType(AddressType addressType) {
 		List<AddressType> addressTypes = addressTypeDao.findAll();
@@ -731,10 +729,6 @@ public class MasterServiceImpl implements MasterService{
 				.orElseThrow(() -> new DataNotFoundException(
 						messageSource.getMessage("data.not.found", null, Locale.ENGLISH)
 				));
-		QuantityType quantityType = quantityTypeDao.findById(dto.getQuantityTypeId())
-				.orElseThrow(() -> new DataNotFoundException(
-						messageSource.getMessage("data.not.found", null, Locale.ENGLISH)
-				));
 		Resources resource = new Resources();
 		resource.setId(UUID.randomUUID().toString());
 		resource.setResourceCode(dto.getResourceCode());
@@ -742,7 +736,6 @@ public class MasterServiceImpl implements MasterService{
 		resource.setUnitRate(dto.getUnitRate());
 		resource.setResourceType(resourceType);
 		resource.setUom(uom);
-		resource.setQuantityType(quantityType);
 		resource.setActive(true);
 		resourceDao.save(resource);
 		return messageSource.getMessage(
@@ -763,16 +756,12 @@ public class MasterServiceImpl implements MasterService{
 				.orElseThrow(() -> new DataNotFoundException(
 						messageSource.getMessage("data.not.found", null, Locale.ENGLISH)
 				));
-		QuantityType quantityType = quantityTypeDao.findById(dto.getQuantityTypeId())
-				.orElseThrow(() -> new DataNotFoundException(
-						messageSource.getMessage("data.not.found", null, Locale.ENGLISH)
-				));
+
 		existingResource.setResourceCode(dto.getResourceCode());
 		existingResource.setResourceName(dto.getResourceName());
 		existingResource.setUnitRate(dto.getUnitRate());
 		existingResource.setResourceType(resourceType);
 		existingResource.setUom(uom);
-		existingResource.setQuantityType(quantityType);
 		existingResource.setActive(dto.isActive());
 		resourceDao.save(existingResource);
 	}
@@ -814,50 +803,52 @@ public class MasterServiceImpl implements MasterService{
 	public List<TaxType> getAllTaxType() {
 		return taxTypeDao.findAll();
 	}
-	@Override
-	public void addTerritoryType(TerritoryType territoryType) {
-		territoryTypeDao
-				.findByTerritoryTypeIgnoreCaseAndActiveTrue(
-						territoryType.getTerritoryType()
-				)
-				.ifPresent(t -> {
-					throw new DuplicateEntryException(
-							messageSource.getMessage("data.duplicate", null, Locale.ENGLISH)
-					);
-				});
-		territoryType.setId(UUID.randomUUID().toString());
-		territoryType.setActive(true);
-		territoryTypeDao.save(territoryType);
-	}
-	@Override
-	public void editTerritoryType(TerritoryType territoryType) {
-		TerritoryType existing = territoryTypeDao.findById(territoryType.getId())
-				.orElseThrow(() -> new DataNotFoundException(
-						messageSource.getMessage("data.not.found", null, Locale.ENGLISH)
-				));
-
-		if (territoryType.isActive() &&
-				!existing.getTerritoryType()
-						.equalsIgnoreCase(territoryType.getTerritoryType())
-		) {
-			territoryTypeDao
-					.findByTerritoryTypeIgnoreCaseAndActiveTrue(
-							territoryType.getTerritoryType()
-					)
-					.ifPresent(t -> {
-						throw new DuplicateEntryException(
-								messageSource.getMessage("data.duplicate", null, Locale.ENGLISH)
-						);
-					});
-		}
-		existing.setTerritoryType(territoryType.getTerritoryType());
-		existing.setActive(territoryType.isActive());
-		territoryTypeDao.save(existing);
-	}
-	@Override
-	public List<TerritoryType> getAllTerritoryType() {
-		return territoryTypeDao.findAll();
-	}
+//	@Override
+//	public void addTerritoryType(TerritoryType territoryType) {
+//		territoryTypeDao
+//				.findByTerritoryTypeIgnoreCaseAndActiveTrue(
+//						territoryType.getTerritoryType()
+//				)
+//				.ifPresent(t -> {
+//					throw new DuplicateEntryException(
+//							messageSource.getMessage("data.duplicate", null, Locale.ENGLISH)
+//					);
+//				});
+//		territoryType.setId(UUID.randomUUID().toString());
+//		territoryType.setActive(true);
+//		territoryTypeDao.save(territoryType);
+//	}
+//	@Override
+//	public void editTerritoryType(TerritoryType territoryType) {
+//		TerritoryType existing = territoryTypeDao.findById(territoryType.getId())
+//				.orElseThrow(() -> new DataNotFoundException(
+//						messageSource.getMessage("data.not.found", null, Locale.ENGLISH)
+//				));
+//
+//		if (territoryType.isActive() &&
+//				!existing.getTerritoryType()
+//						.equalsIgnoreCase(territoryType.getTerritoryType())
+//		) {
+//			territoryTypeDao
+//					.findByTerritoryTypeIgnoreCaseAndActiveTrue(
+//							territoryType.getTerritoryType()
+//					)
+//					.ifPresent(t -> {
+//						throw new DuplicateEntryException(
+//								messageSource.getMessage("data.duplicate", null, Locale.ENGLISH)
+//						);
+//					});
+//		}
+//		existing.setTerritoryType(territoryType.getTerritoryType());
+//		existing.setActive(territoryType.isActive());
+//		territoryTypeDao.save(existing);
+//	}
+@Override
+public List<TerritoryTypeDto> getAllTerritoryType() {
+	return Arrays.stream(TerritoryType.values())
+			.map(type -> new TerritoryTypeDto(type.name(), type.getLabel()))
+			.toList();
+}
 	@Override
 	public void addIdentityType(IdentityType identityType) {
 
@@ -943,37 +934,39 @@ public class MasterServiceImpl implements MasterService{
 		existing.setActive(currency.isActive());
 		currencyDao.save(existing);
 	}
-	@Override
-	public void addCompanyType(CompanyType companyType) {
-		if (companyTypeDao.existsByTypeIgnoreCase(companyType.getType())) {
-			throw new DuplicateEntryException(
-					messageSource.getMessage("data.duplicate", null, Locale.ENGLISH)
-			);
-		}
-		companyType.setId(UUID.randomUUID().toString());
-		companyType.setActive(true);
-		companyTypeDao.save(companyType);
-	}
-	@Override
-	public void editCompanyType(CompanyType companyType) {
-		CompanyType existing = companyTypeDao.findById(companyType.getId())
-				.orElseThrow(() -> new DataNotFoundException(
-						messageSource.getMessage("data.not.found", null, Locale.ENGLISH)
-				));
-		if (!existing.getType().equalsIgnoreCase(companyType.getType())
-				&& companyTypeDao.existsByTypeIgnoreCase(companyType.getType())) {
-			throw new DuplicateEntryException(
-					messageSource.getMessage("data.duplicate", null, Locale.ENGLISH)
-			);
-		}
-		existing.setType(companyType.getType());
-		existing.setActive(companyType.isActive());
-		companyTypeDao.save(existing);
-	}
-	@Override
-	public List<CompanyType> getAllCompanyTypes() {
-		return companyTypeDao.findAll();
-	}
+//	@Override
+//	public void addCompanyType(CompanyType companyType) {
+//		if (companyTypeDao.existsByTypeIgnoreCase(companyType.getType())) {
+//			throw new DuplicateEntryException(
+//					messageSource.getMessage("data.duplicate", null, Locale.ENGLISH)
+//			);
+//		}
+//		companyType.setId(UUID.randomUUID().toString());
+//		companyType.setActive(true);
+//		companyTypeDao.save(companyType);
+//	}
+//	@Override
+//	public void editCompanyType(CompanyType companyType) {
+//		CompanyType existing = companyTypeDao.findById(companyType.getId())
+//				.orElseThrow(() -> new DataNotFoundException(
+//						messageSource.getMessage("data.not.found", null, Locale.ENGLISH)
+//				));
+//		if (!existing.getType().equalsIgnoreCase(companyType.getType())
+//				&& companyTypeDao.existsByTypeIgnoreCase(companyType.getType())) {
+//			throw new DuplicateEntryException(
+//					messageSource.getMessage("data.duplicate", null, Locale.ENGLISH)
+//			);
+//		}
+//		existing.setType(companyType.getType());
+//		existing.setActive(companyType.isActive());
+//		companyTypeDao.save(existing);
+//	}
+@Override
+public List<CompanyTypeDto> getAllCompanyTypes() {
+	return Arrays.stream(CompanyType.values())
+			.map(type -> new CompanyTypeDto(type.name(), type.getLabel()))
+			.collect(Collectors.toList());
+}
 	@Override
 	public void addCompanyLevel(CompanyLevel companyLevel) {
 		if (companyLevelDao.existsByLevelIgnoreCase(companyLevel.getLevel())) {
@@ -1166,5 +1159,40 @@ public class MasterServiceImpl implements MasterService{
 	@Override
 	public List<BusinessNature> getAllBusinessNature() {
 		return businessNatureDao.findAll();
+	}
+
+	@Override
+	public CompanyLevel getCompanyLevelById(String comLevelId) {
+		if(comLevelId != null && comLevelId.isBlank()){
+			return companyLevelDao.findById(comLevelId).orElseThrow(
+					() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH))
+			);
+		}
+		return null;
+	}
+
+	@Override
+	public CompanyNature getCompanyNatureById(String comNatureId) {
+		return null;
+	}
+
+	@Override
+	public BusinessNature getBusinessNatureById(String businessNatureId) {
+		return null;
+	}
+
+	@Override
+	public CompanyConstitution getCompanyConstitutionById(String companyConstitutionId) {
+		return null;
+	}
+
+	@Override
+	public CompanyStatus getCompanyStatusById(String statusId) {
+		return null;
+	}
+
+	@Override
+	public Currency getCurrencyById(String currencyId) {
+		return null;
 	}
 }

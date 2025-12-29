@@ -1,7 +1,6 @@
 package com.ksv.tactive.service;
 import com.ksv.tactive.dto.CompanySaveDTO;
 import org.springframework.stereotype.Service;
-import com.ksv.tactive.company.entity.Company;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;

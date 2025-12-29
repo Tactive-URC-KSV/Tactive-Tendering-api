@@ -4,10 +4,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Data;
 @Data
 @Entity
@@ -39,17 +36,31 @@ public class Projects {
 	private String city;
 	private String address;
 	@Column(nullable = true)
-	private boolean archieve;
+	private boolean archive;
 	private List<String> otherAmenities;
 	private Date createdAt;
 	private Date updateAt;
 	@Column(length = 36)
 	private String createdBy;
-	private String projectStatusId;	
-	private String regionId;
-	private String sectorId;
-	private Set<String> scopeOfPackages = new HashSet<>();
-	private String uomId;
+	@ManyToOne
+	@JoinColumn(name = "status")
+	private ProjectStatus projectStatus;
+	@ManyToOne
+	@JoinColumn(name = "region")
+	private Region region;
+	@ManyToOne
+	@JoinColumn(name = "sector")
+	private Sector sector;
+	@ManyToMany
+	@JoinTable(
+			name = "project_scope",
+			joinColumns = @JoinColumn(name = "project_id"),
+			inverseJoinColumns = @JoinColumn(name = "scope_id")
+	)
+	private Set<ScopeOfPackage> scopeOfPackage = new HashSet<>();
+	@ManyToOne
+	@JoinColumn(name = "uom")
+	private UOM uom;
 	@Column(length = 36)
 	private String companyId;
 }
