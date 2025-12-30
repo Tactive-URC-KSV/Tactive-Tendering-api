@@ -1,5 +1,6 @@
 package com.ksv.tactive.project.entity;
 
+import com.ksv.tactive.util.DirectorType;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -10,8 +11,9 @@ public class CompanyDirector {
     @Id
     @Column(length = 36)
     private String id;
-
-    private String directorTypeId;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "director_type")
+    private DirectorType directorType;
     private String directorName;
     private Double sharePercentage;
     private Integer noOfShares;

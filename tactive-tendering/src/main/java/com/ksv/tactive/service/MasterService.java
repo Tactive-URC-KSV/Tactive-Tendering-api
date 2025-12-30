@@ -120,4 +120,7 @@ public interface MasterService {
 	CompanyConstitution getCompanyConstitutionById(String companyConstitutionId);
 	CompanyStatus getCompanyStatusById(String statusId);
 	Currency getCurrencyById(String currencyId);
+    List<DirectorTypeDto> getAllDirectorType();
+	Language getLanguageById(String languageId);
+	TaxType getTaxTYpeById(String taxTypeId);
 }

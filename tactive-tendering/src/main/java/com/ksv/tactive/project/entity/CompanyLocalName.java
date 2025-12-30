@@ -10,8 +10,9 @@ public class CompanyLocalName {
     @Id
     @Column(length = 36)
     private String id;
-
-    private String languageId;
+    @ManyToOne
+    @JoinColumn(name = "language")
+    private Language language;
     private String name;
 
     @ManyToOne

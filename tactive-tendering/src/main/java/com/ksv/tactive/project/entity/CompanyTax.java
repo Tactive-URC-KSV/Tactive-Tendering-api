@@ -13,8 +13,9 @@ public class CompanyTax {
 
     private String effectiveFrom;
     private String effectiveTo;
-
-    private String taxTypeId;
+    @ManyToOne
+    @JoinColumn(name = "tax_type")
+    private TaxType taxType;
     private String territoryTypeId;
     private String territory;
     private String taxRegNo;
