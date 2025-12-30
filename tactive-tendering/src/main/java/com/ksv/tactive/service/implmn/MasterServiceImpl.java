@@ -17,6 +17,7 @@ import com.ksv.tactive.project.dao.*;
 import com.ksv.tactive.project.entity.*;
 import com.ksv.tactive.util.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cglib.core.Local;
 import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Service;
 
@@ -1163,36 +1164,53 @@ public List<CompanyTypeDto> getAllCompanyTypes() {
 
 	@Override
 	public CompanyLevel getCompanyLevelById(String comLevelId) {
-		if(comLevelId != null && comLevelId.isBlank()){
 			return companyLevelDao.findById(comLevelId).orElseThrow(
 					() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH))
 			);
-		}
-		return null;
-	}
 
+	}
 	@Override
 	public CompanyNature getCompanyNatureById(String comNatureId) {
-		return null;
+		return companyNatureDao.findById(comNatureId)
+				.orElseThrow(()-> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
 	}
-
 	@Override
 	public BusinessNature getBusinessNatureById(String businessNatureId) {
-		return null;
+		return businessNatureDao.findById(businessNatureId)
+				.orElseThrow(()->new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
 	}
 
 	@Override
 	public CompanyConstitution getCompanyConstitutionById(String companyConstitutionId) {
-		return null;
+		return companyConstitutionDao.findById(companyConstitutionId)
+				.orElseThrow(()-> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
 	}
 
 	@Override
 	public CompanyStatus getCompanyStatusById(String statusId) {
-		return null;
+		return companyStatusDao.findById(statusId)
+				.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found",null,Locale.ENGLISH)));
 	}
-
 	@Override
 	public Currency getCurrencyById(String currencyId) {
-		return null;
+		return currencyDao.findById(currencyId)
+				.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found",null,Locale.ENGLISH)));
+	}
+	@Override
+	public List<DirectorTypeDto> getAllDirectorType() {
+		return Arrays.stream(DirectorType.values())
+				.map(type -> new DirectorTypeDto(type.name(), type.getLabel()))
+				.toList();
+	}
+	@Override
+	public Language getLanguageById(String languageId) {
+		return languageDao.findById(languageId)
+				.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
+	}
+	@Override
+	public TaxType getTaxTYpeById(String taxTypeId) {
+		return taxTypeDao.findById(taxTypeId)
+				.orElseThrow(() -> new DataNotFoundException(messageSource
+						.getMessage("data.not.found", null, Locale.ENGLISH)));
 	}
 }

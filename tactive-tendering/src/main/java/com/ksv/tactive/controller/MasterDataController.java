@@ -492,4 +492,9 @@ public class MasterDataController {
 		return ResponseEntity.status(HttpStatus.OK)
 				.body(masterService.getAllBusinessNature());
 	}
+	@GetMapping("/directorType")
+	public ResponseEntity<?> getAllDirectorType(){
+		return ResponseEntity.status(HttpStatus.OK)
+				.body(masterService.getAllDirectorType());
+	}
 }
