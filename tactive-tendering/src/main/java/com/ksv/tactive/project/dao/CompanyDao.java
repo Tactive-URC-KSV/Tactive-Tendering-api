@@ -4,5 +4,5 @@ import com.ksv.tactive.project.entity.Company;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface ComapanyDao extends JpaRepository<Company, String>{
+public interface CompanyDao extends JpaRepository<Company, String>{
 }

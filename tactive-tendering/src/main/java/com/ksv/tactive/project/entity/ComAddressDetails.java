@@ -15,7 +15,9 @@ public class ComAddressDetails {
 	private String website;
 	private String faxNo;
 	private String phone;
-	private String addressTypeId;
+	@ManyToOne
+	@JoinColumn(name = "address_type")
+	private AddressType addressType;
 	@OneToOne
 	@JoinColumn(name = "company_id")
 	private Company company;

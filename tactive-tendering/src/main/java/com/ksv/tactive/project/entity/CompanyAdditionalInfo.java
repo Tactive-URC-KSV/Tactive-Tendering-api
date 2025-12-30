@@ -10,11 +10,12 @@ public class CompanyAdditionalInfo {
 	@Id
 	@Column(length = 36)
 	private String id;
-
-	private String idTypeId;
+	@ManyToOne
+	@JoinColumn(name = "id_type")
+	private IdentityType identityType;
 	private String registrationNo;
 
-	@ManyToOne(fetch = FetchType.LAZY)
+	@ManyToOne(cascade = CascadeType.ALL)
 	@JoinColumn(name = "company_id", nullable = false)
 	private Company company;
 }
