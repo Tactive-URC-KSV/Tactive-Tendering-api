@@ -271,7 +271,7 @@ public class CompanyServiceImpl implements CompanyService {
 				String uniqueFilename = UUID.randomUUID() + "_" + filename;
 				Path targetLocation = directory.resolve(uniqueFilename);
 				Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
-				paths.add(targetLocation.toString());  // Or relative path/URL
+				paths.add(targetLocation.toString());
 			}
 		} catch (IOException e) {
 			throw new RuntimeException("Could not save file", e);
