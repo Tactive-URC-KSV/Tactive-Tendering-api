@@ -16,6 +16,6 @@ public class ContractorNature {
 	@ManyToOne
 	@JoinColumn(name = "contractor_type_id")
 	private ContractorType contractorType;
-	
+	private boolean active;
 
 }

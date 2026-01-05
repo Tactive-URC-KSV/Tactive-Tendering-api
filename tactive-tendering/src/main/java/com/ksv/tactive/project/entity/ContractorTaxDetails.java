@@ -12,7 +12,9 @@ public class ContractorTaxDetails {
 	
 	@Id
 	private String id;
-	private String taxType;
+	@ManyToOne
+	@JoinColumn(name = "tax_type")
+	private TaxType taxType;
 	@Enumerated(EnumType.STRING)
 	@Column(name = "territory_type")
 	private TerritoryType territoryType;

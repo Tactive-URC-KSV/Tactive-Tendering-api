@@ -5,12 +5,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.JoinTable;
-import jakarta.persistence.ManyToMany;
-import jakarta.persistence.ManyToOne;
+import com.ksv.tactive.util.ContractorStatus;
+import jakarta.persistence.*;
 import lombok.Data;
 
 @Data
@@ -36,5 +32,8 @@ public class Contractor {
 	    inverseJoinColumns = @JoinColumn(name = "nature_id")
 	)
 	private Set<ContractorNature> contractorNature = new HashSet<>();
-
+	private String submissionMode;
+	@Enumerated(EnumType.STRING)
+	@Column(name = "status")
+	private ContractorStatus status;
 }

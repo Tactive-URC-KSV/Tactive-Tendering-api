@@ -13,7 +13,9 @@ public class ContractorAddress {
 	
 	@Id
 	private String id;
-	private String addressType;
+	@ManyToOne
+	@JoinColumn(name = "address_type")
+	private AddressType addressType;
 	@Column(length = 500)
 	private String address1;
 	@Column(length = 500)

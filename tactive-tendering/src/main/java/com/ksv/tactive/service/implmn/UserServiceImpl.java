@@ -1,6 +1,7 @@
 package com.ksv.tactive.service.implmn;
 import com.ksv.tactive.config.CustomUserDetailsService;
 import com.ksv.tactive.config.UserPrincipal;
+import com.ksv.tactive.project.entity.ContractorFormInvite;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -44,5 +45,17 @@ public class UserServiceImpl implements UserService{
 	@Override
 	public User getUserById(String userId) {
 		return userDao.findById(userId).orElseThrow(() -> new UsernameNotFoundException("User not found with id: " + userId));
+	}
+
+	@Override
+	public String getTempToken(ContractorFormInvite formInvite) {
+		User user = new User();
+		user.setId(formInvite.getId());
+		user.setRole("CONTRACTOR");
+		user.setName(formInvite.getName());
+		user.setUsername(formInvite.getUsername());
+		user.setPassword("");
+		UserPrincipal userPrincipal = new UserPrincipal(user);
+		return jwtService.generateToken(userPrincipal);
 	}
 }

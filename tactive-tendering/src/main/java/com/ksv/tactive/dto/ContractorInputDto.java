@@ -8,6 +8,7 @@ import java.util.Set;
 
 @Data
 public class ContractorInputDto {
+    private String id;
     private String entityCode;
     private String entityName;
     private Date effectiveDate;
@@ -15,4 +16,9 @@ public class ContractorInputDto {
     private String contractorGradeId;
     private List<String> paths;
     private Set<String> contractorNatureId;
+    private String taxTypeId;
+    private String addressTypeId;
+    private String idTypeId;
+    private String territoryTypeId;
+    private String subbmissionMode;
 }

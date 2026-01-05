@@ -12,7 +12,9 @@ public class ContractorAddInfo {
 
 	@Id
 	private String id;
-	private String infoType;
+	@ManyToOne
+	@JoinColumn(name = "id_type")
+	private IdentityType identityType;
 	private String regNo;
 	@ManyToOne
 	@JoinColumn(name = "contractor_id")

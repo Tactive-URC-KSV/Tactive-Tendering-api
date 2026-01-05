@@ -1,13 +1,10 @@
 package com.ksv.tactive.service;
 import java.util.List;
 
+import com.ksv.tactive.dto.*;
 import com.ksv.tactive.project.entity.Language;
-import com.ksv.tactive.dto.CitiesDto;
-import com.ksv.tactive.dto.ResourceDto;
-import com.ksv.tactive.dto.StatesDto;
 import com.ksv.tactive.location.entity.States;
 import com.ksv.tactive.project.entity.*;
-import com.ksv.tactive.util.*;
 import org.springframework.stereotype.Service;
 
 import com.ksv.tactive.project.entity.Currency;
