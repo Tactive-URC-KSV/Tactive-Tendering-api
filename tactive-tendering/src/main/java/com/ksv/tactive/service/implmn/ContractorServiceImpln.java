@@ -3,6 +3,7 @@ package com.ksv.tactive.service.implmn;
 import com.ksv.tactive.config.UserPrincipal;
 import com.ksv.tactive.dto.ContractorInputDto;
 import com.ksv.tactive.dto.ContractorNatureDto;
+import com.ksv.tactive.dto.ContractorResDto;
 import com.ksv.tactive.dto.ContractorStatusDto;
 import com.ksv.tactive.exception.DataNotFoundException;
 import com.ksv.tactive.exception.DuplicateEntryException;
@@ -23,6 +24,7 @@ import com.ksv.tactive.util.TerritoryType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
+import org.springframework.lang.Contract;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -87,7 +89,10 @@ public class ContractorServiceImpln implements ContractorService {
 
     @Override
     public List<Map<String, Object>>getAllContractor() {
-        List<Contractor> contractors = contractorDao.findAll();
+        List<Contractor> contractors = contractorDao.findAll()
+                .stream()
+                .filter(contractor -> contractor.getStatus() == ContractorStatus.VERIFIED)
+                .toList();
         List<Map<String, Object>> contractorDto = new ArrayList<>();
         for(Contractor con : contractors){
             Map<String, Object> contractor = new HashMap<>();
@@ -128,6 +133,12 @@ public class ContractorServiceImpln implements ContractorService {
         }
         else{
             contractor.setStatus(ContractorStatus.PENDING);
+            ContractorFormInvite invite = contractorFormInviteDao.findById(contractor.getId()).orElse(null);
+            if(invite != null) {
+                invite.setContractorStatus(ContractorStatus.PENDING);
+                invite.setSubmitted(true);
+                contractorFormInviteDao.save(invite);
+            }
         }
         Contractor savedContractor = contractorDao.save(contractor);
         if(savedContractor != null){
@@ -346,13 +357,56 @@ public class ContractorServiceImpln implements ContractorService {
     }
 
     @Override
+    public ContractorFormInvite getInviteById(String id) {
+        return contractorFormInviteDao.findById(id)
+                .orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("contractor.not.found",null, Locale.ENGLISH)));
+    }
+
+    @Override
     public String generateToken(String id) {
         ContractorFormInvite formInvite = contractorFormInviteDao.findById(id)
                 .orElseThrow(() -> new DataNotFoundException(
                         messageSource.getMessage("contractor.not.invited", null, Locale.ENGLISH)));
         if (formInvite.isSubmitted()) {
-            throw new FormAlreadySubmittedException("Contractor details already saved");
+            throw new FormAlreadySubmittedException(messageSource.getMessage("contractor.details.saved", null, Locale.ENGLISH));
         }
         return userService.getTempToken(formInvite);
+    }
+    @Override
+    public ContractorResDto getContractorById(String contractorId) {
+        ContractorResDto contractorResDto = new ContractorResDto();
+        Contractor contractor = contractorDao.findById(contractorId)
+                .orElseThrow(()->new DataNotFoundException(messageSource.getMessage("contractor.not.found",null,Locale.ENGLISH)));
+        contractorResDto.setContractor(contractor);
+        ContractorContacts contacts = contactsDao.findByContractorId(contractor.getId());
+        contractorResDto.setContractorContacts(contacts);
+        ContractorAddress address = contractorAddressDao.findByContractorId(contractor.getId());
+        contractorResDto.setContractorAddress(address);
+        ContractorTaxDetails taxDetails = taxDetailsDao.findByContractorId(contractor.getId());
+        contractorResDto.setContractorTaxDetails(taxDetails);
+        ContractorBankDetails bankDetails = bankDetailsDao.findByContractorId(contractor.getId());
+        contractorResDto.setContractorBankDetails(bankDetails);
+        ContractorAddInfo addInfo = addInfoDao.findByContractorId(contractor.getId());
+        contractorResDto.setContractorAddInfo(addInfo);
+        return contractorResDto;
+    }
+    @Override
+    public String verifyContractor(String contractorId, String contractorStatus) {
+        Contractor contractor = contractorDao.findById(contractorId)
+                .orElseThrow(()-> new DataNotFoundException(messageSource.getMessage("contractor.not.found",null,Locale.ENGLISH)));
+        ContractorFormInvite formInvite = contractorFormInviteDao.findById(contractorId)
+                .orElseThrow(()-> new DataNotFoundException(messageSource.getMessage("contractor.not.found", null, Locale.ENGLISH)));
+        if(contractorStatus.equals("VERIFIED")){
+            contractor.setStatus(ContractorStatus.VERIFIED);
+            formInvite.setContractorStatus(ContractorStatus.VERIFIED);
+        }
+        else if(contractorStatus.equals("REJECTED")){
+            contractor.setStatus(ContractorStatus.REJECTED);
+            formInvite.setContractorStatus(ContractorStatus.REJECTED);
+        }
+        contractorDao.save(contractor);
+        return contractorStatus.equals("VERIFIED") ?
+                messageSource.getMessage("contractor.approved.success", null, Locale.ENGLISH) :
+                messageSource.getMessage("contractor.reject.success", null, Locale.ENGLISH);
     }
 }
