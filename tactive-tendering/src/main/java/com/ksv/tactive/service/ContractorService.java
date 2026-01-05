@@ -2,15 +2,18 @@ package com.ksv.tactive.service;
 
 import com.ksv.tactive.dto.ContractorInputDto;
 import com.ksv.tactive.dto.ContractorNatureDto;
+import com.ksv.tactive.dto.ContractorStatusDto;
 import com.ksv.tactive.project.entity.*;
+import com.ksv.tactive.util.ContractorStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 @Service
 public interface ContractorService {
-    List<Contractor> getAllContractor();
+    List<Map<String, Object>> getAllContractor();
     String addContractor(ContractorInputDto contractorInputDto, ContractorAddress contractorAddress,
                          ContractorContacts contractorContacts, ContractorTaxDetails contractorTaxDetails,
                          ContractorBankDetails contractorBankDetails, ContractorAddInfo contractorAddInfo);
@@ -25,4 +28,9 @@ public interface ContractorService {
     List<ContractorType> getAllContractorType();
     List<ContractorNature> getAllContractorNature();
     List<ContractorGrade> getAllContractorGrade();
+    List<ContractorNature> getContractorNatureByContractorType(String contractorTypeId);
+    List<ContractorStatusDto> getAllContractorStatus();
+    String inviteContractor(ContractorFormInvite contractorFormInvite);
+    List<ContractorFormInvite> getAllinvitedContractor();
+    String generateToken(String id);
 }

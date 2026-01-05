@@ -16,7 +16,7 @@ import com.ksv.tactive.service.UserService;
 public class UserController {
 	@Autowired
 	private UserService userService;
-	@PostMapping("/login")
+	@GetMapping("/login")
 	public ResponseEntity<?> login(@RequestParam String username,
 			@RequestParam String password){
 		String token=userService.login(username, password);

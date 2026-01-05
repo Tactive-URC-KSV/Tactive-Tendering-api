@@ -7,5 +7,5 @@ import com.ksv.tactive.project.entity.ContractorContacts;
 
 @Repository
 public interface ContractorContactsDao extends JpaRepository<ContractorContacts, String>{
-
+    ContractorContacts findByContractorId(String id);
 }
