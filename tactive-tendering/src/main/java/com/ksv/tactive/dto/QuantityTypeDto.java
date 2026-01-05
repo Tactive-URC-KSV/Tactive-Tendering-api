@@ -1,4 +1,4 @@
-package com.ksv.tactive.util;
+package com.ksv.tactive.dto;
 
 public record QuantityTypeDto(String code, String label) {
 
