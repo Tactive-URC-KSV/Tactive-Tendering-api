@@ -33,8 +33,8 @@ public class EmailServiceImpln implements EmailService {
             String htmlContent = """
                 <!DOCTYPE html>
                 <html>
-                <body style='font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4;'>
-                    <div style='background-color: #ffffff; max-width: 600px; margin: 20px auto; border: 1px solid #ddd;'>
+                <body style='font-family: Arial, sans-serif; margin: 0; padding: 0;'>
+                    <div style='background-color: #f4f4f4; max-width: 600px; margin: 20px auto; border: 1px solid #ddd;'>
                         <div style='background-color: #005197; padding: 25px; text-align: center;'>
                             <h2 style='color: #ffffff; margin: 0;'>Vendor Portal</h2>
                         </div>

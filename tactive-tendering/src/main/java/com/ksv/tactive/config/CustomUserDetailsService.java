@@ -27,6 +27,7 @@ public class CustomUserDetailsService implements UserDetailsService{
 		inviteUser.setName(invite.getName());
 		inviteUser.setRole("CONTRACTOR");
 		inviteUser.setPassword("");
+		inviteUser.setUsername(invite.getEmail());
 		return new UserPrincipal(inviteUser);
 	}
 }
