@@ -2,6 +2,7 @@ package com.ksv.tactive.service;
 
 import com.ksv.tactive.dto.ContractorInputDto;
 import com.ksv.tactive.dto.ContractorNatureDto;
+import com.ksv.tactive.dto.ContractorResDto;
 import com.ksv.tactive.dto.ContractorStatusDto;
 import com.ksv.tactive.project.entity.*;
 import com.ksv.tactive.util.ContractorStatus;
@@ -33,4 +34,7 @@ public interface ContractorService {
     String inviteContractor(ContractorFormInvite contractorFormInvite);
     List<ContractorFormInvite> getAllinvitedContractor();
     String generateToken(String id);
+    ContractorResDto getContractorById(String contractorId);
+    String verifyContractor(String contractorId, String contractorStatus);
+    ContractorFormInvite getInviteById(String id);
 }

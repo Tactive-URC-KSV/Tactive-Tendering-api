@@ -110,8 +110,10 @@ public class ContractorController {
 	@GetMapping("/validateInvite")
 	public ResponseEntity<?> validateContractorInvite(@RequestParam String id) {
 		try {
+			ContractorFormInvite invite = contractorService.getInviteById(id);
 			String token = contractorService.generateToken(id);
-			Map<String, String> response = new HashMap<>();
+			Map<String, Object> response = new HashMap<>();
+			response.put("contractor", invite);
 			response.put("token", token);
 			return ResponseEntity.ok(response);
 		} catch (FormAlreadySubmittedException e) {
@@ -122,4 +124,19 @@ public class ContractorController {
 					.body(Collections.singletonMap("message", e.getMessage()));
 		}
 	}
+	@GetMapping("/contractor/{contractorId}")
+	public ResponseEntity<?> getContractorById(@PathVariable String contractorId){
+		try{
+			return ResponseEntity.status(HttpStatus.OK).body(contractorService.getContractorById(contractorId));
+		}
+		catch (DataNotFoundException e){
+			return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+		}
+	}
+	@PutMapping("/contractor/verify/{contractorId}")
+	public ResponseEntity<?> verifyContractor(@PathVariable String contractorId,
+											  @RequestParam String contractorStatus){
+		return ResponseEntity.status(HttpStatus.OK).body(contractorService.verifyContractor(contractorId, contractorStatus));
+	}
+
 }
