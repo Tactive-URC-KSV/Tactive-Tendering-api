@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.ksv.tactive.dto.*;
+import com.ksv.tactive.project.entity.*;
 import org.springframework.core.io.Resource;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -13,15 +14,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.itextpdf.text.DocumentException;
 import com.ksv.tactive.exception.DataNotFoundException;
-import com.ksv.tactive.project.entity.ActivityGroup;
-import com.ksv.tactive.project.entity.ApprovalDocuments;
-import com.ksv.tactive.project.entity.BOQ;
-import com.ksv.tactive.project.entity.CostCodeActivity;
-import com.ksv.tactive.project.entity.FeasibilityStudy;
-import com.ksv.tactive.project.entity.FinancialFeasibility;
-import com.ksv.tactive.project.entity.Projects;
-import com.ksv.tactive.project.entity.TechnicalFeasibility;
-import com.ksv.tactive.project.entity.Template;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -89,7 +81,8 @@ public interface ProjectService {
 	TenderEstResourceDto getEstimatedResourceByIdAndBoqId(String tenderEstimationId, String boqId);
 	PaginatedResponse<ExcelExtractBOQ> extractBOQDataPaginated(String sheetName,
 			Map<String, String> columnMapping, MultipartFile boqFile, int startRow, int endRow, int page, int size, String search) throws IOException;
-
-
-
+    void addTender(TenderInputDto tenderInputDto, String technicalNotes, List<MultipartFile> technicalTerms, String commercialNotes,
+				   List<MultipartFile> commercialTerms, String drawingsNotes, List<MultipartFile> drawings, String othersNotes, List<MultipartFile> others, HttpServletRequest request);
+	List<ProjectInfoDto> getTenderFloatedProject();
+	List<Tender> getAllTenderByProject(String projectId);
 }

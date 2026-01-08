@@ -1210,4 +1210,12 @@ public List<CompanyTypeDto> getAllCompanyTypes() {
 				.orElseThrow(() -> new DataNotFoundException(messageSource
 						.getMessage("data.not.found", null, Locale.ENGLISH)));
 	}
+
+	@Override
+	public List<OfferSubmissionModeDto> getAllOfferSubmissionMode() {
+		return Arrays.stream(OfferSubmissionMode.values())
+				.map(mode -> new OfferSubmissionModeDto(mode.name(), mode.getLabel()))
+				.toList();
+
+	}
 }

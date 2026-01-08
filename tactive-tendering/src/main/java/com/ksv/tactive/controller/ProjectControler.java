@@ -50,11 +50,10 @@ public class ProjectControler {
 
 	@GetMapping("project/allProjects")
 	public ResponseEntity<?> getAllProjects() {
-		try{
+		try {
 			List<ProjectInfoDto> projects = projectService.getAllProjects();
 			return ResponseEntity.status(HttpStatus.OK).body(projects);
-		}
-		catch (DataNotFoundException e) {
+		} catch (DataNotFoundException e) {
 			return ResponseEntity.status(HttpStatus.NO_CONTENT).body(e.getMessage());
 		}
 	}
@@ -71,7 +70,7 @@ public class ProjectControler {
 
 	@PostMapping("project/saveProjectFiles/{projectId}")
 	public ResponseEntity<?> saveProjectFiles(@RequestPart(required = false) List<MultipartFile> files,
-			@PathVariable String projectId) {
+											  @PathVariable String projectId) {
 		projectService.saveProjectFiles(projectId, files);
 		return ResponseEntity.status(HttpStatus.CREATED).body("Files Uploaded");
 	}
@@ -87,7 +86,7 @@ public class ProjectControler {
 
 	@PutMapping("project/updateProject/{projectId}")
 	public ResponseEntity<?> updateProject(@RequestBody ProjectInputDTO projectInputDTO,
-			@PathVariable String projectId) {
+										   @PathVariable String projectId) {
 		try {
 			projectService.editProject(projectInputDTO, projectId);
 			return ResponseEntity.status(HttpStatus.OK)
@@ -108,9 +107,9 @@ public class ProjectControler {
 
 	@PostMapping("/feasibility/add/{projectId}")
 	public ResponseEntity<String> addTechFeasbility(@RequestPart TechnicalFeasibility techFeasibility,
-			@RequestPart List<FeasibilityApprovalDocuDTO> approvalDocDTO,
-			@RequestPart FinancialFeasibility financialFeasibility,
-			@RequestParam Map<String, MultipartFile> approvalDoc, @PathVariable String projectId) {
+													@RequestPart List<FeasibilityApprovalDocuDTO> approvalDocDTO,
+													@RequestPart FinancialFeasibility financialFeasibility,
+													@RequestParam Map<String, MultipartFile> approvalDoc, @PathVariable String projectId) {
 		String techFeasibilityId = projectService.saveTechFeasibility(techFeasibility);
 		String finFeasibilityId = projectService.saveFinancialFeasibility(financialFeasibility);
 		projectService.saveApprovalDoc(approvalDoc, approvalDocDTO, techFeasibilityId, projectId);
@@ -124,14 +123,14 @@ public class ProjectControler {
 
 	@PutMapping("/feasibility/approve/{projectId}")
 	public ResponseEntity<String> approveFeasibilityStudy(@PathVariable String projectId,
-			@RequestParam(required = false) String comments, HttpServletRequest request) {
+														  @RequestParam(required = false) String comments, HttpServletRequest request) {
 		return ResponseEntity.status(HttpStatus.OK)
 				.body(projectService.updateFeasibilityStudyStatus(projectId, true, comments, request));
 	}
 
 	@PutMapping("/feasibility/reject/{projectId}")
 	public ResponseEntity<String> rejectFeasibilityStudy(@PathVariable String projectId,
-			@RequestParam(required = false) String comments, HttpServletRequest request) {
+														 @RequestParam(required = false) String comments, HttpServletRequest request) {
 		return ResponseEntity.status(HttpStatus.OK)
 				.body(projectService.updateFeasibilityStudyStatus(projectId, false, comments, request));
 	}
@@ -148,7 +147,7 @@ public class ProjectControler {
 
 	@PostMapping("/project/addDrawings/{projectId}")
 	public ResponseEntity<?> addDrawings(@PathVariable String projectId,
-			@RequestPart(required = true) List<MultipartFile> drawings) {
+										 @RequestPart(required = true) List<MultipartFile> drawings) {
 		projectService.saveProjectDrawings(projectId, drawings);
 		return ResponseEntity.status(HttpStatus.OK)
 				.body(messageSource.getMessage("drawings.upload.success", null, Locale.ENGLISH));
@@ -217,10 +216,10 @@ public class ProjectControler {
 
 	@PostMapping(value = "/project/extractedBOQ", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	public ResponseEntity<?> getExtractedBOQData(@RequestParam("file") MultipartFile boqFile,
-			@RequestParam("sheetName") String sheetName,
-			@RequestPart("columnMapping") Map<String, String> columnMapping, @RequestParam("startRow") int startRow,
-			@RequestParam("endRow") int endRow, @RequestParam(defaultValue = "0") int page,
-			@RequestParam(defaultValue = "50") int size, @RequestParam(required = false) String search) {
+												 @RequestParam("sheetName") String sheetName,
+												 @RequestPart("columnMapping") Map<String, String> columnMapping, @RequestParam("startRow") int startRow,
+												 @RequestParam("endRow") int endRow, @RequestParam(defaultValue = "0") int page,
+												 @RequestParam(defaultValue = "50") int size, @RequestParam(required = false) String search) {
 		try {
 			PaginatedResponse<ExcelExtractBOQ> response = projectService.extractBOQDataPaginated(sheetName,
 					columnMapping, boqFile, startRow, endRow, page, size, search);
@@ -234,7 +233,7 @@ public class ProjectControler {
 		}
 	}
 
-//    @PostMapping("project/mapBOQ/{sheetName}/{projectId}")
+	//    @PostMapping("project/mapBOQ/{sheetName}/{projectId}")
 //    public ResponseEntity<?> uploadBOQ(
 //    		@PathVariable String projectId,
 //    		@RequestPart("file") MultipartFile boqFile,
@@ -251,22 +250,26 @@ public class ProjectControler {
 //    }
 	@PostMapping(value = "project/mapBOQ/{projectId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	public ResponseEntity<?> mapBoqData(@PathVariable String projectId, @RequestPart("file") MultipartFile boqFile,
-			@RequestParam String sheetName, 
-			@RequestParam String columnMapping,           
-	        @RequestParam String parentChildMapping,      
-	        @RequestParam String lastLevelMapping,        
-	        @RequestParam String levelMapping) {
+										@RequestParam String sheetName,
+										@RequestParam String columnMapping,
+										@RequestParam String parentChildMapping,
+										@RequestParam String lastLevelMapping,
+										@RequestParam String levelMapping) {
 
 		try {
 			ObjectMapper mapper = new ObjectMapper();
-	        Map<String, String> columnMap = mapper.readValue(columnMapping, new TypeReference<Map<String, String>>() {});
-	        Map<Long, Long> parentChildMap = mapper.readValue(parentChildMapping, new TypeReference<Map<Long, Long>>() {});
-	        Map<Long, Boolean> lastLevelMap = mapper.readValue(lastLevelMapping, new TypeReference<Map<Long, Boolean>>() {});
-	        Map<Long, Long> levelMap = mapper.readValue(levelMapping, new TypeReference<Map<Long, Long>>() {});
+			Map<String, String> columnMap = mapper.readValue(columnMapping, new TypeReference<Map<String, String>>() {
+			});
+			Map<Long, Long> parentChildMap = mapper.readValue(parentChildMapping, new TypeReference<Map<Long, Long>>() {
+			});
+			Map<Long, Boolean> lastLevelMap = mapper.readValue(lastLevelMapping, new TypeReference<Map<Long, Boolean>>() {
+			});
+			Map<Long, Long> levelMap = mapper.readValue(levelMapping, new TypeReference<Map<Long, Long>>() {
+			});
 
-	        String response = projectService.mapBOQData(
-	            projectId, sheetName, columnMap, parentChildMap, lastLevelMap, levelMap, boqFile
-	        );
+			String response = projectService.mapBOQData(
+					projectId, sheetName, columnMap, parentChildMap, lastLevelMap, levelMap, boqFile
+			);
 			return ResponseEntity.status(HttpStatus.OK).body(response);
 		} catch (IOException | DataNotFoundException e) {
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -410,15 +413,18 @@ public class ProjectControler {
 			return ResponseEntity.status(HttpStatus.NO_CONTENT).body(e.getMessage());
 		}
 	}
+
 	@PostMapping("/activityGroup")
 	public ResponseEntity<?> addActivityGroup(@RequestBody ActivityGroupDto activityGroupDto) {
 		return ResponseEntity.status(HttpStatus.OK).body(projectService.addActivityGroup(activityGroupDto));
 	}
+
 	@PutMapping("/activityGroup/edit")
-	public ResponseEntity<?> editActivityGroup(@RequestBody ActivityGroupDto activityGroupDto){
+	public ResponseEntity<?> editActivityGroup(@RequestBody ActivityGroupDto activityGroupDto) {
 		projectService.editActivityGroup(activityGroupDto);
 		return ResponseEntity.status(HttpStatus.OK).body(messageSource.getMessage("data.updated", null, Locale.ENGLISH));
 	}
+
 	@GetMapping("/activityGroups")
 	public ResponseEntity<?> getAllActivityGroups() {
 		return ResponseEntity.status(HttpStatus.OK).body(projectService.getAllActivityGroups());
@@ -480,14 +486,14 @@ public class ProjectControler {
 
 	@GetMapping("costCodeActivity/totalAmount/{costCodeTypeId}/{projectId}")
 	public ResponseEntity<?> getTotalAmountByCostCodeType(@PathVariable String costCodeTypeId,
-			@PathVariable String projectId) {
+														  @PathVariable String projectId) {
 		double totalAmount = projectService.getTotalAmountByCostCodeType(costCodeTypeId, projectId);
 		return ResponseEntity.status(HttpStatus.OK).body(totalAmount);
 	}
 
 	@GetMapping("costCodeActivity/{costCodeTypeId}/{projectId}")
 	public ResponseEntity<?> getCostCodeActivityByTypeAndProject(@PathVariable String costCodeTypeId,
-			@PathVariable String projectId) {
+																 @PathVariable String projectId) {
 		List<CostCodeActivity> costCode = projectService.getCostCodeActivityByProject(projectId);
 		if (!costCode.isEmpty()) {
 			List<CostCodeActivity> filteredList = costCode.stream()
@@ -533,7 +539,7 @@ public class ProjectControler {
 
 	@DeleteMapping("tenderEstimation/deleteResourceFromBoq/{tenderEstimationId}/{boqId}")
 	public ResponseEntity<?> deleteTenderEstimationForBoq(@PathVariable String tenderEstimationId,
-			@PathVariable String boqId) {
+														  @PathVariable String boqId) {
 		try {
 			String message = projectService.deleteTenderEstimationForBoq(tenderEstimationId, boqId);
 			return ResponseEntity.status(HttpStatus.OK).body(message);
@@ -551,12 +557,14 @@ public class ProjectControler {
 			return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
 		}
 	}
+
 	@GetMapping("/estimatedResource/{tenderEstimationId}")
 	public TenderEstResourceDto getEstimatedResourceByIdAndBoqId(
-	    @PathVariable String tenderEstimationId,
-	    @RequestParam String boqId) {
-	    return projectService.getEstimatedResourceByIdAndBoqId(tenderEstimationId, boqId); 
+			@PathVariable String tenderEstimationId,
+			@RequestParam String boqId) {
+		return projectService.getEstimatedResourceByIdAndBoqId(tenderEstimationId, boqId);
 	}
+
 	@GetMapping("project/getParentBoqAndAmount/{boqId}")
 	public ResponseEntity<?> getParentBOQAndAmount(@PathVariable String boqId) {
 		try {
@@ -566,5 +574,29 @@ public class ProjectControler {
 			return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
 		}
 	}
-	
+
+	@PostMapping(value = "project/tender", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	public ResponseEntity<?> addTender(@RequestPart TenderInputDto tenderInputDto,
+									   @RequestParam(value = "technicalTerms", required = false) List<MultipartFile> technicalTerms,
+									   @RequestParam(value = "commercialTerms", required = false) List<MultipartFile> commercialTerms,
+									   @RequestParam(value = "drawings", required = false) List<MultipartFile> drawings,
+									   @RequestParam(value = "others", required = false) List<MultipartFile> others,
+									   @RequestParam(value = "technicalTermsNotes", required = false) String technicalNotes,
+									   @RequestParam(value = "commercialTermsNotes", required = false) String commercialNotes,
+									   @RequestParam(value = "drawingsNotes", required = false) String drawingsNotes,
+									   @RequestParam(value = "othersNotes", required = false) String othersNotes,
+									   HttpServletRequest request){
+		projectService.addTender(tenderInputDto,technicalNotes,technicalTerms,commercialNotes,commercialTerms,drawingsNotes,drawings,othersNotes,others,request);
+		return ResponseEntity.status(HttpStatus.OK).body("Tender Floated Successfully");
+	}
+	@GetMapping("/project/tenderFloatedProject")
+	public ResponseEntity<?> getTenderFloatedProject(){
+		List<ProjectInfoDto> project = projectService.getTenderFloatedProject();
+		return ResponseEntity.status(HttpStatus.OK).body(project);
+	}
+	@GetMapping("/tender/{projectId}")
+	public ResponseEntity<?> getTenderByProject(@PathVariable String projectId){
+		List<Tender> tender = projectService.getAllTenderByProject(projectId);
+		return ResponseEntity.status(HttpStatus.OK).body(tender);
+	}
 }

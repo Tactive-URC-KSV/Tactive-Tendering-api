@@ -496,4 +496,9 @@ public class MasterDataController {
 		return ResponseEntity.status(HttpStatus.OK)
 				.body(masterService.getAllDirectorType());
 	}
+	@GetMapping("/offerSubmissionMode")
+	public ResponseEntity<?> getAllOfferSubmissionMode(){
+		return ResponseEntity.status(HttpStatus.OK)
+				.body(masterService.getAllOfferSubmissionMode());
+	}
 }

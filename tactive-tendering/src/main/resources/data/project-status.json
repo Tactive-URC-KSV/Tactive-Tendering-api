@@ -9,7 +9,7 @@
 	},
 	{
 		"status": "Tender Floating",
-		"processUrl": "/tactive"
+		"processUrl": "/tactive/project/tender"
 	},
 	{
 		"status": "Offer Received",
