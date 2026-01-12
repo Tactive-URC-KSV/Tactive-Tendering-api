@@ -505,7 +505,8 @@ public class MasterServiceImpl implements MasterService{
 
 	@Override
 	public Cities findCityById(String cityId) {
-		return citiesDao.findById(cityId).orElseThrow(()-> new DataNotFoundException(messageSource.getMessage("data.not.found",null,Locale.ENGLISH)));
+		return citiesDao.findById(cityId)
+				.orElse(null);
 	}
 
 	@Override

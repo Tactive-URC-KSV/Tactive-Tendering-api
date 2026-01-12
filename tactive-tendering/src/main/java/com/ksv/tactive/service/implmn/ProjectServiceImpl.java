@@ -24,7 +24,7 @@ import com.ksv.tactive.dto.*;
 import com.ksv.tactive.exception.DuplicateEntryException;
 import com.ksv.tactive.project.dao.*;
 import com.ksv.tactive.project.entity.*;
-import com.ksv.tactive.service.ContractorService;
+import com.ksv.tactive.service.*;
 import com.ksv.tactive.util.OfferSubmissionMode;
 import com.ksv.tactive.util.QuantityType;
 import com.ksv.tactive.util.TenderStatus;
@@ -44,9 +44,6 @@ import com.ksv.tactive.exception.DuplicateProjectCodeException;
 import com.ksv.tactive.exception.FileNotSaveException;
 import com.ksv.tactive.fileservice.ExcelFileService;
 import com.ksv.tactive.fileservice.PdfFileService;
-import com.ksv.tactive.service.MasterService;
-import com.ksv.tactive.service.ProjectService;
-import com.ksv.tactive.service.UserService;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -100,6 +97,8 @@ public class ProjectServiceImpl implements ProjectService {
 	private TenderDao tenderDao;
 	@Autowired
 	private TenderAttachmentDao tenderAttachmentDao;
+	@Autowired
+	private EmailService emailService;
 	@Override
 	public List<ProjectInfoDto> getAllProjects() {
 		List<Projects> projects = projectDao.findAll();
@@ -1356,7 +1355,7 @@ public class ProjectServiceImpl implements ProjectService {
 						  List<MultipartFile> commercialTerms, String drawingsNotes,
 						  List<MultipartFile> drawings, String othersNotes,
 						  List<MultipartFile> others, HttpServletRequest request) {
-
+		List<Contractor> contractors = new ArrayList<>();
 		Tender tender = new Tender();
 		if (tenderInputDto.getId() != null && !tenderInputDto.getId().isEmpty()) {
 			tender.setId(tenderInputDto.getId());
@@ -1407,6 +1406,7 @@ public class ProjectServiceImpl implements ProjectService {
 			for (String id : tenderInputDto.getContractorId()) {
 				Contractor contractor = contractorService.findContractorById(id);
 				if (contractor != null) {
+					contractors.add(contractor);
 					contractorSet.add(contractor);
 				}
 			}
@@ -1434,6 +1434,7 @@ public class ProjectServiceImpl implements ProjectService {
 		if (status != null && project != null) {
 			updateProjectStatus(project, status);
 		}
+		emailService.sendquoteMail(contractors, tender);
 	}
 
 	private List<String> saveTenderFiles(Projects project, List<MultipartFile> files) {
