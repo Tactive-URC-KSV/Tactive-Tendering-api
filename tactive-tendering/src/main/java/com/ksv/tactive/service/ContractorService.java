@@ -37,4 +37,5 @@ public interface ContractorService {
     ContractorResDto getContractorById(String contractorId);
     String verifyContractor(String contractorId, String contractorStatus);
     ContractorFormInvite getInviteById(String id);
+    Contractor findContractorById(String contractorId);
 }

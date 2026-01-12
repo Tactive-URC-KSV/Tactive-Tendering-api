@@ -138,5 +138,4 @@ public class ContractorController {
 											  @RequestParam String contractorStatus){
 		return ResponseEntity.status(HttpStatus.OK).body(contractorService.verifyContractor(contractorId, contractorStatus));
 	}
-
 }

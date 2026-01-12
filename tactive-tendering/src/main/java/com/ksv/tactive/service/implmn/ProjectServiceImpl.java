@@ -22,7 +22,12 @@ import java.util.stream.Collectors;
 
 import com.ksv.tactive.dto.*;
 import com.ksv.tactive.exception.DuplicateEntryException;
+import com.ksv.tactive.project.dao.*;
+import com.ksv.tactive.project.entity.*;
+import com.ksv.tactive.service.*;
+import com.ksv.tactive.util.OfferSubmissionMode;
 import com.ksv.tactive.util.QuantityType;
+import com.ksv.tactive.util.TenderStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
@@ -34,53 +39,11 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.itextpdf.text.DocumentException;
-import com.ksv.tactive.project.entity.Currency;
 import com.ksv.tactive.exception.DataNotFoundException;
 import com.ksv.tactive.exception.DuplicateProjectCodeException;
 import com.ksv.tactive.exception.FileNotSaveException;
 import com.ksv.tactive.fileservice.ExcelFileService;
 import com.ksv.tactive.fileservice.PdfFileService;
-import com.ksv.tactive.project.entity.ProjectStatus;
-import com.ksv.tactive.project.entity.Region;
-import com.ksv.tactive.project.entity.ResourceNature;
-import com.ksv.tactive.project.entity.ResourceType;
-import com.ksv.tactive.project.entity.Resources;
-import com.ksv.tactive.project.entity.ScopeOfPackage;
-import com.ksv.tactive.project.entity.Sector;
-import com.ksv.tactive.project.entity.UOM;
-import com.ksv.tactive.project.dao.ActivityGroupDao;
-import com.ksv.tactive.project.dao.ApprovalsDao;
-import com.ksv.tactive.project.dao.BOQDao;
-import com.ksv.tactive.project.dao.BOQFileDao;
-import com.ksv.tactive.project.dao.CostCodeDao;
-import com.ksv.tactive.project.dao.CostCodeTypeDao;
-import com.ksv.tactive.project.dao.FeasibilityStudyDao;
-import com.ksv.tactive.project.dao.FinancialFeasibilityDao;
-import com.ksv.tactive.project.dao.ProjectDao;
-import com.ksv.tactive.project.dao.ProjectDocumentDetailsDao;
-import com.ksv.tactive.project.dao.TechnicalFeasibilityDao;
-import com.ksv.tactive.project.dao.TemplateDao;
-import com.ksv.tactive.project.dao.TemplateMappingDao;
-import com.ksv.tactive.project.dao.TenderEstCostDao;
-import com.ksv.tactive.project.dao.TenderEstimationDao;
-import com.ksv.tactive.project.entity.ActivityGroup;
-import com.ksv.tactive.project.entity.ApprovalDocuments;
-import com.ksv.tactive.project.entity.BOQ;
-import com.ksv.tactive.project.entity.BOQFile;
-import com.ksv.tactive.project.entity.CostCodeActivity;
-import com.ksv.tactive.project.entity.CostCodeType;
-import com.ksv.tactive.project.entity.FeasibilityStudy;
-import com.ksv.tactive.project.entity.FinancialFeasibility;
-import com.ksv.tactive.project.entity.ProjectDocumentDetails;
-import com.ksv.tactive.project.entity.Projects;
-import com.ksv.tactive.project.entity.TechnicalFeasibility;
-import com.ksv.tactive.project.entity.Template;
-import com.ksv.tactive.project.entity.TemplateMapping;
-import com.ksv.tactive.project.entity.TenderEstimation;
-import com.ksv.tactive.project.entity.TenderEstimationCostDetails;
-import com.ksv.tactive.service.MasterService;
-import com.ksv.tactive.service.ProjectService;
-import com.ksv.tactive.service.UserService;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -92,6 +55,8 @@ public class ProjectServiceImpl implements ProjectService {
 	private MasterService masterService;
 	@Autowired
 	private MessageSource messageSource;
+	@Autowired
+	private ContractorService contractorService;
 	@Autowired
 	private ProjectDao projectDao;
 	@Autowired
@@ -128,6 +93,12 @@ public class ProjectServiceImpl implements ProjectService {
 	private TenderEstimationDao tenderEstDao;
 	@Autowired
 	private TenderEstCostDao costDetailsDao;
+	@Autowired
+	private TenderDao tenderDao;
+	@Autowired
+	private TenderAttachmentDao tenderAttachmentDao;
+	@Autowired
+	private EmailService emailService;
 	@Override
 	public List<ProjectInfoDto> getAllProjects() {
 		List<Projects> projects = projectDao.findAll();
@@ -1377,5 +1348,137 @@ public class ProjectServiceImpl implements ProjectService {
 	    dto.setTenderEstimation(tenderEstimation);
 	    dto.setCostDetails(costDetails);
 	    return dto;
+	}
+	@Override
+	public void addTender(TenderInputDto tenderInputDto, String technicalNotes,
+						  List<MultipartFile> technicalTerms, String commercialNotes,
+						  List<MultipartFile> commercialTerms, String drawingsNotes,
+						  List<MultipartFile> drawings, String othersNotes,
+						  List<MultipartFile> others, HttpServletRequest request) {
+		List<Contractor> contractors = new ArrayList<>();
+		Tender tender = new Tender();
+		if (tenderInputDto.getId() != null && !tenderInputDto.getId().isEmpty()) {
+			tender.setId(tenderInputDto.getId());
+		} else {
+			tender.setId(UUID.randomUUID().toString());
+		}
+
+		tender.setTenderNumber(tenderInputDto.getTenderFloatingNo());
+		tender.setTenderName(tenderInputDto.getTenderName());
+		tender.setBidOpeningdate(tenderInputDto.getBidOpeningDate());
+		tender.setLastDate(tenderInputDto.getLastDate());
+		tender.setFloatedUser(tenderInputDto.getFloatedBy());
+		tender.setContactName(tenderInputDto.getContactName());
+		tender.setContactNumber(tenderInputDto.getContactNumber());
+		tender.setContactEmail(tenderInputDto.getContactEmail());
+		tender.setSiteInvestigation(tenderInputDto.isSiteInvestigation());
+		tender.setPreBidding(tenderInputDto.isPreBidMeeting());
+		tender.setPreBiddingDate(tenderInputDto.getPreBidMeetingDate());
+		tender.setSiteInvestigationDate(tenderInputDto.getSiteInvestigationDate());
+
+		if (tenderInputDto.getSubmissionMode() != null) {
+			tender.setSubmissionMode(OfferSubmissionMode.valueOf(tenderInputDto.getSubmissionMode()));
+		}
+
+		Projects project = null;
+		if (tenderInputDto.getProjectId() != null) {
+			project = projectDao.findById(tenderInputDto.getProjectId()).orElse(null);
+			tender.setProjects(project);
+		}
+
+		if (tenderInputDto.getScopeId() != null && !tenderInputDto.getScopeId().isEmpty()) {
+			Set<ScopeOfPackage> scopeSet = new HashSet<>();
+			for (String id : tenderInputDto.getScopeId()) {
+				ScopeOfPackage scope = masterService.findScopeOfPackageById(id);
+				if (scope != null) {
+					scopeSet.add(scope);
+				}
+			}
+			tender.setScopeOfPackages(scopeSet);
+		}
+
+		if (tenderInputDto.getBoqId() != null && !tenderInputDto.getBoqId().isEmpty()) {
+			tender.setBoq(new HashSet<>(boqDao.findAllById(tenderInputDto.getBoqId())));
+		}
+
+		if (tenderInputDto.getContractorId() != null && !tenderInputDto.getContractorId().isEmpty()) {
+			Set<Contractor> contractorSet = new HashSet<>();
+			for (String id : tenderInputDto.getContractorId()) {
+				Contractor contractor = contractorService.findContractorById(id);
+				if (contractor != null) {
+					contractors.add(contractor);
+					contractorSet.add(contractor);
+				}
+			}
+			tender.setContractor(contractorSet);
+		}
+		tender.setTenderStatus(TenderStatus.PENDING);
+		tender = tenderDao.save(tender);
+		TenderAttachments attachments = new TenderAttachments();
+		attachments.setId(UUID.randomUUID().toString());
+		attachments.setTender(tender);
+		attachments.setProject(project);
+		attachments.setTechnicalTerms(technicalNotes);
+		attachments.setCommercialTerms(commercialNotes);
+		attachments.setDrawings(drawingsNotes);
+		attachments.setOthers(othersNotes);
+		if (project != null) {
+			attachments.setTechnicalTermsUrl(saveTenderFiles(project, technicalTerms));
+			attachments.setCommercialTermsUrl(saveTenderFiles(project, commercialTerms));
+			attachments.setDrawingUrl(saveTenderFiles(project, drawings));
+			attachments.setOtherUrl(saveTenderFiles(project, others));
+		}
+		tenderAttachmentDao.save(attachments);
+		String requestUrl = request.getRequestURI();
+		ProjectStatus status = masterService.findStatusByProcessUrl(requestUrl.substring(0, requestUrl.lastIndexOf("/")));
+		if (status != null && project != null) {
+			updateProjectStatus(project, status);
+		}
+		emailService.sendquoteMail(contractors, tender);
+	}
+
+	private List<String> saveTenderFiles(Projects project, List<MultipartFile> files) {
+		List<String> fileUrls = new ArrayList<>();
+		if (files == null || files.isEmpty()) {
+			return fileUrls;
+		}
+		Path directory = Paths
+				.get(uploadDir,
+						project.getProjectName().trim().replaceAll("\\s+", "_").replaceAll("[^a-zA-Z0-9-_\\.]", ""))
+				.toAbsolutePath().normalize();
+		try {
+			if (!Files.exists(directory)) {
+				Files.createDirectories(directory);
+			}
+			for (MultipartFile file : files) {
+				if (file.isEmpty()) continue;
+				String cleanFileName = StringUtils.cleanPath(file.getOriginalFilename());
+				Path targetLocation = directory.resolve(cleanFileName);
+				Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
+				fileUrls.add(targetLocation.toString());
+			}
+		} catch (IOException e) {
+			throw new RuntimeException("Could not store file. Error: " + e.getMessage());
+		}
+
+		return fileUrls;
+	}
+
+	@Override
+	public List<ProjectInfoDto> getTenderFloatedProject() {
+		List<ProjectInfoDto> projects = getAllProjects();
+		Set<String> projectIds = tenderDao.findAll().stream()
+				.map(tender -> tender.getProjects().getId())
+				.collect(Collectors.toSet());
+		projects = projects.stream()
+				.filter(project -> projectIds.contains(project.getProjectId()))
+				.collect(Collectors.toList());
+		return projects;
+	}
+
+	@Override
+	public List<Tender> getAllTenderByProject(String projectId) {
+		List<Tender> tender = tenderDao.findByProjectsId(projectId);
+		return tender;
 	}
 }

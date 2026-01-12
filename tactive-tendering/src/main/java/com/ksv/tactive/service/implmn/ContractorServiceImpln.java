@@ -409,4 +409,9 @@ public class ContractorServiceImpln implements ContractorService {
                 messageSource.getMessage("contractor.approved.success", null, Locale.ENGLISH) :
                 messageSource.getMessage("contractor.reject.success", null, Locale.ENGLISH);
     }
+    @Override
+    public Contractor findContractorById(String contractorId) {
+        return contractorDao.findById(contractorId)
+                .orElseThrow(()->new DataNotFoundException(messageSource.getMessage("contractor.not.found",null,Locale.ENGLISH)));
+    }
 }

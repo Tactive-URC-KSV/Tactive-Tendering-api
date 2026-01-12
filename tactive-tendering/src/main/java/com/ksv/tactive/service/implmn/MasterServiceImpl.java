@@ -505,7 +505,8 @@ public class MasterServiceImpl implements MasterService{
 
 	@Override
 	public Cities findCityById(String cityId) {
-		return citiesDao.findById(cityId).orElseThrow(()-> new DataNotFoundException(messageSource.getMessage("data.not.found",null,Locale.ENGLISH)));
+		return citiesDao.findById(cityId)
+				.orElse(null);
 	}
 
 	@Override
@@ -1209,5 +1210,13 @@ public List<CompanyTypeDto> getAllCompanyTypes() {
 		return taxTypeDao.findById(taxTypeId)
 				.orElseThrow(() -> new DataNotFoundException(messageSource
 						.getMessage("data.not.found", null, Locale.ENGLISH)));
+	}
+
+	@Override
+	public List<OfferSubmissionModeDto> getAllOfferSubmissionMode() {
+		return Arrays.stream(OfferSubmissionMode.values())
+				.map(mode -> new OfferSubmissionModeDto(mode.name(), mode.getLabel()))
+				.toList();
+
 	}
 }

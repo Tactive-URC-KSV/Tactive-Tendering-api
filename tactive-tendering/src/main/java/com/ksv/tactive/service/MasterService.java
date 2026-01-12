@@ -120,4 +120,5 @@ public interface MasterService {
     List<DirectorTypeDto> getAllDirectorType();
 	Language getLanguageById(String languageId);
 	TaxType getTaxTYpeById(String taxTypeId);
+    List<OfferSubmissionModeDto> getAllOfferSubmissionMode();
 }
