@@ -1481,4 +1481,16 @@ public class ProjectServiceImpl implements ProjectService {
 		List<Tender> tender = tenderDao.findByProjectsId(projectId);
 		return tender;
 	}
+
+    @Override
+    public TenderAttachments getAllAttachementsByTenderId(String tenderId) {
+        return tenderAttachmentDao.findByTenderId(tenderId)
+				.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("tender.attachment.not.found", null, Locale.ENGLISH)));
+    }
+
+	@Override
+	public Tender getTenderByTenderId(String tenderId) {
+		return tenderDao.findById(tenderId)
+				.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("tender.not.found",null,Locale.ENGLISH)));
+	}
 }
