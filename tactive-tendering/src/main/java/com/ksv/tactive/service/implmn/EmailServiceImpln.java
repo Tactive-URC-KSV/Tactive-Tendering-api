@@ -1,6 +1,10 @@
 package com.ksv.tactive.service.implmn;
 
+import com.ksv.tactive.project.dao.ContractorContactsDao;
+import com.ksv.tactive.project.entity.Contractor;
+import com.ksv.tactive.project.entity.ContractorContacts;
 import com.ksv.tactive.project.entity.ContractorFormInvite;
+import com.ksv.tactive.project.entity.Tender;
 import com.ksv.tactive.service.EmailService;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
@@ -9,6 +13,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 public class EmailServiceImpln implements EmailService {
@@ -21,6 +27,8 @@ public class EmailServiceImpln implements EmailService {
     @Value("${spring.mail.username}")
     private String sendFrom;
 
+    @Autowired
+    private ContractorContactsDao contactsDao;
 
     @Override
     public String sentEnrollmentInvite(ContractorFormInvite contractorFormInvite) {
@@ -67,5 +75,69 @@ public class EmailServiceImpln implements EmailService {
         } catch (MessagingException e) {
             return e.getMessage();
         }
+    }
+
+    @Override
+    public String sendquoteMail(List<Contractor> contractors, Tender tender) {
+        int successCount = 0;
+        for (Contractor contractor : contractors) {
+            ContractorContacts contractorContacts = contactsDao.findByContractorId(contractor.getId());
+            try {
+                MimeMessage message = mailSender.createMimeMessage();
+                MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+                helper.setFrom(sendFrom);
+                helper.setTo(contractorContacts.getEmail());
+                helper.setSubject("Invitation to Quote: " + tender.getTenderName());
+                String quoteLink = enrollmentLink + "/contractor-tender-quotation"
+                        + "?id=" + contractor.getId()
+                        + "&tenderId=" + tender.getId();
+
+                String htmlContent = """
+                <!DOCTYPE html>
+                <html>
+                <body style='font-family: Arial, sans-serif; margin: 0; padding: 0;'>
+                    <div style='background-color: #f4f4f4; max-width: 600px; margin: 20px auto; border: 1px solid #ddd;'>
+                        <div style='background-color: #005197; padding: 25px; text-align: center;'>
+                            <h2 style='color: #ffffff; margin: 0;'>Request for Quotation</h2>
+                        </div>
+                        <div style='padding: 30px; color: #333333; line-height: 1.6;'>
+                            <p>Dear %s,</p>
+                            <p>You have been shortlisted and invited to submit a quotation for the following tender:</p>
+                            
+                            <div style='background-color: #e9ecef; padding: 15px; border-radius: 4px; margin: 15px 0;'>
+                                <strong>Tender Name:</strong> %s<br>
+                                <strong>Reference No:</strong> %s
+                            </div>
+
+                            <p>To review the requirements and submit your best offer, please proceed to the secure portal using the button below.</p>
+
+                            <div style='text-align: center; margin: 30px 0;'>
+                                <a href='%s' style='background-color: #005197; color: #ffffff; padding: 12px 25px; text-decoration: none; font-weight: bold; border-radius: 4px;'>
+                                    View Tender & Submit Quote
+                                </a>
+                            </div>
+                            
+                            <p style='font-size: 12px; color: #777;'>
+                                <strong>Note:</strong> This link is unique to your organization. Please do not forward this email to others.
+                            </p>
+                        </div>
+                    </div>
+                </body>
+                </html>
+                """.formatted(
+                        contractorContacts.getName(),
+                        tender.getTenderName(),
+                        tender.getTenderNumber(),
+                        quoteLink
+                );
+                helper.setText(htmlContent, true);
+                mailSender.send(message);
+                successCount++;
+            } catch (MessagingException e) {
+                return "Failed to Float";
+            }
+        }
+
+        return successCount + " Quotation Invitations Sent Successfully";
     }
 }
