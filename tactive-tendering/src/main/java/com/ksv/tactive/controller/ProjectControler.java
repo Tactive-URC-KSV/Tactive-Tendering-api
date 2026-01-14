@@ -594,9 +594,28 @@ public class ProjectControler {
 		List<ProjectInfoDto> project = projectService.getTenderFloatedProject();
 		return ResponseEntity.status(HttpStatus.OK).body(project);
 	}
-	@GetMapping("/tender/{projectId}")
+	@GetMapping("/tenders/{projectId}")
 	public ResponseEntity<?> getTenderByProject(@PathVariable String projectId){
 		List<Tender> tender = projectService.getAllTenderByProject(projectId);
 		return ResponseEntity.status(HttpStatus.OK).body(tender);
 	}
+    @GetMapping("/tenderAttachments/{tenderId}")
+    public ResponseEntity<?> getTenderAttachments(@PathVariable String tenderId){
+        try{
+            return ResponseEntity.status(HttpStatus.OK).body(projectService.getAllAttachementsByTenderId(tenderId));
+        }
+        catch (DataNotFoundException e){
+            return ResponseEntity.status(HttpStatus.NO_CONTENT).body(e.getMessage());
+        }
+    }
+	@GetMapping("/tender/{tenderId}")
+	public ResponseEntity<?> getTenderByTenderId(@PathVariable String tenderId){
+		try{
+			return ResponseEntity.status(HttpStatus.OK).body(projectService.getTenderByTenderId(tenderId));
+		}
+		catch (DataNotFoundException e){
+			return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+		}
+	}
+
 }
