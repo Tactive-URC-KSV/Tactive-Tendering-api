@@ -38,4 +38,5 @@ public interface ContractorService {
     String verifyContractor(String contractorId, String contractorStatus);
     ContractorFormInvite getInviteById(String id);
     Contractor findContractorById(String contractorId);
+    String generateTenderToken(String contractorId, String tenderId);
 }

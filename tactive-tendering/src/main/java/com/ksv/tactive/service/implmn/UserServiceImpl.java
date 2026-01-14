@@ -1,7 +1,11 @@
 package com.ksv.tactive.service.implmn;
 import com.ksv.tactive.config.CustomUserDetailsService;
 import com.ksv.tactive.config.UserPrincipal;
+import com.ksv.tactive.project.dao.ContractorContactsDao;
+import com.ksv.tactive.project.entity.Contractor;
+import com.ksv.tactive.project.entity.ContractorContacts;
 import com.ksv.tactive.project.entity.ContractorFormInvite;
+import com.ksv.tactive.project.entity.TenderInvites;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -22,6 +26,8 @@ public class UserServiceImpl implements UserService{
 	private JwtService jwtService;
 	@Autowired
 	private UserDao userDao;
+	@Autowired
+	private ContractorContactsDao contactsDao;
 	@Override
 	public String login(String username, String password) {
 		Authentication authentication = authManager.authenticate(new UsernamePasswordAuthenticationToken(username, password));
@@ -54,6 +60,22 @@ public class UserServiceImpl implements UserService{
 		user.setRole("CONTRACTOR");
 		user.setName(formInvite.getName());
 		user.setUsername(formInvite.getUsername());
+		user.setPassword("");
+		UserPrincipal userPrincipal = new UserPrincipal(user);
+		return jwtService.generateToken(userPrincipal);
+	}
+	@Override
+	public String getTempTokenForTender(TenderInvites tenderInvite) {
+		User user = new User();
+		user.setId(tenderInvite.getId());
+		user.setUsername(tenderInvite.getTempToken());
+		Contractor contractor = tenderInvite.getContractor();
+		if (contractor != null) {
+			ContractorContacts contractorContacts = contactsDao.findByContractorId(contractor.getId());
+			user.setName(contractorContacts != null ? contractorContacts.getName() : null);
+			user.setEmail(contractorContacts != null ? contractorContacts.getEmail() : null);
+		}
+		user.setRole("CONTRACTOR");
 		user.setPassword("");
 		UserPrincipal userPrincipal = new UserPrincipal(user);
 		return jwtService.generateToken(userPrincipal);

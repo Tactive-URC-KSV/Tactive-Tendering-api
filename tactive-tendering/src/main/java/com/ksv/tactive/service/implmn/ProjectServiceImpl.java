@@ -99,6 +99,8 @@ public class ProjectServiceImpl implements ProjectService {
 	private TenderAttachmentDao tenderAttachmentDao;
 	@Autowired
 	private EmailService emailService;
+	@Autowired
+	private TenderInviteDao tenderInviteDao;
 	@Override
 	public List<ProjectInfoDto> getAllProjects() {
 		List<Projects> projects = projectDao.findAll();
@@ -1434,9 +1436,27 @@ public class ProjectServiceImpl implements ProjectService {
 		if (status != null && project != null) {
 			updateProjectStatus(project, status);
 		}
+		addInviteDetails(tender);
 		emailService.sendquoteMail(contractors, tender);
 	}
 
+	private void addInviteDetails(Tender tender) {
+		if (tender.getContractor() == null) {
+			return;
+		}
+		for (Contractor contractor : tender.getContractor()) {
+			TenderInvites invite = new TenderInvites();
+			invite.setId(UUID.randomUUID().toString());
+			invite.setTender(tender);
+			invite.setContractor(contractor);
+			invite.setSubmitted(false);
+			invite.setTempToken(UUID.randomUUID().toString());
+			invite.setInvitedOn(new Date(System.currentTimeMillis()));
+			long expiryTime = System.currentTimeMillis() + (7L * 24 * 60 * 60 * 1000);
+			invite.setTokenExpiry(new java.sql.Timestamp(expiryTime));
+			tenderInviteDao.save(invite);
+		}
+	}
 	private List<String> saveTenderFiles(Projects project, List<MultipartFile> files) {
 		List<String> fileUrls = new ArrayList<>();
 		if (files == null || files.isEmpty()) {
