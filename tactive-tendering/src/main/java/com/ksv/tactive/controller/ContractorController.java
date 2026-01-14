@@ -138,4 +138,15 @@ public class ContractorController {
 											  @RequestParam String contractorStatus){
 		return ResponseEntity.status(HttpStatus.OK).body(contractorService.verifyContractor(contractorId, contractorStatus));
 	}
+	@GetMapping("/validateTenderInvite")
+	public ResponseEntity<?> validateTenderInvite(
+			@RequestParam("id") String contractorId,
+			@RequestParam("tenderId") String tenderId) {
+		try {
+			String token = contractorService.generateTenderToken(contractorId,tenderId);
+			return ResponseEntity.ok(Collections.singletonMap("token", token));
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+		}
+	}
 }

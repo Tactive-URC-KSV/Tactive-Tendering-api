@@ -85,4 +85,6 @@ public interface ProjectService {
 				   List<MultipartFile> commercialTerms, String drawingsNotes, List<MultipartFile> drawings, String othersNotes, List<MultipartFile> others, HttpServletRequest request);
 	List<ProjectInfoDto> getTenderFloatedProject();
 	List<Tender> getAllTenderByProject(String projectId);
+	TenderAttachments getAllAttachementsByTenderId(String tenderId);
+	Tender getTenderByTenderId(String tenderId);
 }

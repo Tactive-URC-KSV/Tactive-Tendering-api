@@ -85,6 +85,9 @@ public class ContractorServiceImpln implements ContractorService {
     private ContractorFormInviteDao contractorFormInviteDao;
 
     @Autowired
+    private TenderInviteDao tenderInviteDao;
+
+    @Autowired
     private MessageSource messageSource;
 
     @Override
@@ -413,5 +416,21 @@ public class ContractorServiceImpln implements ContractorService {
     public Contractor findContractorById(String contractorId) {
         return contractorDao.findById(contractorId)
                 .orElseThrow(()->new DataNotFoundException(messageSource.getMessage("contractor.not.found",null,Locale.ENGLISH)));
+    }
+    @Override
+    public String generateTenderToken(String contractorId, String tenderId) {
+        TenderInvites tenderInvite = tenderInviteDao.findByContractor_IdAndTender_Id(contractorId, tenderId)
+                .orElseThrow(() -> new DataNotFoundException(
+                        messageSource.getMessage("tender.invite.not.found", null, Locale.ENGLISH)));
+        if (tenderInvite.isSubmitted()) {
+            throw new FormAlreadySubmittedException(
+                    messageSource.getMessage("tender.quote.already.submitted", null, Locale.ENGLISH));
+        }
+        if (tenderInvite.getTokenExpiry() != null &&
+                tenderInvite.getTokenExpiry().before(new java.sql.Timestamp(System.currentTimeMillis()))) {
+            throw new IllegalArgumentException("Link has expired");
+        }
+
+        return userService.getTempTokenForTender(tenderInvite);
     }
 }
