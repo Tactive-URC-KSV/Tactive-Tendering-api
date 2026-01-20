@@ -2,24 +2,15 @@ package com.ksv.tactive.fileservice;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
+import com.ksv.tactive.dto.BOQDto;
+import com.ksv.tactive.dto.BOQSummaryDTO;
+import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.poi.EncryptedDocumentException;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.CellStyle;
-import org.apache.poi.ss.usermodel.CellType;
-import org.apache.poi.ss.usermodel.CellValue;
-import org.apache.poi.ss.usermodel.FormulaEvaluator;
-import org.apache.poi.ss.usermodel.HorizontalAlignment;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.ss.usermodel.WorkbookFactory;
+import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -366,4 +357,120 @@ public class ExcelFileService {
 	    return extractedData;
 	}
 
+	public byte[] generateQuoteAttachement(Set<BOQDto> boqDtos) {
+		try (Workbook workbook = new XSSFWorkbook();
+			 ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+
+			Sheet sheet = workbook.createSheet("BOQ Details");
+
+			CellStyle lockedStyle = workbook.createCellStyle();
+			lockedStyle.setLocked(true);
+
+			CellStyle editableStyle = workbook.createCellStyle();
+			editableStyle.setLocked(false);
+			editableStyle.setFillForegroundColor(IndexedColors.LIGHT_YELLOW.getIndex());
+			editableStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+			editableStyle.setBorderBottom(BorderStyle.THIN);
+			editableStyle.setBorderTop(BorderStyle.THIN);
+			editableStyle.setBorderRight(BorderStyle.THIN);
+			editableStyle.setBorderLeft(BorderStyle.THIN);
+
+			CellStyle headerStyle = workbook.createCellStyle();
+			Font font = workbook.createFont();
+			font.setBold(true);
+			headerStyle.setFont(font);
+			headerStyle.setLocked(true);
+
+			Row headerRow = sheet.createRow(0);
+			String[] headers = {"Boq Code", "Boq Name", "Unit", "Quantity", "Rate"};
+
+			for (int i = 0; i < headers.length; i++) {
+				Cell cell = headerRow.createCell(i);
+				cell.setCellValue(headers[i]);
+				cell.setCellStyle(headerStyle);
+			}
+
+			int rowIdx = 1;
+			if (boqDtos != null) {
+				for (BOQDto dto : boqDtos) {
+					Row row = sheet.createRow(rowIdx++);
+
+					Cell c0 = row.createCell(0);
+					c0.setCellValue(dto.getBoqCode() != null ? dto.getBoqCode() : "");
+					c0.setCellStyle(lockedStyle);
+
+					Cell c1 = row.createCell(1);
+					c1.setCellValue(dto.getBoqName() != null ? dto.getBoqName() : "");
+					c1.setCellStyle(lockedStyle);
+
+					Cell c2 = row.createCell(2);
+					c2.setCellValue(dto.getUom() != null ? dto.getUom().getUomCode() : "");
+					c2.setCellStyle(lockedStyle);
+
+					Cell c3 = row.createCell(3);
+					c3.setCellValue(dto.getQuantity() != 0 ? dto.getQuantity() : 0);
+					c3.setCellStyle(lockedStyle);
+
+					Cell c4 = row.createCell(4);
+					c4.setCellValue("");
+					c4.setCellStyle(editableStyle);
+				}
+			}
+
+			for (int i = 0; i < headers.length; i++) {
+				sheet.autoSizeColumn(i);
+			}
+
+			sheet.protectSheet("password");
+
+			workbook.write(out);
+			return out.toByteArray();
+
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+	public List<BOQSummaryDTO> getExtractedTenderData(MultipartFile file) {
+		List<BOQSummaryDTO> boqList = new ArrayList<>();
+		DataFormatter dataFormatter = new DataFormatter();
+		try (InputStream inputStream = file.getInputStream();
+			 Workbook workbook = WorkbookFactory.create(inputStream)) {
+			Sheet sheet = workbook.getSheetAt(0);
+			for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+				Row row = sheet.getRow(i);
+				if (row == null) continue;
+				Cell codeCell = row.getCell(0);
+				if (codeCell == null || codeCell.getCellType() == CellType.BLANK) continue;
+				BOQSummaryDTO dto = new BOQSummaryDTO();
+				dto.setBoqCode(dataFormatter.formatCellValue(row.getCell(0)));
+				dto.setBoqName(dataFormatter.formatCellValue(row.getCell(1)));
+				dto.setUnit(dataFormatter.formatCellValue(row.getCell(2)));
+				String quantityStr = dataFormatter.formatCellValue(row.getCell(3));
+				String rateStr = dataFormatter.formatCellValue(row.getCell(4));
+				double quantity = 0.0;
+				double rate = 0.0;
+				try {
+					if (quantityStr != null && !quantityStr.trim().isEmpty()) {
+						quantity = Double.parseDouble(quantityStr.replace(",", ""));
+					}
+				} catch (NumberFormatException ignored) {
+				}
+
+				try {
+					if (rateStr != null && !rateStr.trim().isEmpty()) {
+						rate = Double.parseDouble(rateStr.replace(",", ""));
+					}
+				} catch (NumberFormatException ignored) {
+				}
+				dto.setQuantity(quantity);
+				dto.setRate(rate);
+				dto.setTotalAmount(quantity * rate);
+				boqList.add(dto);
+			}
+		} catch (IOException e) {
+			throw new RuntimeException("Failed to process Excel file", e);
+		}
+
+		return boqList;
+	}
 }

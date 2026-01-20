@@ -12,6 +12,7 @@ public class CorsConfig {
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(List.of("http://localhost:5173",
+                "http://localhost:5174",
                 "https://tactive-tendering-ui.onrender.com",
                 "https://tactive-tendering-contractor-form.onrender.com"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT","PATCH", "DELETE", "OPTIONS"));

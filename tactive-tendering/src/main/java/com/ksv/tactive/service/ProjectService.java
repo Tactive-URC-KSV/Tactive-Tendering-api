@@ -86,5 +86,6 @@ public interface ProjectService {
 	List<ProjectInfoDto> getTenderFloatedProject();
 	List<Tender> getAllTenderByProject(String projectId);
 	TenderAttachments getAllAttachementsByTenderId(String tenderId);
-	Tender getTenderByTenderId(String tenderId);
+	TenderRespDto getTenderByTenderId(String tenderId);
+	TenderOffers saveOffer(OfferDTO offerDTO);
 }

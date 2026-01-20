@@ -29,7 +29,7 @@ public class SecurityConfig {
 		return http.csrf(AbstractHttpConfigurer::disable)
 				.authorizeHttpRequests(requests -> requests
 						.requestMatchers("/tactive/login","/swagger-ui/**", "/v3/api-docs/**").permitAll()
-						.requestMatchers("/tactive/validateInvite").permitAll()
+						.requestMatchers("/tactive/validateInvite","/tactive/validateTenderInvite").permitAll()
 						.anyRequest().authenticated())
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.httpBasic(Customizer.withDefaults())
