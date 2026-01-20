@@ -1,10 +1,7 @@
 package com.ksv.tactive.service.implmn;
 
 import com.ksv.tactive.config.UserPrincipal;
-import com.ksv.tactive.dto.ContractorInputDto;
-import com.ksv.tactive.dto.ContractorNatureDto;
-import com.ksv.tactive.dto.ContractorResDto;
-import com.ksv.tactive.dto.ContractorStatusDto;
+import com.ksv.tactive.dto.*;
 import com.ksv.tactive.exception.DataNotFoundException;
 import com.ksv.tactive.exception.DuplicateEntryException;
 import com.ksv.tactive.exception.FormAlreadySubmittedException;
@@ -14,10 +11,7 @@ import com.ksv.tactive.project.entity.AddressType;
 import com.ksv.tactive.project.entity.IdentityType;
 import com.ksv.tactive.project.dao.*;
 import com.ksv.tactive.project.entity.*;
-import com.ksv.tactive.service.ContractorService;
-import com.ksv.tactive.service.EmailService;
-import com.ksv.tactive.service.MasterService;
-import com.ksv.tactive.service.UserService;
+import com.ksv.tactive.service.*;
 import com.ksv.tactive.user.entity.User;
 import com.ksv.tactive.util.ContractorStatus;
 import com.ksv.tactive.util.TerritoryType;
@@ -35,6 +29,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.sql.Date;
+import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -432,5 +427,17 @@ public class ContractorServiceImpln implements ContractorService {
         }
 
         return userService.getTempTokenForTender(tenderInvite);
+    }
+
+    @Override
+    public String submitOffer(OfferDTO offerDTO) {
+        TenderInvites tenderInvite = tenderInviteDao.findByContractor_IdAndTender_Id(offerDTO.getContractorId(), offerDTO.getTenderId())
+                .orElseThrow(() -> new DataNotFoundException(
+                        messageSource.getMessage("tender.invite.not.found", null, Locale.ENGLISH)));
+        tenderInvite.setSubmitted(true);
+        tenderInvite.setTokenExpiry(new Timestamp(System.currentTimeMillis()));
+        tenderInviteDao.save(tenderInvite);
+        return messageSource.getMessage("offer.submitted", null, Locale.ENGLISH);
+
     }
 }

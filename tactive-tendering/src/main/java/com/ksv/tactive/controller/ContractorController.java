@@ -1,11 +1,15 @@
 package com.ksv.tactive.controller;
 
+import com.ksv.tactive.dto.BOQSummaryDTO;
 import com.ksv.tactive.dto.ContractorInputDto;
 import com.ksv.tactive.dto.ContractorNatureDto;
+import com.ksv.tactive.dto.OfferDTO;
 import com.ksv.tactive.exception.DataNotFoundException;
 import com.ksv.tactive.exception.FormAlreadySubmittedException;
+import com.ksv.tactive.fileservice.ExcelFileService;
 import com.ksv.tactive.project.entity.*;
 import com.ksv.tactive.service.ContractorService;
+import com.ksv.tactive.service.ProjectService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.http.HttpStatus;
@@ -24,6 +28,10 @@ public class ContractorController {
 	private ContractorService contractorService;
 	@Autowired
 	private MessageSource messageSource;
+	@Autowired
+	private ExcelFileService excelFileService;
+	@Autowired
+	private ProjectService projectService;
 
 	@PostMapping("/contractorType/add")
 	public ResponseEntity<?> addContractorType(@RequestBody ContractorType contractorType){
@@ -148,5 +156,19 @@ public class ContractorController {
 		} catch (Exception e) {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
 		}
+	}
+	@PostMapping("/getExtractedContent")
+	public ResponseEntity getExcelContent(@RequestParam MultipartFile file){
+		List<BOQSummaryDTO> boqs = excelFileService.getExtractedTenderData(file);
+		return ResponseEntity.status(HttpStatus.OK).body(boqs);
+	}
+	@PostMapping("/submitOffer")
+	public ResponseEntity<?> submitOffer(@RequestBody OfferDTO offerDTO) {
+		TenderOffers offer = projectService.saveOffer(offerDTO);
+		if (offer != null) {
+			String message = contractorService.submitOffer(offerDTO);
+			return ResponseEntity.status(HttpStatus.OK).body(message);
+		}
+		return ResponseEntity.status(HttpStatus.CONFLICT).body("Offer Not Quoted");
 	}
 }

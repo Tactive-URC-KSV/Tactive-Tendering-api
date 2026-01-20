@@ -55,7 +55,10 @@ public class Tender {
     private boolean preBidding;
     private Date preBiddingDate;
     private Date siteInvestigationDate;
+    private String siteInvestigationComments;
+    private String preBiddingComments;
     @Enumerated(EnumType.STRING)
     @Column(name = "submission_mode")
     private OfferSubmissionMode submissionMode;
+    private Date floatedOn;
 }
