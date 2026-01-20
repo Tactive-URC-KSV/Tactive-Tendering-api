@@ -8,6 +8,7 @@ public class BOQSummaryDTO {
     private String boqCode;
     private String boqName;
     private Double quantity;
+    private String unit;
+    private Double rate;
     private Double totalAmount;
-
 }

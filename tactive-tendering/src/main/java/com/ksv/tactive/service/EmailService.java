@@ -1,11 +1,13 @@
 package com.ksv.tactive.service;
 
+import com.ksv.tactive.dto.BOQDto;
 import com.ksv.tactive.project.entity.Contractor;
 import com.ksv.tactive.project.entity.ContractorFormInvite;
 import com.ksv.tactive.project.entity.Tender;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Set;
 
 @Service
 public interface EmailService {

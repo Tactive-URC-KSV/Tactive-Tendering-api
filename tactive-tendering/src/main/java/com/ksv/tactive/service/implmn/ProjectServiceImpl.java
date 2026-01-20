@@ -25,6 +25,7 @@ import com.ksv.tactive.exception.DuplicateEntryException;
 import com.ksv.tactive.project.dao.*;
 import com.ksv.tactive.project.entity.*;
 import com.ksv.tactive.service.*;
+import com.ksv.tactive.util.OfferStatus;
 import com.ksv.tactive.util.OfferSubmissionMode;
 import com.ksv.tactive.util.QuantityType;
 import com.ksv.tactive.util.TenderStatus;
@@ -101,6 +102,10 @@ public class ProjectServiceImpl implements ProjectService {
 	private EmailService emailService;
 	@Autowired
 	private TenderInviteDao tenderInviteDao;
+	@Autowired
+	private TenderOffersDao tenderOffersDao;
+	@Autowired
+	private OfferQuotationDao offerQuotationDao;
 	@Override
 	public List<ProjectInfoDto> getAllProjects() {
 		List<Projects> projects = projectDao.findAll();
@@ -1364,7 +1369,6 @@ public class ProjectServiceImpl implements ProjectService {
 		} else {
 			tender.setId(UUID.randomUUID().toString());
 		}
-
 		tender.setTenderNumber(tenderInputDto.getTenderFloatingNo());
 		tender.setTenderName(tenderInputDto.getTenderName());
 		tender.setBidOpeningdate(tenderInputDto.getBidOpeningDate());
@@ -1377,7 +1381,7 @@ public class ProjectServiceImpl implements ProjectService {
 		tender.setPreBidding(tenderInputDto.isPreBidMeeting());
 		tender.setPreBiddingDate(tenderInputDto.getPreBidMeetingDate());
 		tender.setSiteInvestigationDate(tenderInputDto.getSiteInvestigationDate());
-
+		tender.setFloatedOn(tenderInputDto.getTenderFloatingDate());
 		if (tenderInputDto.getSubmissionMode() != null) {
 			tender.setSubmissionMode(OfferSubmissionMode.valueOf(tenderInputDto.getSubmissionMode()));
 		}
@@ -1480,7 +1484,6 @@ public class ProjectServiceImpl implements ProjectService {
 		} catch (IOException e) {
 			throw new RuntimeException("Could not store file. Error: " + e.getMessage());
 		}
-
 		return fileUrls;
 	}
 
@@ -1509,8 +1512,87 @@ public class ProjectServiceImpl implements ProjectService {
     }
 
 	@Override
-	public Tender getTenderByTenderId(String tenderId) {
-		return tenderDao.findById(tenderId)
-				.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("tender.not.found",null,Locale.ENGLISH)));
+	public TenderRespDto getTenderByTenderId(String tenderId) {
+		Tender tender = tenderDao.findById(tenderId)
+				.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("tender.not.found", null, Locale.ENGLISH)));
+		TenderRespDto tenderResponse = new TenderRespDto();
+		tenderResponse.setId(tender.getId());
+		tenderResponse.setTenderName(tender.getTenderName());
+		tenderResponse.setTenderNumber(tender.getTenderNumber());
+		tenderResponse.setContactName(tender.getContactName());
+		tenderResponse.setContactEmail(tender.getContactEmail());
+		tenderResponse.setContactNumber(tender.getContactNumber());
+		tenderResponse.setBidOpeningdate(tender.getBidOpeningdate());
+		tenderResponse.setLastDate(tender.getLastDate());
+		tenderResponse.setOfferSubmissionMode(tender.getSubmissionMode().getLabel());
+		tenderResponse.setFloatedUser(tender.getFloatedUser());
+		tenderResponse.setFloatedOn(tender.getFloatedOn());
+		tenderResponse.setSiteInvestigation(tender.isSiteInvestigation());
+		tenderResponse.setPreBidding(tender.isPreBidding());
+		tenderResponse.setPreBiddingDate(tender.getPreBiddingDate());
+		tenderResponse.setSiteInvestigationDate(tender.getSiteInvestigationDate());
+		tenderResponse.setSiteInvestigationComments(tender.getSiteInvestigationComments());
+		tenderResponse.setPreBiddingComments(tender.getPreBiddingComments());
+		if (tender.getScopeOfPackages() != null) {
+			tenderResponse.setScopeOfPackages(tender.getScopeOfPackages());
+		}
+		if (tender.getBoq() != null) {
+			Set<BOQDto> boqDtos = tender.getBoq().stream().map(b -> {
+				BOQDto dto = new BOQDto();
+				dto.setBoqId(b.getId());
+				dto.setBoqCode(b.getBoqCode());
+				dto.setBoqName(b.getBoqName());
+				dto.setQuantity(b.getQuantity());
+				dto.setUom(b.getUom());
+				return dto;
+			}).collect(Collectors.toSet());
+			tenderResponse.setBoq(boqDtos);
+		}
+		return tenderResponse;
+	}
+	@Override
+	public TenderOffers saveOffer(OfferDTO offerDTO) {
+		TenderOffers offers = new TenderOffers();
+		offers.setId(UUID.randomUUID().toString());
+
+		Tender tender = tenderDao.findById(offerDTO.getTenderId())
+				.orElseThrow(()-> new DataNotFoundException(messageSource.getMessage("tender.not.found", null, Locale.ENGLISH)));
+		offers.setTender(tender);
+
+		if (tender.getProjects() != null) {
+			offers.setProjects(tender.getProjects());
+		} else {
+			throw new DataNotFoundException(messageSource.getMessage("project.not.found", null, Locale.ENGLISH));
+		}
+
+		Contractor contractor = contractorService.findContractorById(offerDTO.getContractorId());
+		offers.setContractor(contractor);
+
+		offers.setSubmittedOn(new Date(System.currentTimeMillis()));
+		offers.setPaymentTerms(offerDTO.getPaymentTerms());
+		offers.setOfferStatus(OfferStatus.SUBMITTED);
+
+		long previousOffersCount = tenderOffersDao.countByTenderIdAndContractorId(tender.getId(), contractor.getId());
+		offers.setOfferVersion((int) previousOffersCount + 1);
+
+		List<OfferQuotation> quotations = new ArrayList<>();
+		if (offerDTO.getBoqRate() != null) {
+			for (Map<String, Double> rateMap : offerDTO.getBoqRate()) {
+				for (Map.Entry<String, Double> entry : rateMap.entrySet()) {
+					BOQ boq = boqDao.findById(entry.getKey())
+							.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("boq.not.found", null, Locale.ENGLISH)));
+					OfferQuotation quotation = new OfferQuotation();
+					quotation.setId(UUID.randomUUID().toString());
+					quotation.setTenderOffers(offers);
+					quotation.setBoq(boq);
+					quotation.setRate(entry.getValue());
+					quotation.setQuantity(boq.getQuantity());
+					quotation.setAmount(entry.getValue() * boq.getQuantity());
+					quotations.add(quotation);
+				}
+			}
+		}
+		offers.setOfferQuotations(quotations);
+		return tenderOffersDao.save(offers);
 	}
 }

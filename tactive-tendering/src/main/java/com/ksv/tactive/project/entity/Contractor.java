@@ -1,6 +1,7 @@
 package com.ksv.tactive.project.entity;
 
 import java.sql.Date;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -36,4 +37,6 @@ public class Contractor {
 	@Enumerated(EnumType.STRING)
 	@Column(name = "status")
 	private ContractorStatus status;
+	@OneToMany(mappedBy = "contractor", cascade = CascadeType.ALL, orphanRemoval = true)
+	private List<ContractorContacts> contractorContacts = new ArrayList<>();
 }
