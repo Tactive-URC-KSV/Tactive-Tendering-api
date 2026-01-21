@@ -15,5 +15,5 @@ SET LOG_FILE=E:\APP\Application\TactiveKSV\logs\app.log
 echo Starting Spring Boot application...
 java -jar "%JAR_PATH%" --spring.config.additional-location=file:"%CONFIG_PATH%" > "%LOG_FILE%" 2>&1
 
-echo Spring Boot app started successfully. Logs at %LOG_FILE%.
+echo Data loading process completed. Logs at %LOG_FILE%.
 exit /b 0
