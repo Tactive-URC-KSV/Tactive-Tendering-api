@@ -3,8 +3,6 @@ package com.ksv.tactive.project.entity;
 import com.ksv.tactive.util.OfferStatus;
 import jakarta.persistence.*;
 import lombok.Data;
-import lombok.ToString;
-
 import java.sql.Date;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,8 +13,6 @@ public class TenderOffers {
 
     @Id
     private String id;
-
-    private int offerVersion;
     @ManyToOne
     @JoinColumn(name = "tender_id")
     private Tender tender;
@@ -40,6 +36,8 @@ public class TenderOffers {
     private OfferStatus offerStatus;
 
     @OneToMany(mappedBy = "tenderOffers", cascade = CascadeType.ALL, orphanRemoval = true)
-    @ToString.Exclude
     private List<OfferQuotation> offerQuotations = new ArrayList<>();
+
+    @OneToMany(mappedBy = "tenderOffer", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<OfferNegotiation>  offerNegotiations = new ArrayList<>();
 }

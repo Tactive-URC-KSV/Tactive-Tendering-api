@@ -1,5 +1,6 @@
 package com.ksv.tactive.project.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
@@ -12,6 +13,7 @@ public class OfferQuotation {
 
     @Id
     private String id;
+    @JsonBackReference
     @ManyToOne
     @JoinColumn(name = "offer_id")
     private TenderOffers tenderOffers;
@@ -21,4 +23,6 @@ public class OfferQuotation {
     private double rate;
     private double quantity;
     private double amount;
+    private int offerVersion;
+
 }
