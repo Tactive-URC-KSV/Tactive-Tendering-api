@@ -88,4 +88,8 @@ public interface ProjectService {
 	TenderAttachments getAllAttachementsByTenderId(String tenderId);
 	TenderRespDto getTenderByTenderId(String tenderId);
 	TenderOffers saveOffer(OfferDTO offerDTO);
+    Tender getTenderDetailsByTenderId(String tenderId);
+	List<TenderEditHistory> getEditHistoriesByTenderId(String tenderId);
+	List<TenderOffers> getAllOfferByTenderId(String tenderId);
+	String negotiateTender(NegotiateDTO negotiateDTO);
 }
