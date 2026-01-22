@@ -7,6 +7,7 @@ import java.util.Map;
 
 @Data
 public class OfferDTO {
+    private String id;
     private String tenderId;
     private String contractorId;
     private List<Map<String, Double>> boqRate;

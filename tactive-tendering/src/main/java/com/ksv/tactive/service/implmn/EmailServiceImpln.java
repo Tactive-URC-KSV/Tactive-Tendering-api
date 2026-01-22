@@ -3,10 +3,7 @@ package com.ksv.tactive.service.implmn;
 import com.ksv.tactive.dto.BOQDto;
 import com.ksv.tactive.fileservice.ExcelFileService;
 import com.ksv.tactive.project.dao.ContractorContactsDao;
-import com.ksv.tactive.project.entity.Contractor;
-import com.ksv.tactive.project.entity.ContractorContacts;
-import com.ksv.tactive.project.entity.ContractorFormInvite;
-import com.ksv.tactive.project.entity.Tender;
+import com.ksv.tactive.project.entity.*;
 import com.ksv.tactive.service.EmailService;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
@@ -173,5 +170,79 @@ public class EmailServiceImpln implements EmailService {
         }
 
         return successCount + " Quotation Invitations Sent Successfully";
+    }
+
+    @Override
+    public String sentNegotiateMail(OfferNegotiation negotiation, String mailId) {
+        try {
+            TenderOffers tenderOffer = negotiation.getTenderOffer();
+            Contractor contractor = tenderOffer.getContractor();
+            Tender tender = tenderOffer.getTender();
+            String recipientName = contractor.getEntityName();
+            ContractorContacts contact = contactsDao.findByContractorId(contractor.getId());
+            if (contact != null && contact.getName() != null) {
+                recipientName = contact.getName();
+            }
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            helper.setFrom(sendFrom);
+            helper.setTo(mailId);
+            helper.setSubject("Negotiation Request: " + tender.getTenderName());
+            String quoteLink = enrollmentLink + "/contractor-tender-quotation"
+                    + "?id=" + contractor.getId()
+                    + "&tenderId=" + tender.getId();
+            String htmlContent = """
+            <!DOCTYPE html>
+            <html>
+            <body style='font-family: Arial, sans-serif; margin: 0; padding: 0;'>
+                <div style='background-color: #f4f4f4; max-width: 600px; margin: 20px auto; border: 1px solid #ddd;'>
+                    <div style='background-color: #005197; padding: 25px; text-align: center;'>
+                        <h2 style='color: #ffffff; margin: 0;'>Negotiation Request</h2>
+                    </div>
+                    <div style='padding: 30px; color: #333333; line-height: 1.6;'>
+                        <p>Dear %s,</p>
+                        <p>We have reviewed your submitted offer for the following tender. Based on our evaluation, we request you to review the comments below and submit a revised quotation:</p>
+                        
+                        <div style='background-color: #e9ecef; padding: 15px; border-radius: 4px; margin: 15px 0;'>
+                            <strong>Tender Name:</strong> %s<br>
+                            <strong>Reference No:</strong> %s<br>
+                            <strong>Offer Version:</strong> %d
+                        </div>
+    
+                        <div style='border-left: 4px solid #f0ad4e; background-color: #fffbf2; padding: 15px; margin: 20px 0;'>
+                            <strong>Negotiation Comments:</strong><br>
+                            <span style='color: #555; font-style: italic;'>%s</span>
+                        </div>
+    
+                        <p>To submit your revised offer, please proceed to the portal using the button below:</p>
+    
+                        <div style='text-align: center; margin: 30px 0;'>
+                            <a href='%s' style='background-color: #005197; color: #ffffff; padding: 12px 25px; text-decoration: none; font-weight: bold; border-radius: 4px;'>
+                                Revise & Submit Quote
+                            </a>
+                        </div>
+                        
+                        <p style='font-size: 12px; color: #777;'>
+                            <strong>Note:</strong> This link is unique to your organization. Please do not forward this email to others.
+                        </p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """.formatted(
+                    recipientName,
+                    tender.getTenderName(),
+                    tender.getTenderNumber(),
+                    negotiation.getOfferVersion(),
+                    negotiation.getComments(),
+                    quoteLink
+            );
+            helper.setText(htmlContent, true);
+            mailSender.send(message);
+            return "Negotiation Email Sent Successfully";
+        } catch (MessagingException e) {
+            e.printStackTrace();
+            return "Failed to Send Negotiation Email";
+        }
     }
 }

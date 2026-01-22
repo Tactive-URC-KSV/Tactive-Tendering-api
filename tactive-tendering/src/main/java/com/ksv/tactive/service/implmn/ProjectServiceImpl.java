@@ -7,24 +7,18 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.sql.Date;
 import java.sql.SQLIntegrityConstraintViolationException;
+import java.sql.Timestamp;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Random;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import com.ksv.tactive.dto.*;
 import com.ksv.tactive.exception.DuplicateEntryException;
 import com.ksv.tactive.project.dao.*;
 import com.ksv.tactive.project.entity.*;
+import com.ksv.tactive.project.entity.Currency;
 import com.ksv.tactive.service.*;
+import com.ksv.tactive.user.entity.User;
 import com.ksv.tactive.util.OfferStatus;
 import com.ksv.tactive.util.OfferSubmissionMode;
 import com.ksv.tactive.util.QuantityType;
@@ -99,6 +93,8 @@ public class ProjectServiceImpl implements ProjectService {
 	@Autowired
 	private TenderAttachmentDao tenderAttachmentDao;
 	@Autowired
+	private TenderEditHistoryDao tenderEditHistoryDao;
+	@Autowired
 	private EmailService emailService;
 	@Autowired
 	private TenderInviteDao tenderInviteDao;
@@ -106,6 +102,8 @@ public class ProjectServiceImpl implements ProjectService {
 	private TenderOffersDao tenderOffersDao;
 	@Autowired
 	private OfferQuotationDao offerQuotationDao;
+	@Autowired
+	private OfferNegotiateDao offerNegotiateDao;
 	@Override
 	public List<ProjectInfoDto> getAllProjects() {
 		List<Projects> projects = projectDao.findAll();
@@ -132,8 +130,7 @@ public class ProjectServiceImpl implements ProjectService {
 	}
 	@Override
 	public Projects findByProjectId(String projectId) {
-		Projects project = projectDao.findById(projectId).orElse(null);
-		return project;
+        return projectDao.findById(projectId).orElse(null);
 	}
 	@Override
 	public Projects saveProject(ProjectInputDTO projectInputDTO, HttpServletRequest request)
@@ -173,7 +170,7 @@ public class ProjectServiceImpl implements ProjectService {
 					.map(id -> masterService.findScopeOfPackageById(id))
 					.collect(Collectors.toSet());
 			project.setScopeOfPackage(scopePackages.stream()
-					.filter(scope -> scope != null)
+					.filter(Objects::nonNull)
 					.map(scope -> {
 						return scope;
 					})
@@ -186,14 +183,9 @@ public class ProjectServiceImpl implements ProjectService {
 		ProjectStatus status = masterService.findStatusByProcessUrl(request.getRequestURI());
 		if (status != null) {
 			project.setProjectStatus(status);
-		} 
-		Projects savedProject = projectDao.save(project);
-		if (savedProject != null) {
-			return savedProject;
 		}
-		throw new SQLIntegrityConstraintViolationException(
-				messageSource.getMessage("project.created.exception", null, Locale.ENGLISH));
-	}
+        return projectDao.save(project);
+    }
 	private String generateProjectCode() {
 		final String chars = "0123456789";
 		Random random = new Random();
@@ -207,14 +199,15 @@ public class ProjectServiceImpl implements ProjectService {
 	@Override
 	public String saveProjectFiles(String projectId, List<MultipartFile> files) {
 		Projects project = projectDao.findById(projectId).orElse(null);
-		Path directory = Paths
+        assert project != null;
+        Path directory = Paths
 				.get(uploadDir,
 						project.getProjectName().trim().replaceAll("\\s+", "_").replaceAll("[^a-zA-Z0-9-_\\.]", ""))
 				.toAbsolutePath().normalize();
 		try {
 			Files.createDirectories(directory);
 			for (MultipartFile file : files) {
-				Path targetLocation = directory.resolve(StringUtils.cleanPath(file.getOriginalFilename()));
+				Path targetLocation = directory.resolve(StringUtils.cleanPath(Objects.requireNonNull(file.getOriginalFilename())));
 				Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
 				ProjectDocumentDetails projectDocuments = new ProjectDocumentDetails();
 				projectDocuments.setId(UUID.randomUUID().toString());
@@ -1362,13 +1355,26 @@ public class ProjectServiceImpl implements ProjectService {
 						  List<MultipartFile> commercialTerms, String drawingsNotes,
 						  List<MultipartFile> drawings, String othersNotes,
 						  List<MultipartFile> others, HttpServletRequest request) {
-		List<Contractor> contractors = new ArrayList<>();
-		Tender tender = new Tender();
+
+		Tender tender;
+		boolean isEdit = false;
+
 		if (tenderInputDto.getId() != null && !tenderInputDto.getId().isEmpty()) {
-			tender.setId(tenderInputDto.getId());
+			Optional<Tender> existingOpt = tenderDao.findById(tenderInputDto.getId());
+			if (existingOpt.isPresent()) {
+				User user = userService.findLoggedInUser();
+				tender = existingOpt.get();
+				isEdit = true;
+				trackTenderHistory(tender, tenderInputDto, user.getId(), tenderInputDto.getFloatedBy());
+			} else {
+				tender = new Tender();
+				tender.setId(tenderInputDto.getId());
+			}
 		} else {
+			tender = new Tender();
 			tender.setId(UUID.randomUUID().toString());
 		}
+
 		tender.setTenderNumber(tenderInputDto.getTenderFloatingNo());
 		tender.setTenderName(tenderInputDto.getTenderName());
 		tender.setBidOpeningdate(tenderInputDto.getBidOpeningDate());
@@ -1382,6 +1388,7 @@ public class ProjectServiceImpl implements ProjectService {
 		tender.setPreBiddingDate(tenderInputDto.getPreBidMeetingDate());
 		tender.setSiteInvestigationDate(tenderInputDto.getSiteInvestigationDate());
 		tender.setFloatedOn(tenderInputDto.getTenderFloatingDate());
+
 		if (tenderInputDto.getSubmissionMode() != null) {
 			tender.setSubmissionMode(OfferSubmissionMode.valueOf(tenderInputDto.getSubmissionMode()));
 		}
@@ -1392,56 +1399,195 @@ public class ProjectServiceImpl implements ProjectService {
 			tender.setProjects(project);
 		}
 
-		if (tenderInputDto.getScopeId() != null && !tenderInputDto.getScopeId().isEmpty()) {
+		if (tenderInputDto.getScopeId() != null) {
 			Set<ScopeOfPackage> scopeSet = new HashSet<>();
 			for (String id : tenderInputDto.getScopeId()) {
 				ScopeOfPackage scope = masterService.findScopeOfPackageById(id);
-				if (scope != null) {
-					scopeSet.add(scope);
-				}
+				if (scope != null) scopeSet.add(scope);
 			}
 			tender.setScopeOfPackages(scopeSet);
 		}
 
-		if (tenderInputDto.getBoqId() != null && !tenderInputDto.getBoqId().isEmpty()) {
+		if (tenderInputDto.getBoqId() != null) {
 			tender.setBoq(new HashSet<>(boqDao.findAllById(tenderInputDto.getBoqId())));
 		}
 
-		if (tenderInputDto.getContractorId() != null && !tenderInputDto.getContractorId().isEmpty()) {
-			Set<Contractor> contractorSet = new HashSet<>();
+		List<Contractor> contractorsToEmail = new ArrayList<>();
+
+		if (tenderInputDto.getContractorId() != null) {
+			Set<Contractor> currentContractors = tender.getContractor();
+			if (currentContractors == null) currentContractors = new HashSet<>();
+
+			Set<Contractor> updatedContractors = new HashSet<>();
+
 			for (String id : tenderInputDto.getContractorId()) {
 				Contractor contractor = contractorService.findContractorById(id);
 				if (contractor != null) {
-					contractors.add(contractor);
-					contractorSet.add(contractor);
+					updatedContractors.add(contractor);
+					if (!isEdit || !currentContractors.contains(contractor)) {
+						contractorsToEmail.add(contractor);
+					}
 				}
 			}
-			tender.setContractor(contractorSet);
+			tender.setContractor(updatedContractors);
 		}
-		tender.setTenderStatus(TenderStatus.PENDING);
+
+		if (!isEdit) {
+			tender.setTenderStatus(TenderStatus.PENDING);
+		}
+
 		tender = tenderDao.save(tender);
-		TenderAttachments attachments = new TenderAttachments();
-		attachments.setId(UUID.randomUUID().toString());
-		attachments.setTender(tender);
-		attachments.setProject(project);
-		attachments.setTechnicalTerms(technicalNotes);
-		attachments.setCommercialTerms(commercialNotes);
-		attachments.setDrawings(drawingsNotes);
-		attachments.setOthers(othersNotes);
-		if (project != null) {
-			attachments.setTechnicalTermsUrl(saveTenderFiles(project, technicalTerms));
-			attachments.setCommercialTermsUrl(saveTenderFiles(project, commercialTerms));
-			attachments.setDrawingUrl(saveTenderFiles(project, drawings));
-			attachments.setOtherUrl(saveTenderFiles(project, others));
-		}
-		tenderAttachmentDao.save(attachments);
+
+		handleAttachments(tender, project, technicalNotes, technicalTerms, commercialNotes, commercialTerms, drawingsNotes, drawings, othersNotes, others);
+
 		String requestUrl = request.getRequestURI();
 		ProjectStatus status = masterService.findStatusByProcessUrl(requestUrl.substring(0, requestUrl.lastIndexOf("/")));
 		if (status != null && project != null) {
 			updateProjectStatus(project, status);
 		}
+
 		addInviteDetails(tender);
-		emailService.sendquoteMail(contractors, tender);
+
+		if (!contractorsToEmail.isEmpty()) {
+			emailService.sendquoteMail(contractorsToEmail, tender);
+		}
+	}
+	private void trackTenderHistory(Tender existingTender, TenderInputDto newDetails, String userId, String userName) {
+		List<TenderEditHistory> historyList = new ArrayList<>();
+
+		compareAndLog(historyList, existingTender, "Tender Name",
+				existingTender.getTenderName(), newDetails.getTenderName(), userId, userName);
+
+		compareAndLog(historyList, existingTender, "Tender Number",
+				existingTender.getTenderNumber(), newDetails.getTenderFloatingNo(), userId, userName);
+
+		compareAndLog(historyList, existingTender, "Contact Name",
+				existingTender.getContactName(), newDetails.getContactName(), userId, userName);
+
+		compareAndLog(historyList, existingTender, "Contact Number",
+				existingTender.getContactNumber(), newDetails.getContactNumber(), userId, userName);
+
+		compareAndLog(historyList, existingTender, "Contact Email",
+				existingTender.getContactEmail(), newDetails.getContactEmail(), userId, userName);
+
+		compareAndLog(historyList, existingTender, "Bid Opening Date",
+				toStringSafe(existingTender.getBidOpeningdate()), toStringSafe(newDetails.getBidOpeningDate()), userId, userName);
+
+		compareAndLog(historyList, existingTender, "Last Date",
+				toStringSafe(existingTender.getLastDate()), toStringSafe(newDetails.getLastDate()), userId, userName);
+
+		compareAndLog(historyList, existingTender, "Pre-Bid Meeting Date",
+				toStringSafe(existingTender.getPreBiddingDate()), toStringSafe(newDetails.getPreBidMeetingDate()), userId, userName);
+
+		compareAndLog(historyList, existingTender, "Site Inv. Date",
+				toStringSafe(existingTender.getSiteInvestigationDate()), toStringSafe(newDetails.getSiteInvestigationDate()), userId, userName);
+
+		String oldSubmissionMode = existingTender.getSubmissionMode() != null ? existingTender.getSubmissionMode().name() : "N/A";
+		String newSubmissionMode = newDetails.getSubmissionMode();
+		if (newSubmissionMode != null && !oldSubmissionMode.equals(newSubmissionMode)) {
+			createHistoryEntry(historyList, existingTender, "Submission Mode", oldSubmissionMode, newSubmissionMode, userId, userName);
+		}
+
+		String oldScopes = existingTender.getScopeOfPackages() != null ?
+				existingTender.getScopeOfPackages().stream().map(ScopeOfPackage::getScope).collect(Collectors.joining(", ")) : "";
+
+		String newScopes = "";
+		if (newDetails.getScopeId() != null && !newDetails.getScopeId().isEmpty()) {
+			List<ScopeOfPackage> newScopeEntities = newDetails.getScopeId().stream()
+					.map(id-> masterService.findScopeOfPackageById(id))
+					.toList();
+			newScopes = newScopeEntities.stream().map(ScopeOfPackage::getScope).collect(Collectors.joining(", "));
+		}
+		compareAndLog(historyList, existingTender, "Scope of Packages", oldScopes, newScopes, userId, userName);
+
+		String oldBoqs = existingTender.getBoq() != null ?
+				existingTender.getBoq().stream().map(BOQ::getBoqCode).collect(Collectors.joining(", ")) : "";
+
+		String newBoqs = "";
+		if (newDetails.getBoqId() != null && !newDetails.getBoqId().isEmpty()) {
+			List<BOQ> newBoqEntities = boqDao.findAllById(newDetails.getBoqId());
+			newBoqs = newBoqEntities.stream().map(BOQ::getBoqCode).collect(Collectors.joining(", "));
+		}
+		compareAndLog(historyList, existingTender, "BOQs", oldBoqs, newBoqs, userId, userName);
+
+		String oldContractors = existingTender.getContractor() != null ?
+				existingTender.getContractor().stream().map(Contractor::getEntityName).collect(Collectors.joining(", ")) : "";
+
+		String newContractors = "";
+		if (newDetails.getContractorId() != null && !newDetails.getContractorId().isEmpty()) {
+			List<Contractor> newContractorEntities = newDetails.getContractorId().stream()
+					.map(id -> contractorService.findContractorById(id))
+					.toList();
+			newContractors = newContractorEntities.stream().map(Contractor::getEntityName).collect(Collectors.joining(", "));
+		}
+		compareAndLog(historyList, existingTender, "Contractors", oldContractors, newContractors, userId, userName);
+
+		if (!historyList.isEmpty()) {
+			tenderEditHistoryDao.saveAll(historyList);
+		}
+	}
+
+	private void compareAndLog(List<TenderEditHistory> list, Tender tender, String fieldName, String oldVal, String newVal, String userId, String userName) {
+		String safeOld = oldVal == null ? "" : oldVal.trim();
+		String safeNew = newVal == null ? "" : newVal.trim();
+
+		if (!safeOld.equals(safeNew)) {
+			createHistoryEntry(list, tender, fieldName, safeOld, safeNew, userId, userName);
+		}
+	}
+
+	private void createHistoryEntry(List<TenderEditHistory> list, Tender tender, String field, String oldVal, String newVal, String userId, String userName) {
+		TenderEditHistory history = new TenderEditHistory();
+		history.setId(UUID.randomUUID().toString());
+		history.setTender(tender);
+		history.setField(field);
+		history.setOldValue(oldVal);
+		history.setNewValue(newVal);
+		history.setUpdatedBy(userName);
+		history.setUpdatedUserId(userId);
+		history.setRemarks("Tender Updated");
+		history.setCreatedAt(new Timestamp(System.currentTimeMillis()));
+		list.add(history);
+	}
+
+	private String toStringSafe(Object date) {
+		return date == null ? "" : String.valueOf(date);
+	}
+	private void handleAttachments(Tender tender, Projects project,
+								   String technicalNotes, List<MultipartFile> technicalTerms,
+								   String commercialNotes, List<MultipartFile> commercialTerms,
+								   String drawingsNotes, List<MultipartFile> drawings,
+								   String othersNotes, List<MultipartFile> others) {
+
+		TenderAttachments attachments = tenderAttachmentDao.findByTenderId(tender.getId()).orElse(null);
+
+		if (attachments == null) {
+			attachments = new TenderAttachments();
+			attachments.setId(UUID.randomUUID().toString());
+			attachments.setTender(tender);
+		}
+
+		attachments.setProject(project);
+
+		if (technicalNotes != null) attachments.setTechnicalTerms(technicalNotes);
+		if (commercialNotes != null) attachments.setCommercialTerms(commercialNotes);
+		if (drawingsNotes != null) attachments.setDrawings(drawingsNotes);
+		if (othersNotes != null) attachments.setOthers(othersNotes);
+
+		if (project != null) {
+			if (technicalTerms != null && !technicalTerms.isEmpty())
+				attachments.setTechnicalTermsUrl(saveTenderFiles(project, technicalTerms));
+
+			if (commercialTerms != null && !commercialTerms.isEmpty())
+				attachments.setCommercialTermsUrl(saveTenderFiles(project, commercialTerms));
+
+			if (drawings != null && !drawings.isEmpty())
+				attachments.setDrawingUrl(saveTenderFiles(project, drawings));
+
+			if (others != null && !others.isEmpty())
+				attachments.setOtherUrl(saveTenderFiles(project, others));
+		}
+		tenderAttachmentDao.save(attachments);
 	}
 
 	private void addInviteDetails(Tender tender) {
@@ -1449,18 +1595,23 @@ public class ProjectServiceImpl implements ProjectService {
 			return;
 		}
 		for (Contractor contractor : tender.getContractor()) {
-			TenderInvites invite = new TenderInvites();
-			invite.setId(UUID.randomUUID().toString());
-			invite.setTender(tender);
-			invite.setContractor(contractor);
-			invite.setSubmitted(false);
-			invite.setTempToken(UUID.randomUUID().toString());
-			invite.setInvitedOn(new Date(System.currentTimeMillis()));
-			long expiryTime = System.currentTimeMillis() + (7L * 24 * 60 * 60 * 1000);
-			invite.setTokenExpiry(new java.sql.Timestamp(expiryTime));
-			tenderInviteDao.save(invite);
+			boolean inviteExists = tenderInviteDao.existsByTenderIdAndContractorId(tender.getId(), contractor.getId());
+
+			if (!inviteExists) {
+				TenderInvites invite = new TenderInvites();
+				invite.setId(UUID.randomUUID().toString());
+				invite.setTender(tender);
+				invite.setContractor(contractor);
+				invite.setSubmitted(false);
+				invite.setTempToken(UUID.randomUUID().toString());
+				invite.setInvitedOn(new Date(System.currentTimeMillis()));
+				long expiryTime = System.currentTimeMillis() + (7L * 24 * 60 * 60 * 1000);
+				invite.setTokenExpiry(new java.sql.Timestamp(expiryTime));
+				tenderInviteDao.save(invite);
+			}
 		}
 	}
+
 	private List<String> saveTenderFiles(Projects project, List<MultipartFile> files) {
 		List<String> fileUrls = new ArrayList<>();
 		if (files == null || files.isEmpty()) {
@@ -1486,7 +1637,6 @@ public class ProjectServiceImpl implements ProjectService {
 		}
 		return fileUrls;
 	}
-
 	@Override
 	public List<ProjectInfoDto> getTenderFloatedProject() {
 		List<ProjectInfoDto> projects = getAllProjects();
@@ -1552,35 +1702,52 @@ public class ProjectServiceImpl implements ProjectService {
 	}
 	@Override
 	public TenderOffers saveOffer(OfferDTO offerDTO) {
-		TenderOffers offers = new TenderOffers();
-		offers.setId(UUID.randomUUID().toString());
+		TenderOffers offers;
+		int currentVersion = 1;
 
-		Tender tender = tenderDao.findById(offerDTO.getTenderId())
-				.orElseThrow(()-> new DataNotFoundException(messageSource.getMessage("tender.not.found", null, Locale.ENGLISH)));
-		offers.setTender(tender);
+		if (offerDTO.getId() != null && !offerDTO.getId().isEmpty()) {
+			offers = tenderOffersDao.findById(offerDTO.getId())
+					.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("offer.not.found", null, Locale.ENGLISH)));
 
-		if (tender.getProjects() != null) {
-			offers.setProjects(tender.getProjects());
+			int maxExistingVersion = offers.getOfferQuotations().stream()
+					.mapToInt(OfferQuotation::getOfferVersion)
+					.max()
+					.orElse(0);
+			currentVersion = maxExistingVersion + 1;
+
+			offers.setSubmittedOn(new Date(System.currentTimeMillis()));
+			offers.setOfferStatus(OfferStatus.SUBMITTED);
+
+			if (offerDTO.getPaymentTerms() != null) {
+				offers.setPaymentTerms(offerDTO.getPaymentTerms());
+			}
+
 		} else {
-			throw new DataNotFoundException(messageSource.getMessage("project.not.found", null, Locale.ENGLISH));
+			offers = new TenderOffers();
+			offers.setId(UUID.randomUUID().toString());
+			Tender tender = tenderDao.findById(offerDTO.getTenderId())
+					.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("tender.not.found", null, Locale.ENGLISH)));
+			offers.setTender(tender);
+			if (tender.getProjects() != null) {
+				offers.setProjects(tender.getProjects());
+			} else {
+				throw new DataNotFoundException(messageSource.getMessage("project.not.found", null, Locale.ENGLISH));
+			}
+			Contractor contractor = contractorService.findContractorById(offerDTO.getContractorId());
+			offers.setContractor(contractor);
+			offers.setSubmittedOn(new Date(System.currentTimeMillis()));
+			offers.setPaymentTerms(offerDTO.getPaymentTerms());
+			offers.setOfferStatus(OfferStatus.SUBMITTED);
+			currentVersion = 1;
 		}
 
-		Contractor contractor = contractorService.findContractorById(offerDTO.getContractorId());
-		offers.setContractor(contractor);
-
-		offers.setSubmittedOn(new Date(System.currentTimeMillis()));
-		offers.setPaymentTerms(offerDTO.getPaymentTerms());
-		offers.setOfferStatus(OfferStatus.SUBMITTED);
-
-		long previousOffersCount = tenderOffersDao.countByTenderIdAndContractorId(tender.getId(), contractor.getId());
-		offers.setOfferVersion((int) previousOffersCount + 1);
-
-		List<OfferQuotation> quotations = new ArrayList<>();
+		List<OfferQuotation> newQuotations = new ArrayList<>();
 		if (offerDTO.getBoqRate() != null) {
 			for (Map<String, Double> rateMap : offerDTO.getBoqRate()) {
 				for (Map.Entry<String, Double> entry : rateMap.entrySet()) {
 					BOQ boq = boqDao.findById(entry.getKey())
 							.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("boq.not.found", null, Locale.ENGLISH)));
+
 					OfferQuotation quotation = new OfferQuotation();
 					quotation.setId(UUID.randomUUID().toString());
 					quotation.setTenderOffers(offers);
@@ -1588,11 +1755,59 @@ public class ProjectServiceImpl implements ProjectService {
 					quotation.setRate(entry.getValue());
 					quotation.setQuantity(boq.getQuantity());
 					quotation.setAmount(entry.getValue() * boq.getQuantity());
-					quotations.add(quotation);
+					quotation.setOfferVersion(currentVersion);
+
+					newQuotations.add(quotation);
 				}
 			}
 		}
-		offers.setOfferQuotations(quotations);
+
+		if (offers.getOfferQuotations() == null) {
+			offers.setOfferQuotations(newQuotations);
+		} else {
+			offers.getOfferQuotations().addAll(newQuotations);
+		}
+
 		return tenderOffersDao.save(offers);
+	}
+	@Override
+	public Tender getTenderDetailsByTenderId(String tenderId) {
+		return tenderDao.findById(tenderId).orElseThrow(()-> new DataNotFoundException(
+				messageSource.getMessage("tender.not.found",null,Locale.ENGLISH)
+		));
+	}
+	@Override
+	public List<TenderEditHistory> getEditHistoriesByTenderId(String tenderId) {
+		return tenderEditHistoryDao.findByTenderId(tenderId);
+	}
+
+	@Override
+	public List<TenderOffers> getAllOfferByTenderId(String tenderId) {
+		return tenderOffersDao.findByTenderId(tenderId);
+	}
+
+	@Override
+	public String negotiateTender(NegotiateDTO negotiateDTO) {
+		OfferNegotiation negotiation = new OfferNegotiation();
+		negotiation.setId(UUID.randomUUID().toString());
+		TenderOffers offer = tenderOffersDao.findById(negotiateDTO.getOfferId())
+				.orElseThrow(()-> new DataNotFoundException(messageSource.getMessage("offer.not.found",null,Locale.ENGLISH)));
+		negotiation.setTenderOffer(offer);
+		negotiation.setComments(negotiateDTO.getComments());
+		negotiation.setOfferVersion(negotiateDTO.getOfferVersion());
+		TenderInvites invite = tenderInviteDao.findByContractor_IdAndTender_Id(negotiateDTO.getContractorId(),negotiateDTO.getTenderId())
+				.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("tender.invite.not.found",null,Locale.ENGLISH)));
+		invite.setSubmitted(false);
+		invite.setTokenExpiry(new Timestamp(System.currentTimeMillis() + (7L * 24 * 60 * 60 * 1000)));
+		offer.setOfferStatus(OfferStatus.NEGOTIATION);
+		tenderInviteDao.save(invite);
+		tenderOffersDao.save(offer);
+		offerNegotiateDao.save(negotiation);
+		String mailId = contractorService.findContractorById(negotiateDTO.getContractorId())
+				.getContractorContacts()
+				.getFirst()
+				.getEmail();
+		emailService.sentNegotiateMail(negotiation,mailId);
+		return "Updated Successfully";
 	}
 }

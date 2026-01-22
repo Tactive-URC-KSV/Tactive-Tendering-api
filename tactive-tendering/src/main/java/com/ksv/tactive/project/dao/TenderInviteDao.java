@@ -11,4 +11,5 @@ public interface TenderInviteDao extends JpaRepository<TenderInvites , String> {
     Optional<TenderInvites> findByContractorId(String contractorId);
     Optional<TenderInvites> findByContractor_IdAndTender_Id(String contractorId, String tenderId);
     Optional<TenderInvites> findByTempToken(String username);
+    boolean existsByTenderIdAndContractorId(String id, String id1);
 }

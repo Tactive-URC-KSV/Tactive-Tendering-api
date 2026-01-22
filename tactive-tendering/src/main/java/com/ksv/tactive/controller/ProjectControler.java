@@ -617,5 +617,29 @@ public class ProjectControler {
 			return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
 		}
 	}
+	@GetMapping("/tenderDetails/{tenderId}")
+	public ResponseEntity<?> getTenderDetailsByTenderId(@PathVariable String tenderId){
+		try{
+			return ResponseEntity.status(HttpStatus.OK).body(projectService.getTenderDetailsByTenderId(tenderId));
+		}
+		catch (DataNotFoundException e){
+			return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+		}
+	}
+	@GetMapping("/editHistory/tender/{tenderId}")
+	public ResponseEntity<?> getEditHistoryByTenderId(@PathVariable String tenderId){
+		List<TenderEditHistory> editHistories = projectService.getEditHistoriesByTenderId(tenderId);
+		return ResponseEntity.status(HttpStatus.OK).body(editHistories);
+	}
+	@GetMapping("/tender-offers/{tenderId}")
+	public ResponseEntity<?> getTenderOffersByTenderId(@PathVariable String tenderId){
+		List<TenderOffers> offers = projectService.getAllOfferByTenderId(tenderId);
+		return ResponseEntity.status(HttpStatus.OK).body(offers);
+	}
+	@PutMapping("/offer/negotiate")
+	public ResponseEntity<?> offerNegotiate(@RequestBody NegotiateDTO negotiateDTO){
+		String message = projectService.negotiateTender(negotiateDTO);
+		return ResponseEntity.status(HttpStatus.OK).body(message);
+	}
 
 }
