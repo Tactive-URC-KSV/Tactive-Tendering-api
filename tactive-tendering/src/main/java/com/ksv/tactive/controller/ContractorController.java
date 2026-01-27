@@ -1,9 +1,6 @@
 package com.ksv.tactive.controller;
 
-import com.ksv.tactive.dto.BOQSummaryDTO;
-import com.ksv.tactive.dto.ContractorInputDto;
-import com.ksv.tactive.dto.ContractorNatureDto;
-import com.ksv.tactive.dto.OfferDTO;
+import com.ksv.tactive.dto.*;
 import com.ksv.tactive.exception.DataNotFoundException;
 import com.ksv.tactive.exception.FormAlreadySubmittedException;
 import com.ksv.tactive.fileservice.ExcelFileService;
@@ -170,5 +167,17 @@ public class ContractorController {
 			return ResponseEntity.status(HttpStatus.OK).body(message);
 		}
 		return ResponseEntity.status(HttpStatus.CONFLICT).body("Offer Not Quoted");
+	}
+	@GetMapping("/offer-details")
+	public ResponseEntity<?> getOfferDetailsBasedOnVersion(@RequestParam String tenderId,
+														   @RequestParam String contractorId,
+														   @RequestParam int offerVersion){
+		TenderRespDto resp = projectService.findOfferByOfferVersion(tenderId,contractorId,offerVersion);
+		return ResponseEntity.status(HttpStatus.OK).body(resp);
+	}
+	@GetMapping("/tender-offer")
+	public ResponseEntity<?> getOfferDetails(@RequestParam String negotiationId){
+		int version = projectService.findOfferNegotiation(negotiationId);
+		return ResponseEntity.status(HttpStatus.OK).body(version);
 	}
 }

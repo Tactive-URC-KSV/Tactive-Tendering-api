@@ -1,5 +1,6 @@
 package com.ksv.tactive.project.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.ksv.tactive.util.OfferStatus;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -27,17 +28,12 @@ public class TenderOffers {
 
     private Date submittedOn;
 
-    @ElementCollection
-    @CollectionTable(name = "offer_payment_terms", joinColumns = @JoinColumn(name = "offer_id"))
-    @Column(name = "term")
-    private List<String> paymentTerms = new ArrayList<>();
-
     @Enumerated(EnumType.STRING)
     private OfferStatus offerStatus;
 
     @OneToMany(mappedBy = "tenderOffers", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OfferQuotation> offerQuotations = new ArrayList<>();
-
+    @JsonBackReference
     @OneToMany(mappedBy = "tenderOffer", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OfferNegotiation>  offerNegotiations = new ArrayList<>();
 }

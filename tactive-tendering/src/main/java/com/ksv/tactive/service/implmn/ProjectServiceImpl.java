@@ -1708,20 +1708,14 @@ public class ProjectServiceImpl implements ProjectService {
 		if (offerDTO.getId() != null && !offerDTO.getId().isEmpty()) {
 			offers = tenderOffersDao.findById(offerDTO.getId())
 					.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("offer.not.found", null, Locale.ENGLISH)));
-
-			int maxExistingVersion = offers.getOfferQuotations().stream()
-					.mapToInt(OfferQuotation::getOfferVersion)
-					.max()
-					.orElse(0);
+			List<OfferQuotation> offerQuotations = offerQuotationDao.findByTenderOffersId(offerDTO.getId());
+			int maxExistingVersion = offerQuotations.size();
 			currentVersion = maxExistingVersion + 1;
-
 			offers.setSubmittedOn(new Date(System.currentTimeMillis()));
 			offers.setOfferStatus(OfferStatus.SUBMITTED);
-
 			if (offerDTO.getPaymentTerms() != null) {
 				offers.setPaymentTerms(offerDTO.getPaymentTerms());
 			}
-
 		} else {
 			offers = new TenderOffers();
 			offers.setId(UUID.randomUUID().toString());
@@ -1756,7 +1750,7 @@ public class ProjectServiceImpl implements ProjectService {
 					quotation.setQuantity(boq.getQuantity());
 					quotation.setAmount(entry.getValue() * boq.getQuantity());
 					quotation.setOfferVersion(currentVersion);
-
+					quotation.setPaymentTerms(offerDTO.getPaymentTerms());
 					newQuotations.add(quotation);
 				}
 			}
@@ -1809,5 +1803,75 @@ public class ProjectServiceImpl implements ProjectService {
 				.getEmail();
 		emailService.sentNegotiateMail(negotiation,mailId);
 		return "Updated Successfully";
+	}
+
+	@Override
+	public TenderRespDto findOfferByOfferVersion(String tenderId, String contractorId, int offerVersion) {
+		TenderOffers offers = tenderOffersDao.findByTenderIdAndContractorId(tenderId,contractorId).
+				orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("tender.offer.not.found",null,Locale.ENGLISH)));
+		List<OfferQuotation> quote = offers.getOfferQuotations().stream()
+				.filter(offer -> offer.getOfferVersion() == offerVersion)
+				.toList();
+		Tender tender = offers.getTender();
+		TenderRespDto tenderResponse = new TenderRespDto();
+		tenderResponse.setId(tender.getId());
+		tenderResponse.setTenderName(tender.getTenderName());
+		tenderResponse.setTenderNumber(tender.getTenderNumber());
+		tenderResponse.setContactName(tender.getContactName());
+		tenderResponse.setContactEmail(tender.getContactEmail());
+		tenderResponse.setContactNumber(tender.getContactNumber());
+		tenderResponse.setBidOpeningdate(tender.getBidOpeningdate());
+		tenderResponse.setLastDate(tender.getLastDate());
+		tenderResponse.setOfferSubmissionMode(tender.getSubmissionMode().getLabel());
+		tenderResponse.setFloatedUser(tender.getFloatedUser());
+		tenderResponse.setFloatedOn(tender.getFloatedOn());
+		tenderResponse.setSiteInvestigation(tender.isSiteInvestigation());
+		tenderResponse.setPreBidding(tender.isPreBidding());
+		tenderResponse.setPreBiddingDate(tender.getPreBiddingDate());
+		tenderResponse.setSiteInvestigationDate(tender.getSiteInvestigationDate());
+		tenderResponse.setSiteInvestigationComments(tender.getSiteInvestigationComments());
+		tenderResponse.setPreBiddingComments(tender.getPreBiddingComments());
+		if (tender.getScopeOfPackages() != null) {
+			tenderResponse.setScopeOfPackages(tender.getScopeOfPackages());
+		}
+		if (quote != null && !quote.isEmpty()) {
+			Set<BOQDto> boqDtos = quote.stream()
+					.map(offer -> {
+						BOQDto dto= new BOQDto();
+						dto.setBoqId(offer.getBoq().getId());
+						dto.setBoqCode(offer.getBoq().getBoqCode());
+						dto.setBoqName(offer.getBoq().getBoqName());
+						dto.setQuantity(offer.getQuantity());
+						dto.setRate(offer.getRate());
+						dto.setAmount(offer.getAmount());
+						dto.setUom(offer.getBoq().getUom());
+						return dto;
+			}).collect(Collectors.toSet());
+			tenderResponse.setBoq(boqDtos);
+		}
+		return tenderResponse;
+	}
+
+	@Override
+	public int findOfferNegotiation(String negotiationId) {
+		OfferNegotiation offerNegotiation = offerNegotiateDao.findById(negotiationId)
+				.orElseThrow(()-> new DataNotFoundException(messageSource.getMessage("tender.offer.not.found",null,Locale.ENGLISH)));
+		return offerNegotiation.getOfferVersion();
+	}
+
+	@Override
+	public String awardTender(String tenderId, String tenderOfferId, String offerQuotationId) {
+		Tender tender = tenderDao.findById(tenderId)
+				.orElseThrow(()-> new DataNotFoundException(messageSource.getMessage("tender.not.found",null,Locale.ENGLISH)));
+		TenderOffers tenderOffers = tenderOffersDao.findById(tenderOfferId)
+				.orElseThrow(()-> new DataNotFoundException(messageSource.getMessage("tender.offer.not.found",null,Locale.ENGLISH)));
+		OfferQuotation quotation = offerQuotationDao.findById(offerQuotationId)
+				.orElse(null);
+		tender.setOfferQuotation(quotation);
+		tender.setTenderOffers(tenderOffers);
+		tender.setTenderStatus(TenderStatus.AWARD);
+		tenderOffers.setOfferStatus(OfferStatus.AWARDED);
+		tenderDao.save(tender);
+		return "Tender Awarded successfully";
 	}
 }
