@@ -10,4 +10,6 @@ public class BOQDto {
     private String boqName;
     private UOM uom;
     private double quantity;
+    private double rate;
+    private double amount;
 }

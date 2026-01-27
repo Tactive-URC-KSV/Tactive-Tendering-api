@@ -641,5 +641,11 @@ public class ProjectControler {
 		String message = projectService.negotiateTender(negotiateDTO);
 		return ResponseEntity.status(HttpStatus.OK).body(message);
 	}
-
+	@PutMapping("/tender/award")
+	public ResponseEntity<?> awardTender(@RequestParam String tenderId,
+										 @RequestParam String tenderOfferId,
+										 @RequestParam String offerQuotationId){
+		String response = projectService.awardTender(tenderId,tenderOfferId, offerQuotationId);
+		return ResponseEntity.status(HttpStatus.OK).body(response);
+	}
 }

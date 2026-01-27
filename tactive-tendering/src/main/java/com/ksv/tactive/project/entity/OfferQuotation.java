@@ -1,11 +1,11 @@
 package com.ksv.tactive.project.entity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
+import jakarta.persistence.*;
 import lombok.Data;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Data
 @Entity
@@ -24,5 +24,10 @@ public class OfferQuotation {
     private double quantity;
     private double amount;
     private int offerVersion;
+    @ElementCollection
+    @CollectionTable(name = "offer_payment_terms", joinColumns = @JoinColumn(name = "offer_id"))
+    @Column(name = "term")
+    private List<String> paymentTerms = new ArrayList<>();
+
 
 }
