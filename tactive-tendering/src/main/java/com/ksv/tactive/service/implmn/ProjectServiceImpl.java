@@ -1713,9 +1713,6 @@ public class ProjectServiceImpl implements ProjectService {
 			currentVersion = maxExistingVersion + 1;
 			offers.setSubmittedOn(new Date(System.currentTimeMillis()));
 			offers.setOfferStatus(OfferStatus.SUBMITTED);
-			if (offerDTO.getPaymentTerms() != null) {
-				offers.setPaymentTerms(offerDTO.getPaymentTerms());
-			}
 		} else {
 			offers = new TenderOffers();
 			offers.setId(UUID.randomUUID().toString());
@@ -1730,7 +1727,6 @@ public class ProjectServiceImpl implements ProjectService {
 			Contractor contractor = contractorService.findContractorById(offerDTO.getContractorId());
 			offers.setContractor(contractor);
 			offers.setSubmittedOn(new Date(System.currentTimeMillis()));
-			offers.setPaymentTerms(offerDTO.getPaymentTerms());
 			offers.setOfferStatus(OfferStatus.SUBMITTED);
 			currentVersion = 1;
 		}
