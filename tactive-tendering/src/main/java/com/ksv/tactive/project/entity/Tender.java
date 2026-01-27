@@ -1,6 +1,7 @@
 package com.ksv.tactive.project.entity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.ksv.tactive.util.OfferSubmissionMode;
 import com.ksv.tactive.util.TenderStatus;
 import jakarta.persistence.*;
@@ -61,4 +62,12 @@ public class Tender {
     @Column(name = "submission_mode")
     private OfferSubmissionMode submissionMode;
     private Date floatedOn;
+    @JsonIgnore
+    @OneToOne
+    @JoinColumn(name = "awarded_tender")
+    private TenderOffers tenderOffers;
+    @JsonIgnore
+    @OneToOne
+    @JoinColumn(name = "awarded_offer")
+    private OfferQuotation offerQuotation;
 }

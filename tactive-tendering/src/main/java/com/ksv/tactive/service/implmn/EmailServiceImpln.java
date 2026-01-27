@@ -190,7 +190,8 @@ public class EmailServiceImpln implements EmailService {
             helper.setSubject("Negotiation Request: " + tender.getTenderName());
             String quoteLink = enrollmentLink + "/contractor-tender-quotation"
                     + "?id=" + contractor.getId()
-                    + "&tenderId=" + tender.getId();
+                    + "&tenderId=" + tender.getId()
+                    + "&negotiationId=" + negotiation.getId();
             String htmlContent = """
             <!DOCTYPE html>
             <html>

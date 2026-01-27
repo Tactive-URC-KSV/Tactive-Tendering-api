@@ -9,6 +9,7 @@ import com.ksv.tactive.dto.*;
 import com.ksv.tactive.project.entity.*;
 import org.springframework.core.io.Resource;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -92,4 +93,7 @@ public interface ProjectService {
 	List<TenderEditHistory> getEditHistoriesByTenderId(String tenderId);
 	List<TenderOffers> getAllOfferByTenderId(String tenderId);
 	String negotiateTender(NegotiateDTO negotiateDTO);
+	TenderRespDto findOfferByOfferVersion(String tenderId, String contractorId, int offerVersion);
+	int findOfferNegotiation(String negotiationId);
+	String awardTender(String tenderId, String tenderOfferId, String offerQuotationId);
 }
