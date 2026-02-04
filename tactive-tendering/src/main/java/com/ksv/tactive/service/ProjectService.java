@@ -96,4 +96,5 @@ public interface ProjectService {
 	TenderRespDto findOfferByOfferVersion(String tenderId, String contractorId, int offerVersion);
 	int findOfferNegotiation(String negotiationId);
 	String awardTender(String tenderId, String tenderOfferId, String offerQuotationId);
+	List<BOQ> searchBoq(String projectId, String searchQuery);
 }
