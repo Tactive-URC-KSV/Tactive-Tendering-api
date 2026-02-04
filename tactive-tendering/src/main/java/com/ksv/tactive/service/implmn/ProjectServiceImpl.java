@@ -1894,4 +1894,8 @@ public class ProjectServiceImpl implements ProjectService {
 		tenderDao.save(tender);
 		return "Tender Awarded successfully";
 	}
+	@Override
+	public List<BOQ> searchBoq(String projectId, String searchQuery) {
+		return boqDao.findByProjectIdAndBoqNameContainingIgnoreCase(projectId, searchQuery);
+	}
 }
