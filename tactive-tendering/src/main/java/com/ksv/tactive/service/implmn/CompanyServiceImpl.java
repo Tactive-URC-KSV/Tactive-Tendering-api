@@ -282,17 +282,17 @@ public class CompanyServiceImpl implements CompanyService {
 
 	@Override
 	public List<Map<String, String>> getAllCompany() {
-		List<Map<String, String>> companyList = new ArrayList<>();
 		List<Company> companies = companyRepository.findAll();
-		if(companies!=null && companies.size()>0){
-			companyList = companies.stream()
-					.map(company -> {
-						Map<String, String> companyMap = new HashMap<>();
-						companyMap.put(company.getId(), company.getCompanyName());
-						return companyMap;
-					})
-					.toList();
-		}
-		throw new DataNotFoundException("Company not found");
+//		if (companies == null || companies.isEmpty()) {
+//			throw new DataNotFoundException("Company not found");
+//		}
+		return companies.stream()
+				.map(company -> {
+					Map<String, String> companyMap = new HashMap<>();
+					companyMap.put(company.getId(), company.getCompanyName());
+					return companyMap;
+				})
+				.toList();
 	}
+
 }
