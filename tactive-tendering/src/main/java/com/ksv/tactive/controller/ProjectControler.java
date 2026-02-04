@@ -648,4 +648,14 @@ public class ProjectControler {
 		String response = projectService.awardTender(tenderId,tenderOfferId, offerQuotationId);
 		return ResponseEntity.status(HttpStatus.OK).body(response);
 	}
+	@GetMapping("/searchBoq/{projectId}")
+	public ResponseEntity<?> searchBoq(@PathVariable String projectId, @RequestParam String searchQuery) {
+		System.out.println("Search BOQ called with ID: " + projectId + " and Query: " + searchQuery); // Add this
+		try {
+			return ResponseEntity.ok(projectService.searchBoq(projectId, searchQuery));
+		} catch (Exception e) {
+			e.printStackTrace(); // Add this to see errors in console
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+		}
+	}
 }
