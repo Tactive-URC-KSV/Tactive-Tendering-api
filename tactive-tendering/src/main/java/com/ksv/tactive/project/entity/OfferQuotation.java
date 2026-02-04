@@ -29,5 +29,4 @@ public class OfferQuotation {
     @Column(name = "term")
     private List<String> paymentTerms = new ArrayList<>();
 
-
 }

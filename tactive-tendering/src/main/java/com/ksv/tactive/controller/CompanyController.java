@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/tactive")
@@ -27,5 +28,16 @@ public class CompanyController {
         } catch (DataNotFoundException e) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
         }
+    }
+    @GetMapping("/company")
+    public ResponseEntity<?> getAllCompany(){
+        try{
+            List<Map<String,String>> companyList = companyService.getAllCompany();
+            return ResponseEntity.status(HttpStatus.OK).body(companyList);
+        }
+        catch (DataNotFoundException e){
+            return ResponseEntity.status(HttpStatus.NO_CONTENT).body(e.getMessage());
+        }
+
     }
 }

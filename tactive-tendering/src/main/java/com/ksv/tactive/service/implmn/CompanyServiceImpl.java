@@ -1,5 +1,6 @@
 package com.ksv.tactive.service.implmn;
 
+import com.ksv.tactive.exception.DataNotFoundException;
 import com.ksv.tactive.project.dao.*;
 import com.ksv.tactive.dto.*;
 import com.ksv.tactive.project.entity.*;
@@ -20,9 +21,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 public class CompanyServiceImpl implements CompanyService {
@@ -81,6 +80,8 @@ public class CompanyServiceImpl implements CompanyService {
 		company.setCompanyStatus(isValid(dto.getStatusId())?masterService.getCompanyStatusById(dto.getStatusId().trim()):null);
 		company.setCurrency(isValid(dto.getCurrencyId())?masterService.getCurrencyById(dto.getCurrencyId().trim()):null);
 		company.setLanguage(isValid(dto.getLanguageId())?masterService.getLanguageById(dto.getLanguageId().trim()):null);
+		company.setParentCompany(isValid(dto.getParentCompanyId())?companyRepository.findById(dto.getParentCompanyId())
+				.orElseThrow(()->new RuntimeException("Company not found")):null);
 		company.setBank(dto.getBank());
 		company = companyRepository.save(company);
 		return company;
@@ -277,5 +278,21 @@ public class CompanyServiceImpl implements CompanyService {
 			throw new RuntimeException("Could not save file", e);
 		}
 		return paths;
+	}
+
+	@Override
+	public List<Map<String, String>> getAllCompany() {
+		List<Map<String, String>> companyList = new ArrayList<>();
+		List<Company> companies = companyRepository.findAll();
+		if(companies!=null && companies.size()>0){
+			companyList = companies.stream()
+					.map(company -> {
+						Map<String, String> companyMap = new HashMap<>();
+						companyMap.put(company.getId(), company.getCompanyName());
+						return companyMap;
+					})
+					.toList();
+		}
+		throw new DataNotFoundException("Company not found");
 	}
 }

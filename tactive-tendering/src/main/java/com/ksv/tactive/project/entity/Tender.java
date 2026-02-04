@@ -8,6 +8,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 
 import java.sql.Date;
+import java.sql.Time;
 import java.util.Set;
 
 @Data
@@ -55,7 +56,11 @@ public class Tender {
     private boolean siteInvestigation;
     private boolean preBidding;
     private Date preBiddingDate;
-    private Date siteInvestigationDate;
+    private Time preBiddingTime;
+    private Date siteInvestigationFromDate;
+    private Date siteInvestigationToDate;
+    private Time siteInvestigationFromTime;
+    private Time siteInvestigationToTime;
     private String siteInvestigationComments;
     private String preBiddingComments;
     @Enumerated(EnumType.STRING)
