@@ -1386,7 +1386,11 @@ public class ProjectServiceImpl implements ProjectService {
 		tender.setSiteInvestigation(tenderInputDto.isSiteInvestigation());
 		tender.setPreBidding(tenderInputDto.isPreBidMeeting());
 		tender.setPreBiddingDate(tenderInputDto.getPreBidMeetingDate());
-		tender.setSiteInvestigationDate(tenderInputDto.getSiteInvestigationDate());
+		tender.setPreBiddingTime(tenderInputDto.getPreBidMeetingTime());
+		tender.setSiteInvestigationFromDate(tenderInputDto.getSiteInvestigationFromDate());
+		tender.setSiteInvestigationToDate(tenderInputDto.getSiteInvestigationToDate());
+		tender.setSiteInvestigationFromTime(tenderInputDto.getSiteInvestigationFromTime());
+		tender.setSiteInvestigationToTime(tenderInputDto.getSiteInvestigationToTime());
 		tender.setFloatedOn(tenderInputDto.getTenderFloatingDate());
 
 		if (tenderInputDto.getSubmissionMode() != null) {
@@ -1479,8 +1483,20 @@ public class ProjectServiceImpl implements ProjectService {
 		compareAndLog(historyList, existingTender, "Pre-Bid Meeting Date",
 				toStringSafe(existingTender.getPreBiddingDate()), toStringSafe(newDetails.getPreBidMeetingDate()), userId, userName);
 
-		compareAndLog(historyList, existingTender, "Site Inv. Date",
-				toStringSafe(existingTender.getSiteInvestigationDate()), toStringSafe(newDetails.getSiteInvestigationDate()), userId, userName);
+		compareAndLog(historyList, existingTender, "Pre-Bid Meeting Time",
+				toStringSafe(existingTender.getPreBiddingTime()), toStringSafe(newDetails.getPreBidMeetingTime()), userId, userName);
+
+		compareAndLog(historyList, existingTender, "Site Inv.From Date",
+				toStringSafe(existingTender.getSiteInvestigationFromDate()), toStringSafe(newDetails.getSiteInvestigationFromDate()), userId, userName);
+
+		compareAndLog(historyList, existingTender, "Site Inv.To Date",
+				toStringSafe(existingTender.getSiteInvestigationToDate()), toStringSafe(newDetails.getSiteInvestigationToDate()), userId, userName);
+
+		compareAndLog(historyList, existingTender, "Site Inv.From Time",
+				toStringSafe(existingTender.getSiteInvestigationFromTime()), toStringSafe(newDetails.getSiteInvestigationFromTime()), userId, userName);
+
+		compareAndLog(historyList, existingTender, "Site Inv.To Time",
+				toStringSafe(existingTender.getSiteInvestigationToTime()), toStringSafe(newDetails.getSiteInvestigationToTime()), userId, userName);
 
 		String oldSubmissionMode = existingTender.getSubmissionMode() != null ? existingTender.getSubmissionMode().name() : "N/A";
 		String newSubmissionMode = newDetails.getSubmissionMode();
@@ -1680,7 +1696,11 @@ public class ProjectServiceImpl implements ProjectService {
 		tenderResponse.setSiteInvestigation(tender.isSiteInvestigation());
 		tenderResponse.setPreBidding(tender.isPreBidding());
 		tenderResponse.setPreBiddingDate(tender.getPreBiddingDate());
-		tenderResponse.setSiteInvestigationDate(tender.getSiteInvestigationDate());
+		tenderResponse.setPreBiddingTime(tender.getPreBiddingTime());
+		tenderResponse.setSiteInvestigationFromDate(tender.getSiteInvestigationFromDate());
+		tenderResponse.setSiteInvestigationToDate(tender.getSiteInvestigationToDate());
+		tenderResponse.setSiteInvestigationFromTime(tender.getSiteInvestigationFromTime());
+		tenderResponse.setSiteInvestigationToTime(tender.getSiteInvestigationToTime());
 		tenderResponse.setSiteInvestigationComments(tender.getSiteInvestigationComments());
 		tenderResponse.setPreBiddingComments(tender.getPreBiddingComments());
 		if (tender.getScopeOfPackages() != null) {
@@ -1824,7 +1844,11 @@ public class ProjectServiceImpl implements ProjectService {
 		tenderResponse.setSiteInvestigation(tender.isSiteInvestigation());
 		tenderResponse.setPreBidding(tender.isPreBidding());
 		tenderResponse.setPreBiddingDate(tender.getPreBiddingDate());
-		tenderResponse.setSiteInvestigationDate(tender.getSiteInvestigationDate());
+		tenderResponse.setPreBiddingTime(tender.getPreBiddingTime());
+		tenderResponse.setSiteInvestigationFromDate(tender.getSiteInvestigationFromDate());
+		tenderResponse.setSiteInvestigationToDate(tender.getSiteInvestigationToDate());
+		tenderResponse.setSiteInvestigationFromTime(tender.getSiteInvestigationFromTime());
+		tenderResponse.setSiteInvestigationToTime(tender.getSiteInvestigationToTime());
 		tenderResponse.setSiteInvestigationComments(tender.getSiteInvestigationComments());
 		tenderResponse.setPreBiddingComments(tender.getPreBiddingComments());
 		if (tender.getScopeOfPackages() != null) {
