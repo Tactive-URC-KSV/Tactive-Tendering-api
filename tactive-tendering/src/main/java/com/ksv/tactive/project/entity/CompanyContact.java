@@ -1,5 +1,6 @@
 package com.ksv.tactive.project.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -15,7 +16,7 @@ public class CompanyContact {
     private String name;
     private String phoneNo;
     private String email;
-
+    @JsonBackReference
     @ManyToOne
     @JoinColumn(name = "company_id", nullable = false)
     private Company company;

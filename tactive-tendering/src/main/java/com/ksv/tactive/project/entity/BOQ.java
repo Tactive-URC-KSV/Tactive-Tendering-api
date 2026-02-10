@@ -28,7 +28,7 @@ public class BOQ {
 	private String boqName;
 	@ManyToOne
 	@JoinColumn(name = "uom")
-	private UOM uom;
+	private Uom uom;
 	private int level;
 	private double quantity;
 	private double totalRate;

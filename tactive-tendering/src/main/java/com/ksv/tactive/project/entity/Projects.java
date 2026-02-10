@@ -60,7 +60,7 @@ public class Projects {
 	private Set<ScopeOfPackage> scopeOfPackage = new HashSet<>();
 	@ManyToOne
 	@JoinColumn(name = "uom")
-	private UOM uom;
+	private Uom uom;
 	@Column(length = 36)
 	private String companyId;
 }

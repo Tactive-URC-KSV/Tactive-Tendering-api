@@ -1,9 +1,9 @@
 package com.ksv.tactive.project.entity;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
+import jakarta.persistence.*;
 import lombok.Data;
+
+import java.util.List;
+
 @Data
 @Entity
 public class Resources {
@@ -17,6 +17,8 @@ public class Resources {
 	private ResourceType resourceType;
 	@ManyToOne
 	@JoinColumn(name = "uom_id")
-	private UOM uom;
+	private Uom uom;
+	@OneToMany(mappedBy = "resources", cascade = CascadeType.ALL)
+	private List<ResourceAttribute> resourceAttributes;
 	private boolean active;
 }

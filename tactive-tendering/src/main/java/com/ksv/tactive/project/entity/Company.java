@@ -4,6 +4,7 @@ import com.ksv.tactive.util.CompanyType;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.sql.Date;
 import java.util.List;
 
 @Data
@@ -14,6 +15,7 @@ public class Company {
 	private String id;
 	private String companyName;
 	private String shortName;
+	private Date createdAt;
 	@ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
 	@JoinColumn(name = "parent_company_id")
 	private Company parentCompany;
@@ -35,35 +37,36 @@ public class Company {
 	@ManyToOne
 	@JoinColumn(name = "com_status")
 	private CompanyStatus companyStatus;
-	@ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+	@ManyToOne(cascade = CascadeType.ALL)
 	@JoinColumn(name = "language_id")
 	private Language language;
 	@ManyToOne
 	@JoinColumn(name = "com_currency")
 	private Currency currency;
 	private String bank;
-	@OneToOne(mappedBy = "company")
+
+	@OneToOne(mappedBy = "company", cascade = CascadeType.ALL, orphanRemoval = true)
 	private ComAddressDetails addressDetails;
 
-	@OneToMany(mappedBy = "company")
+	@OneToMany(mappedBy = "company", cascade = CascadeType.ALL, orphanRemoval = true)
 	private List<CompanyContact> contacts;
 
-	@OneToMany(mappedBy = "company")
+	@OneToMany(mappedBy = "company", cascade = CascadeType.ALL, orphanRemoval = true)
 	private List<CompanyTax> taxDetails;
 
-	@OneToMany(mappedBy = "company")
+	@OneToMany(mappedBy = "company", cascade = CascadeType.ALL, orphanRemoval = true)
 	private List<CompanyDirector> directors;
 
-	@OneToMany(mappedBy = "company")
+	@OneToMany(mappedBy = "company", cascade = CascadeType.ALL, orphanRemoval = true)
 	private List<CompanyJointVenture> jointVentures;
 
-	@OneToOne(mappedBy = "company")
+	@OneToOne(mappedBy = "company", cascade = CascadeType.ALL, orphanRemoval = true)
 	private CompanyProfile profile;
 
-	@OneToMany(mappedBy = "company")
+	@OneToMany(mappedBy = "company", cascade = CascadeType.ALL, orphanRemoval = true)
 	private List<CompanyAdditionalInfo> additionalInfos;
 
-	@OneToMany(mappedBy = "company")
+	@OneToMany(mappedBy = "company", cascade = CascadeType.ALL, orphanRemoval = true)
 	private List<CompanyLocalName> localNames;
 
 }

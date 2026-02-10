@@ -3,13 +3,13 @@ import java.util.List;
 
 import com.ksv.tactive.dto.*;
 import com.ksv.tactive.project.entity.Language;
-import com.ksv.tactive.location.entity.States;
+import com.ksv.tactive.dto.States;
 import com.ksv.tactive.project.entity.*;
 import org.springframework.stereotype.Service;
 
 import com.ksv.tactive.project.entity.Currency;
-import com.ksv.tactive.location.entity.Cities;
-import com.ksv.tactive.location.entity.Country;
+import com.ksv.tactive.dto.Cities;
+import com.ksv.tactive.dto.Country;
 
 @Service
 public interface MasterService {
@@ -24,11 +24,11 @@ public interface MasterService {
 	String addScope(ScopeOfPackage scope);
 	List<ScopeOfPackage> getAllScopes();
 	void editScopeOfPackage(ScopeOfPackage scope);
-	String addUom(UOM uom);
-	UOM findUomById(String uomId);
-	List<UOM> getAllUOMs();
-	UOM findUomByCode(String uomCode);
-	void editUom(UOM uom);
+	String addUom(Uom uom);
+	Uom findUomById(String uomId);
+	List<Uom> getAllUOMs();
+	Uom findUomByCode(String uomCode);
+	void editUom(Uom uom);
 	List<ProjectStatus> getAllProjectStatus();
 	ProjectStatus findStatusById(String projectStatusId);
 	ProjectStatus findStatusByProcessUrl(String requestURI);
@@ -54,27 +54,16 @@ public interface MasterService {
 	Resources findResourceById(String resourceId);
 //	QuantityType findQuantityTypeById(String quantityTypeId);
 	Currency findCurrencyById(String currencyId);
-	List<Country> getAllCountries();
-	List<Cities> getCitiesByCountry(String countryId);
 	AddressType findAddressTypeById(String addressTypeId);
-	Country findCountryById(String countryId);
-	Cities findCityById(String cityId);
 	IdentityType findIdentityTypeById(String identityId);
 	TaxType findTaxTypeById(String taxTypeId);
 //	TerritoryType findterritoryTypeId(String territoryTypeId);
     AddressType addAddressType(AddressType addressType);
 	List<AddressType> getAllAddressTypes();
 	AddressType editAddressType(AddressType addressType);
-	Country addCountry(Country country);
-	void editCountry(Country country);
-	List<States> getAllStates();
+	List<Country> getAllCountries();
 	List<States> getStatesByCountry(String countryId);
-	void addStates(StatesDto statesDto);
-	void editStates(StatesDto statesDto);
-	List<Cities> getAllCities();
 	List<Cities> getCitiesByStates(String stateId);
-	void addCities(CitiesDto citiesDto);
-	void editCities(CitiesDto citiesDto);
 //	String addQuantityType(QuantityType quantityType);
 //	void editQuantityType(QuantityType quantityType);
 	String addResource(ResourceDto resourceDto);
@@ -121,4 +110,10 @@ public interface MasterService {
 	Language getLanguageById(String languageId);
 	TaxType getTaxTYpeById(String taxTypeId);
     List<OfferSubmissionModeDto> getAllOfferSubmissionMode();
+	Country findCountryById(String countryId);
+    String addAttribute(Attribute attribute);
+	String addAttributeGroup(AttributeGroup attributeGroup, List<String> attributeIds);
+	List<Attribute> getAllAttributes();
+	List<AttributeGroup> getAllAttributeGroup();
+//	Cities findCityById(String countryId, String cityId);
 }

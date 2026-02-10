@@ -654,7 +654,7 @@ public class ProjectControler {
 		try {
 			return ResponseEntity.ok(projectService.searchBoq(projectId, searchQuery));
 		} catch (Exception e) {
-			e.printStackTrace(); // Add this to see errors in console
+			e.printStackTrace();
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
 		}
 	}

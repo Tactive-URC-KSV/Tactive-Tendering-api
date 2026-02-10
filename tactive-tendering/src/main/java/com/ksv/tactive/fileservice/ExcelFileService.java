@@ -19,7 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.ksv.tactive.dto.ExcelExtractBOQ;
 import com.ksv.tactive.exception.DataNotFoundException;
-import com.ksv.tactive.project.entity.UOM;
+import com.ksv.tactive.project.entity.Uom;
 import com.ksv.tactive.project.entity.BOQ;
 import com.ksv.tactive.service.MasterService;
 
@@ -276,7 +276,7 @@ public class ExcelFileService {
 	}
 
 	private String getUOMCode(String uomId) {
-		UOM uom = masterService.findUomById(uomId);
+		Uom uom = masterService.findUomById(uomId);
 		if (uom != null) {
 			return uom.getUomCode();
 		}
@@ -289,7 +289,7 @@ public class ExcelFileService {
 		style.setAlignment(HorizontalAlignment.CENTER);
 		style.setWrapText(true);
 		row.setRowStyle(style);
-		String[] header = { "S No", "ID", "BOQ Code", "BOQ Name", "UOM", "Quantity", "Rate", "Amount", "Parent Code",
+		String[] header = { "S No", "ID", "BOQ Code", "BOQ Name", "Uom", "Quantity", "Rate", "Amount", "Parent Code",
 				"Last level" };
 		for (int i = 0; i < header.length; i++) {
 			Cell cell = row.createCell(i);

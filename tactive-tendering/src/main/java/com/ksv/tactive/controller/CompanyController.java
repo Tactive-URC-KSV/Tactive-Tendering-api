@@ -1,6 +1,7 @@
 package com.ksv.tactive.controller;
 import com.ksv.tactive.dto.CompanySaveDTO;
 import com.ksv.tactive.exception.DataNotFoundException;
+import com.ksv.tactive.project.entity.Company;
 import com.ksv.tactive.service.CompanyService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -40,4 +41,15 @@ public class CompanyController {
         }
 
     }
+    @GetMapping("/companyDetails")
+    public ResponseEntity<?> getAllCompanyDetails(){
+        try{
+            List<Company> companyList = companyService.getAllCompanyDetails();
+            return ResponseEntity.status(HttpStatus.OK).body(companyList);
+        }
+        catch (DataNotFoundException e){
+            return ResponseEntity.status(HttpStatus.NO_CONTENT).body(e.getMessage());
+        }
+    }
+
 }

@@ -5,4 +5,5 @@ import com.ksv.tactive.project.entity.Language;
 @Repository
 public interface LanguageDao extends JpaRepository<Language, String>{
     boolean existsByLanguageIgnoreCase(String language);
+    Language findByLanguageCode(String languageCode);
 }

@@ -6,7 +6,7 @@ import com.ksv.tactive.project.entity.Language;
 import com.ksv.tactive.dto.CitiesDto;
 import com.ksv.tactive.dto.ResourceDto;
 import com.ksv.tactive.dto.StatesDto;
-import com.ksv.tactive.location.entity.Country;
+import com.ksv.tactive.dto.Country;
 import com.ksv.tactive.project.entity.*;
 import com.ksv.tactive.dto.QuantityTypeDto;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -66,19 +66,19 @@ public class MasterDataController {
 		return ResponseEntity.status(HttpStatus.OK).body(messageSource.getMessage("data.updated", null, Locale.ENGLISH));
 	}
 	@PostMapping("/addUom")
-	public ResponseEntity<String> addUOM(@RequestBody UOM uom){
+	public ResponseEntity<String> addUOM(@RequestBody Uom uom){
 		return ResponseEntity.status(HttpStatus.OK).body(masterService.addUom(uom));
 	}
 	@GetMapping("/uoms")
     public ResponseEntity<?> getAllUOMs() {
-        List<UOM> uoms = masterService.getAllUOMs();
+        List<Uom> uoms = masterService.getAllUOMs();
         if(uoms.isEmpty()) {
         	return ResponseEntity.status(HttpStatus.NO_CONTENT).body(messageSource.getMessage("data.not.found", null, Locale.ENGLISH));
         }
         return ResponseEntity.status(HttpStatus.OK).body(uoms);
     }
 	@PutMapping("/uom/edit")
-	public ResponseEntity<?> editUom(@RequestBody UOM uom){
+	public ResponseEntity<?> editUom(@RequestBody Uom uom){
 		masterService.editUom(uom);
 		return ResponseEntity.status(HttpStatus.OK).body(messageSource.getMessage("data.updated", null, Locale.ENGLISH));
 	}
@@ -248,45 +248,13 @@ public class MasterDataController {
 	public ResponseEntity<?> getAllCountries(){
 		return ResponseEntity.status(HttpStatus.OK).body(masterService.getAllCountries());
 	}
-	@GetMapping("/states")
-	public ResponseEntity<?> getAllStates(){
-		return ResponseEntity.status(HttpStatus.OK).body(masterService.getAllStates());
-	}
 	@GetMapping("/states/{countryId}")
 	public ResponseEntity<?> getStatesByCountry(@PathVariable String countryId){
 		return ResponseEntity.status(HttpStatus.OK).body(masterService.getStatesByCountry(countryId));
 	}
-	@PostMapping("/states")
-	public ResponseEntity<?> addStates(@RequestBody StatesDto statesDto){
-		masterService.addStates(statesDto);
-		return ResponseEntity.status(HttpStatus.OK).body(messageSource.getMessage("data.save.success",null,Locale.ENGLISH));
-	}
-	@PutMapping("/states/edit")
-	public ResponseEntity<?> editStates(@RequestBody StatesDto statesDto){
-		masterService.editStates(statesDto);
-		return ResponseEntity.status(HttpStatus.OK).body(messageSource.getMessage("data.updated",null,Locale.ENGLISH));
-	}
-	@GetMapping("/cities/byCountry/{countryId}")
-	public ResponseEntity<?> getCitiesByCountry(@PathVariable String countryId){
-		return ResponseEntity.status(HttpStatus.OK).body(masterService.getCitiesByCountry(countryId));
-	}
-	@GetMapping("/cities")
-	public ResponseEntity<?> getAllCities(){
-		return ResponseEntity.status(HttpStatus.OK).body(masterService.getAllCities());
-	}
 	@GetMapping("/cities/byState/{stateId}")
 	public ResponseEntity<?> getCitiesByStates(@PathVariable String stateId){
 		return ResponseEntity.status(HttpStatus.OK).body(masterService.getCitiesByStates(stateId));
-	}
-	@PostMapping("/cities")
-	public ResponseEntity<?> addCities(@RequestBody CitiesDto citiesDto){
-		masterService.addCities(citiesDto);
-		return ResponseEntity.status(HttpStatus.OK).body(messageSource.getMessage("data.save.success",null,Locale.ENGLISH));
-	}
-	@PutMapping("/cities/edit")
-	public ResponseEntity<?> editCities(@RequestBody CitiesDto citiesDto){
-		masterService.editCities(citiesDto);
-		return ResponseEntity.status(HttpStatus.OK).body(messageSource.getMessage("data.updated",null,Locale.ENGLISH));
 	}
 	@PostMapping("/addressType")
 	public ResponseEntity<?> addAddressType(@RequestBody AddressType addressType){
@@ -307,20 +275,6 @@ public class MasterDataController {
 			return ResponseEntity.status(HttpStatus.OK).body(messageSource.getMessage("addressType.edit.success", null, Locale.ENGLISH));
 		}
 		return ResponseEntity.status(HttpStatus.CONFLICT).body(messageSource.getMessage("addressType.edit.failure", null, Locale.ENGLISH));
-	}
-	@PostMapping("/country")
-	public ResponseEntity<?> addCountry(@RequestBody Country country) {
-		masterService.addCountry(country);
-		return ResponseEntity.ok(
-				messageSource.getMessage("country.save.success", null, Locale.ENGLISH)
-		);
-	}
-	@PutMapping("/country/edit")
-	public ResponseEntity<?> editCountry(@RequestBody Country country) {
-		masterService.editCountry(country);
-		return ResponseEntity.ok(
-				messageSource.getMessage("country.edit.success", null, Locale.ENGLISH)
-		);
 	}
 	@PostMapping("/taxType/add")
 	public ResponseEntity<?> addTaxType(@RequestBody TaxType taxType){
@@ -500,5 +454,21 @@ public class MasterDataController {
 	public ResponseEntity<?> getAllOfferSubmissionMode(){
 		return ResponseEntity.status(HttpStatus.OK)
 				.body(masterService.getAllOfferSubmissionMode());
+	}
+	@PostMapping("/attribute")
+	public ResponseEntity<?> addAttribute(@RequestBody Attribute attribute) {
+		return ResponseEntity.status(HttpStatus.OK).body(masterService.addAttribute(attribute));
+	}
+	@PostMapping("/attributeGroup")
+	public ResponseEntity<?> addAttributeGroup(@RequestBody AttributeGroup attributeGroup,@RequestParam List<String> attributeIds) {
+		return ResponseEntity.status(HttpStatus.OK).body(masterService.addAttributeGroup(attributeGroup,attributeIds));
+	}
+	@GetMapping("/attribute")
+	public ResponseEntity<?> getAllAttribute() {
+		return ResponseEntity.status(HttpStatus.OK).body(masterService.getAllAttributes());
+	}
+	@GetMapping("/attributeGroup")
+	public ResponseEntity<?> getAllAttributeGroup() {
+		return ResponseEntity.status(HttpStatus.OK).body(masterService.getAllAttributeGroup());
 	}
 }

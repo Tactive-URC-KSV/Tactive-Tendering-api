@@ -30,7 +30,7 @@ public class CostCodeActivity {
 	private String mappingType;
 	@ManyToOne
 	@JoinColumn(name = "uom")
-	private UOM uom;
+	private Uom uom;
 	@JsonBackReference
 	@ManyToMany
 	@JoinTable(

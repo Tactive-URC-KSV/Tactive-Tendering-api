@@ -1,16 +1,13 @@
 package com.ksv.tactive.service.implmn;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Locale;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
+import com.ksv.tactive.dataloader.LocationMemoryEngine;
 import com.ksv.tactive.dto.*;
 import com.ksv.tactive.project.dao.LanguageDao;
 import com.ksv.tactive.project.entity.Language;
 import com.ksv.tactive.exception.DataNotFoundException;
-import com.ksv.tactive.location.dao.StatesDao;
-import com.ksv.tactive.location.entity.States;
+import com.ksv.tactive.dto.States;
 import com.ksv.tactive.project.dao.*;
 import com.ksv.tactive.project.entity.*;
 import com.ksv.tactive.util.*;
@@ -21,13 +18,14 @@ import org.springframework.stereotype.Service;
 import com.ksv.tactive.project.dao.CurrencyDao;
 import com.ksv.tactive.project.entity.Currency;
 import com.ksv.tactive.exception.DuplicateEntryException;
-import com.ksv.tactive.location.dao.CitiesDao;
-import com.ksv.tactive.location.dao.CountryDao;
-import com.ksv.tactive.location.entity.Cities;
-import com.ksv.tactive.location.entity.Country;
+import com.ksv.tactive.dto.Cities;
+import com.ksv.tactive.dto.Country;
 import com.ksv.tactive.service.MasterService;
 @Service
 public class MasterServiceImpl implements MasterService{
+
+    @Autowired
+    private LocationMemoryEngine memoryEngine;
 	@Autowired
 	private MessageSource messageSource;
 	@Autowired
@@ -35,7 +33,7 @@ public class MasterServiceImpl implements MasterService{
 	@Autowired
 	private RegionDao regionRepo;
 	@Autowired
-	private UOMDao uomDao;
+	private UomDao uomDao;
 	@Autowired
 	private SectorDao sectorDao;
 	@Autowired
@@ -52,12 +50,6 @@ public class MasterServiceImpl implements MasterService{
 	private ResourceNatureDao resouceNatureDao;
 	@Autowired
 	private CurrencyDao currencyDao;
-	@Autowired
-	private CountryDao countryDao;
-	@Autowired
-	private CitiesDao citiesDao;
-	@Autowired
-	private StatesDao statesDao;
 	@Autowired
 	private AddressTypeDao addressTypeDao;
 	@Autowired
@@ -76,6 +68,10 @@ public class MasterServiceImpl implements MasterService{
 	private LanguageDao languageDao;
 	@Autowired
 	private BusinessNatureDao businessNatureDao;
+	@Autowired
+	private AttributeDao attributeDao;
+	@Autowired
+	private AttributeGroupDao attributeGroupDao;
 	
 	@Override
 	public String addSector(Sector sector) {
@@ -132,14 +128,14 @@ public class MasterServiceImpl implements MasterService{
 		scopeOfPackDao.save(existingScope);
 	}
 	@Override
-	public String addUom(UOM uom) {
+	public String addUom(Uom uom) {
 		uom.setId(UUID.randomUUID().toString());
 		uomDao.save(uom);
 		return messageSource.getMessage("data.save.success", null, Locale.ENGLISH);
 	}
 	@Override
-	public void editUom(UOM uom) {
-		UOM existingUom = uomDao.findById(uom.getId())
+	public void editUom(Uom uom) {
+		Uom existingUom = uomDao.findById(uom.getId())
 				.orElseThrow(() -> new DataNotFoundException(
 						messageSource.getMessage("data.not.found", null, Locale.ENGLISH)
 				));
@@ -208,17 +204,17 @@ public class MasterServiceImpl implements MasterService{
 		return messageSource.getMessage("data.save.success", null, Locale.ENGLISH);
 	}
 	@Override
-	public List<UOM> getAllUOMs() {
+	public List<Uom> getAllUOMs() {
 		return uomDao.findAll();
 	}
 	@Override
-	public UOM findUomByCode(String uomCode) {
-		UOM uom = uomDao.findByUomCode(uomCode);
+	public Uom findUomByCode(String uomCode) {
+		Uom uom = uomDao.findByUomCode(uomCode);
 		return uom;
 	}
 	@Override
-	public UOM findUomById(String uomId) {
-		UOM uom = uomDao.findById(uomId).orElse(null);
+	public Uom findUomById(String uomId) {
+		Uom uom = uomDao.findById(uomId).orElse(null);
 		return uom;
 	}
 	@Override
@@ -484,30 +480,22 @@ public class MasterServiceImpl implements MasterService{
 
 		resouceNatureDao.save(existingResourceNature);
 	}
-	@Override
-	public List<Country> getAllCountries() {
-		return countryDao.findAll();
-	}
-	@Override
-	public List<Cities> getCitiesByCountry(String countryId) {
-		return citiesDao.findByCountryId(countryId);
-	}
 
 	@Override
 	public AddressType findAddressTypeById(String addressTypeId) {
 		return addressTypeDao.findById(addressTypeId).orElseThrow(()-> new DataNotFoundException(messageSource.getMessage("data.not.found",null,Locale.ENGLISH)));
 	}
 
-	@Override
-	public Country findCountryById(String countryId) {
-		return countryDao.findById(countryId).orElseThrow(()-> new DataNotFoundException(messageSource.getMessage("data.not.found",null,Locale.ENGLISH)));
-	}
-
-	@Override
-	public Cities findCityById(String cityId) {
-		return citiesDao.findById(cityId)
-				.orElse(null);
-	}
+//	@Override
+//	public Country findCountryById(String countryId) {
+//		return countryDao.findById(countryId).orElseThrow(()-> new DataNotFoundException(messageSource.getMessage("data.not.found",null,Locale.ENGLISH)));
+//	}
+//
+//	@Override
+//	public Cities findCityById(String cityId) {
+//		return citiesDao.findById(cityId)
+//				.orElse(null);
+//	}
 
 	@Override
 	public IdentityType findIdentityTypeById(String identityId) {
@@ -562,169 +550,26 @@ public class MasterServiceImpl implements MasterService{
 		existing.setActive(addressType.isActive());
 		return addressTypeDao.save(existing);
 	}
-
 	@Override
-	public Country addCountry(Country country) {
-		if (countryDao.existsByCountryIgnoreCaseAndActiveTrue(country.getCountry())
-				|| countryDao.existsByCountryCodeIgnoreCaseAndActiveTrue(country.getCountryCode())) {
-			throw new DuplicateEntryException(
-					messageSource.getMessage("data.duplicate", null, Locale.ENGLISH)
-			);
-		}
-		country.setId(UUID.randomUUID().toString());
-		country.setActive(true);
-		return countryDao.save(country);
-	}
-
-	@Override
-	public void editCountry(Country country) {
-		Country existing = countryDao.findById(country.getId())
-				.orElseThrow(() -> new DataNotFoundException(
-						messageSource.getMessage("data.not.found", null, Locale.ENGLISH)
-				));
-		if (country.isActive()) {
-			if (countryDao.existsByCountryIgnoreCaseAndActiveTrueAndIdNot(
-					country.getCountry(), country.getId())
-					|| countryDao.existsByCountryCodeIgnoreCaseAndActiveTrueAndIdNot(
-					country.getCountryCode(), country.getId())) {
-				throw new DuplicateEntryException(
-						messageSource.getMessage("data.duplicate", null, Locale.ENGLISH)
-				);
-			}
-		}
-		existing.setCountry(country.getCountry());
-		existing.setActive(country.isActive());
-		existing.setCountryCode(country.getCountryCode());
-		countryDao.save(existing);
-	}
-	@Override
-	public List<States> getAllStates() {
-		return statesDao.findAll();
+	public List<Country> getAllCountries() {
+		return memoryEngine.findAllCountries();
 	}
 	@Override
 	public List<States> getStatesByCountry(String countryId) {
-		return statesDao.findByCountryIdAndActiveTrue(countryId);
-	}
-	@Override
-	public void addStates(StatesDto statesDto) {
-		Country country = countryDao.findById(statesDto.getCountryId())
-				.orElseThrow(() -> new DataNotFoundException(
-						messageSource.getMessage("data.not.found", null, Locale.ENGLISH)
-				));
-		statesDao.findByStateIgnoreCaseAndCountryIdAndActiveTrue(
-				statesDto.getState(), statesDto.getCountryId()
-		).ifPresent(s -> {
-			throw new DuplicateEntryException(
-					messageSource.getMessage("data.duplicate", null, Locale.ENGLISH)
-			);
-		});
-		States states = new States();
-		states.setId(UUID.randomUUID().toString());
-		states.setState(statesDto.getState());
-		states.setCountry(country);
-		states.setActive(statesDto.isActive());
-		statesDao.save(states);
-	}
-	@Override
-	public void editStates(StatesDto statesDto) {
-		States existingState = statesDao.findById(statesDto.getId())
-				.orElseThrow(() -> new DataNotFoundException(
-						messageSource.getMessage("data.not.found", null, Locale.ENGLISH)
-				));
-		if (statesDto.isActive() &&
-				!existingState.getState().equalsIgnoreCase(statesDto.getState())
-		) {
-			statesDao.findByStateIgnoreCaseAndCountryIdAndActiveTrue(
-					statesDto.getState(),
-					statesDto.getCountryId()
-			).ifPresent(s -> {
-				throw new DuplicateEntryException(
-						messageSource.getMessage("data.duplicate", null, Locale.ENGLISH)
-				);
-			});
-		}
-		Country country = countryDao.findById(statesDto.getCountryId())
-				.orElseThrow(() -> new DataNotFoundException(
-						messageSource.getMessage("data.not.found", null, Locale.ENGLISH)
-				));
-		existingState.setState(statesDto.getState());
-		existingState.setCountry(country);
-		existingState.setActive(statesDto.isActive());
-		statesDao.save(existingState);
-	}
-
-	@Override
-	public List<Cities> getAllCities() {
-		return citiesDao.findAll();
+		return memoryEngine.findStatesByCountryId(countryId);
 	}
 	@Override
 	public List<Cities> getCitiesByStates(String stateId) {
-		return citiesDao.findByStatesIdAndActiveTrue(stateId);
+		return memoryEngine.findCitiesByStateId(stateId);
 	}
-	@Override
-	public void addCities(CitiesDto citiesDto) {
-		States states = statesDao.findById(citiesDto.getStateId())
-				.orElseThrow(() -> new DataNotFoundException(
-						messageSource.getMessage("data.not.found", null, Locale.ENGLISH)
-				));
-		Country country = countryDao.findById(citiesDto.getCountryId())
-				.orElseThrow(() -> new DataNotFoundException(
-						messageSource.getMessage("data.not.found", null, Locale.ENGLISH)
-				));
-		citiesDao.findByCityIgnoreCaseAndStatesIdAndActiveTrue(
-				citiesDto.getCity(), citiesDto.getStateId()
-		).ifPresent(c -> {
-			throw new DuplicateEntryException(
-					messageSource.getMessage("data.duplicate", null, Locale.ENGLISH)
-			);
-		});
-		Cities cities = new Cities();
-		cities.setId(UUID.randomUUID().toString());
-		cities.setCity(citiesDto.getCity());
-		cities.setStates(states);
-		cities.setCountry(country);
-		cities.setActive(citiesDto.isActive());
-		citiesDao.save(cities);
-	}
-	@Override
-	public void editCities(CitiesDto citiesDto) {
-		Cities existingCity = citiesDao.findById(citiesDto.getId())
-				.orElseThrow(() -> new DataNotFoundException(
-						messageSource.getMessage("data.not.found", null, Locale.ENGLISH)
-				));
-		if (citiesDto.isActive() &&
-				!existingCity.getCity().equalsIgnoreCase(citiesDto.getCity())
-		) {
-			citiesDao.findByCityIgnoreCaseAndStates_IdAndActiveTrue(
-					citiesDto.getCity(),
-					citiesDto.getStateId()
-			).ifPresent(c -> {
-				throw new DuplicateEntryException(
-						messageSource.getMessage("data.duplicate", null, Locale.ENGLISH)
-				);
-			});
-		}
-		States state = statesDao.findById(citiesDto.getStateId())
-				.orElseThrow(() -> new DataNotFoundException(
-						messageSource.getMessage("data.not.found", null, Locale.ENGLISH)
-				));
-		Country country = countryDao.findById(citiesDto.getCountryId())
-				.orElseThrow(() -> new DataNotFoundException(
-						messageSource.getMessage("data.not.found", null, Locale.ENGLISH)
-				));
-		existingCity.setCity(citiesDto.getCity());
-		existingCity.setStates(state);
-		existingCity.setCountry(country);
-		existingCity.setActive(citiesDto.isActive());
-		citiesDao.save(existingCity);
-	}
+
 	@Override
 	public String addResource(ResourceDto dto) {
 		ResourceType resourceType = resourceTypeDao.findById(dto.getResourceTypeId())
 				.orElseThrow(() -> new DataNotFoundException(
 						messageSource.getMessage("data.not.found", null, Locale.ENGLISH)
 				));
-		UOM uom = uomDao.findById(dto.getUomId())
+		Uom uom = uomDao.findById(dto.getUomId())
 				.orElseThrow(() -> new DataNotFoundException(
 						messageSource.getMessage("data.not.found", null, Locale.ENGLISH)
 				));
@@ -751,7 +596,7 @@ public class MasterServiceImpl implements MasterService{
 				.orElseThrow(() -> new DataNotFoundException(
 						messageSource.getMessage("data.not.found", null, Locale.ENGLISH)
 				));
-		UOM uom = uomDao.findById(dto.getUomId())
+		Uom uom = uomDao.findById(dto.getUomId())
 				.orElseThrow(() -> new DataNotFoundException(
 						messageSource.getMessage("data.not.found", null, Locale.ENGLISH)
 				));
@@ -1218,5 +1063,59 @@ public List<CompanyTypeDto> getAllCompanyTypes() {
 				.map(mode -> new OfferSubmissionModeDto(mode.name(), mode.getLabel()))
 				.toList();
 
+	}
+
+    @Override
+    public Country findCountryById(String countryId) {
+        return getAllCountries().stream()
+                .filter(con -> con.getId().equals(countryId))
+                .findFirst()
+                .orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
+    }
+
+	@Override
+	public String addAttribute(Attribute attribute) {
+		if(!attributeDao.existsByAttributeName(attribute.getAttributeName())){
+			attribute.setId(UUID.randomUUID().toString());
+			attributeDao.save(attribute);
+			return messageSource.getMessage("data.save.success", null, Locale.ENGLISH);
+		}
+		return messageSource.getMessage("data.duplicate", null, Locale.ENGLISH);
+	}
+
+	@Override
+	public List<Attribute> getAllAttributes() {
+		return attributeDao.findAll();
+	}
+
+	@Override
+	public List<AttributeGroup> getAllAttributeGroup() {
+		return attributeGroupDao.findAll();
+	}
+
+	@Override
+	public String addAttributeGroup(AttributeGroup attributeGroup, List<String> attributeIds) {
+		AttributeGroup savedAttributeGroup = null;
+		if(!attributeGroupDao.existsByGroupName(attributeGroup.getGroupName())){
+			if(attributeGroup.getId() == null){
+				attributeGroup.setId(UUID.randomUUID().toString());
+				savedAttributeGroup = attributeGroupDao.save(attributeGroup);
+			}
+			else{
+				savedAttributeGroup = attributeGroupDao.findById(attributeGroup.getId())
+						.orElseThrow(()-> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
+			}
+
+			for(String id : attributeIds){
+				Attribute attribute = attributeDao.findById(id)
+						.orElseThrow(()-> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
+				Set<AttributeGroup> attributeGroupSet = attribute.getAttributeGroup();
+				attributeGroupSet.add(savedAttributeGroup);
+				attribute.setAttributeGroup(attributeGroupSet);
+				attributeDao.save(attribute);
+			}
+			return messageSource.getMessage("data.save.success", null, Locale.ENGLISH);
+		}
+		return messageSource.getMessage("data.duplicate", null, Locale.ENGLISH);
 	}
 }
