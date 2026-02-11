@@ -9,4 +9,5 @@ import java.util.Optional;
 @Repository
 public interface TaxTypeDao extends JpaRepository<TaxType, String> {
     Optional<TaxType> findByTaxTypeIgnoreCaseAndActiveTrue(String taxType);
+    TaxType findByTaxType(String taxType);
 }

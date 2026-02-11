@@ -95,9 +95,9 @@
     "isActive": true
   },
   {
-      "uomName": "Lump Sum",
-      "uomCode": "LS",
-      "isActive": true
+    "uomName": "Lump Sum",
+    "uomCode": "LS",
+    "isActive": true
   },
   {
     "uomName": "Metric Tonne",
@@ -107,6 +107,196 @@
   {
     "uomName": "Set",
     "uomCode": "Set",
+    "isActive": true
+  },
+  {
+    "uomName": "Kilometer",
+    "uomCode": "km",
+    "isActive": true
+  },
+  {
+    "uomName": "Mile",
+    "uomCode": "mi",
+    "isActive": true
+  },
+  {
+    "uomName": "Square Kilometer",
+    "uomCode": "sq km",
+    "isActive": true
+  },
+  {
+    "uomName": "Square Mile",
+    "uomCode": "sq mi",
+    "isActive": true
+  },
+  {
+    "uomName": "Gallon",
+    "uomCode": "gal",
+    "isActive": true
+  },
+  {
+    "uomName": "Barrel",
+    "uomCode": "bbl",
+    "isActive": true
+  },
+  {
+    "uomName": "Milliliter",
+    "uomCode": "ml",
+    "isActive": true
+  },
+  {
+    "uomName": "Milligram",
+    "uomCode": "mg",
+    "isActive": true
+  },
+  {
+    "uomName": "Gram",
+    "uomCode": "g",
+    "isActive": true
+  },
+  {
+    "uomName": "Pound",
+    "uomCode": "lb",
+    "isActive": true
+  },
+  {
+    "uomName": "Ounce",
+    "uomCode": "oz",
+    "isActive": true
+  },
+  {
+    "uomName": "Hour",
+    "uomCode": "hr",
+    "isActive": true
+  },
+  {
+    "uomName": "Day",
+    "uomCode": "day",
+    "isActive": true
+  },
+  {
+    "uomName": "Week",
+    "uomCode": "wk",
+    "isActive": true
+  },
+  {
+    "uomName": "Month",
+    "uomCode": "mo",
+    "isActive": true
+  },
+  {
+    "uomName": "Year",
+    "uomCode": "yr",
+    "isActive": true
+  },
+  {
+    "uomName": "Ampere",
+    "uomCode": "A",
+    "isActive": true
+  },
+  {
+    "uomName": "Volt",
+    "uomCode": "V",
+    "isActive": true
+  },
+  {
+    "uomName": "Watt",
+    "uomCode": "W",
+    "isActive": true
+  },
+  {
+    "uomName": "Kilowatt",
+    "uomCode": "kW",
+    "isActive": true
+  },
+  {
+    "uomName": "Kilowatt Hour",
+    "uomCode": "kWh",
+    "isActive": true
+  },
+  {
+    "uomName": "Bag",
+    "uomCode": "bag",
+    "isActive": true
+  },
+  {
+    "uomName": "Box",
+    "uomCode": "box",
+    "isActive": true
+  },
+  {
+    "uomName": "Bundle",
+    "uomCode": "bdl",
+    "isActive": true
+  },
+  {
+    "uomName": "Coil",
+    "uomCode": "coil",
+    "isActive": true
+  },
+  {
+    "uomName": "Dozen",
+    "uomCode": "doz",
+    "isActive": true
+  },
+  {
+    "uomName": "Drum",
+    "uomCode": "drm",
+    "isActive": true
+  },
+  {
+    "uomName": "Job",
+    "uomCode": "job",
+    "isActive": true
+  },
+  {
+    "uomName": "Kit",
+    "uomCode": "kit",
+    "isActive": true
+  },
+  {
+    "uomName": "Lot",
+    "uomCode": "lot",
+    "isActive": true
+  },
+  {
+    "uomName": "Packet",
+    "uomCode": "pkt",
+    "isActive": true
+  },
+  {
+    "uomName": "Pair",
+    "uomCode": "pr",
+    "isActive": true
+  },
+  {
+    "uomName": "Pallet",
+    "uomCode": "plt",
+    "isActive": true
+  },
+  {
+    "uomName": "Piece",
+    "uomCode": "pc",
+    "isActive": true
+  },
+  {
+    "uomName": "Roll",
+    "uomCode": "roll",
+    "isActive": true
+  },
+  {
+    "uomName": "Sheet",
+    "uomCode": "sht",
+    "isActive": true
+  },
+  {
+    "uomName": "Trip",
+    "uomCode": "trip",
+    "isActive": true
+  },
+  {
+    "uomName": "Tube",
+    "uomCode": "tube",
     "isActive": true
   }
 ]

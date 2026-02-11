@@ -1,5 +1,6 @@
 package com.ksv.tactive.service;
 import com.ksv.tactive.dto.CompanySaveDTO;
+import com.ksv.tactive.project.entity.Company;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -10,4 +11,5 @@ import java.util.Map;
 public interface CompanyService {
 	void saveCompany(CompanySaveDTO dto, List<MultipartFile> files);
     List<Map<String, String>> getAllCompany();
+    List<Company> getAllCompanyDetails();
 }

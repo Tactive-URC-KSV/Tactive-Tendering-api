@@ -1,0 +1,166 @@
+[
+  {
+    "taxType": "GST - Regular",
+    "active": true
+  },
+  {
+    "taxType": "GST - Composition",
+    "active": true
+  },
+  {
+    "taxType": "GST - Unregistered",
+    "active": true
+  },
+  {
+    "taxType": "Input Service Distributor (ISD)",
+    "active": true
+  },
+  {
+    "taxType": "Value Added Tax (VAT)",
+    "active": true
+  },
+  {
+    "taxType": "Central Sales Tax (CST)",
+    "active": true
+  },
+  {
+    "taxType": "Service Tax",
+    "active": true
+  },
+  {
+    "taxType": "Professional Tax",
+    "active": true
+  },
+  {
+    "taxType": "Trade License - Registered",
+    "active": true
+  },
+  {
+    "taxType": "Trade License - Unregistered",
+    "active": true
+  },
+  {
+    "taxType": "Excise Duty",
+    "active": false
+  },
+  {
+    "taxType": "Customs Duty",
+    "active": true
+  },
+  {
+    "taxType": "TDS",
+    "active": true
+  },
+  {
+    "taxType": "TCS",
+    "active": true
+  },
+  {
+    "taxType": "GST - SEZ Unit",
+    "active": true
+  },
+  {
+    "taxType": "GST - SEZ Developer",
+    "active": true
+  },
+  {
+    "taxType": "GST - Casual Taxable Person",
+    "active": true
+  },
+  {
+    "taxType": "GST - Non-Resident Taxable Person",
+    "active": true
+  },
+  {
+    "taxType": "GST - UN Body / Consulate / Embassy",
+    "active": true
+  },
+  {
+    "taxType": "GST - OIDAR",
+    "active": true
+  },
+  {
+    "taxType": "GST - TDS Deductor",
+    "active": true
+  },
+  {
+    "taxType": "GST - TCS Collector",
+    "active": true
+  },
+  {
+    "taxType": "PAN (Permanent Account Number)",
+    "active": true
+  },
+  {
+    "taxType": "TAN (Tax Deduction and Collection Account Number)",
+    "active": true
+  },
+  {
+    "taxType": "Provident Fund (PF)",
+    "active": true
+  },
+  {
+    "taxType": "Employee State Insurance (ESI)",
+    "active": true
+  },
+  {
+    "taxType": "Labour Welfare Fund (LWF)",
+    "active": true
+  },
+  {
+    "taxType": "Shop & Establishment Act",
+    "active": true
+  },
+  {
+    "taxType": "FSSAI License",
+    "active": true
+  },
+  {
+    "taxType": "Import Export Code (IEC)",
+    "active": true
+  },
+  {
+    "taxType": "Corporate Tax",
+    "active": true
+  },
+  {
+    "taxType": "Minimum Alternate Tax (MAT)",
+    "active": true
+  },
+  {
+    "taxType": "Securities Transaction Tax (STT)",
+    "active": true
+  },
+  {
+    "taxType": "Property Tax",
+    "active": true
+  },
+  {
+    "taxType": "Stamp Duty",
+    "active": true
+  },
+  {
+    "taxType": "Entertainment Tax",
+    "active": false
+  },
+  {
+    "taxType": "Luxury Tax",
+    "active": false
+  },
+  {
+    "taxType": "Entry Tax / Octroi",
+    "active": false
+  },
+  {
+    "taxType": "Wealth Tax",
+    "active": false
+  },
+  {
+    "taxType": "Gift Tax",
+    "active": false
+  },
+  {
+    "taxType": "Fringe Benefit Tax (FBT)",
+    "active": false
+  }
+]

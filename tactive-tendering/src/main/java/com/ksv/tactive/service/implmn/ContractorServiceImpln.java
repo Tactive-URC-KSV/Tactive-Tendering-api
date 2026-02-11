@@ -1,24 +1,21 @@
 package com.ksv.tactive.service.implmn;
 
-import com.ksv.tactive.config.UserPrincipal;
 import com.ksv.tactive.dto.*;
 import com.ksv.tactive.exception.DataNotFoundException;
 import com.ksv.tactive.exception.DuplicateEntryException;
 import com.ksv.tactive.exception.FormAlreadySubmittedException;
-import com.ksv.tactive.location.entity.Cities;
-import com.ksv.tactive.location.entity.Country;
+import com.ksv.tactive.dto.Cities;
+import com.ksv.tactive.dto.Country;
 import com.ksv.tactive.project.entity.AddressType;
 import com.ksv.tactive.project.entity.IdentityType;
 import com.ksv.tactive.project.dao.*;
 import com.ksv.tactive.project.entity.*;
 import com.ksv.tactive.service.*;
-import com.ksv.tactive.user.entity.User;
 import com.ksv.tactive.util.ContractorStatus;
 import com.ksv.tactive.util.TerritoryType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
-import org.springframework.lang.Contract;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -161,11 +158,11 @@ public class ContractorServiceImpln implements ContractorService {
 
     private void saveContratorAddress(ContractorAddress contractorAddress, ContractorInputDto contractorInputDto) {
         Country country = masterService.findCountryById(contractorAddress.getCountry());
-        Cities city = masterService.findCityById(contractorAddress.getCity());
+//        Cities city = masterService.findCityById(contractorAddress.getCountry(), contractorAddress.getCity());
         AddressType addressType = masterService.findAddressTypeById(contractorInputDto.getAddressTypeId());
         contractorAddress.setAddressType(addressType);
         contractorAddress.setCountry(country.getId());
-        contractorAddress.setCity(city.getId());
+//        contractorAddress.setCity(city.getId());
         contractorAddressDao.save(contractorAddress);
     }
 

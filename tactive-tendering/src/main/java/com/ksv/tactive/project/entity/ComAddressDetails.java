@@ -1,4 +1,5 @@
 package com.ksv.tactive.project.entity;
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.Data;
 @Data
@@ -18,6 +19,7 @@ public class ComAddressDetails {
 	@ManyToOne
 	@JoinColumn(name = "address_type")
 	private AddressType addressType;
+	@JsonBackReference
 	@OneToOne
 	@JoinColumn(name = "company_id")
 	private Company company;
