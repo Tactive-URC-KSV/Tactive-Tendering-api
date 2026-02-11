@@ -159,7 +159,7 @@ public class ProjectServiceImpl implements ProjectService {
 			}
 		}
 		if (!projectInputDTO.getUomId().isEmpty()) {
-			UOM uom = masterService.findUomById(projectInputDTO.getUomId());
+			Uom uom = masterService.findUomById(projectInputDTO.getUomId());
 			if(uom != null) {
 				project.setUom(uom);
 			}
@@ -250,7 +250,7 @@ public class ProjectServiceImpl implements ProjectService {
 			}
 		}
 		if (!projectInputDTO.getUomId().isEmpty()) {
-			UOM uom = masterService.findUomById(projectInputDTO.getUomId());
+			Uom uom = masterService.findUomById(projectInputDTO.getUomId());
 			if(uom != null) {
 				project.setUom(uom);
 			}
@@ -622,7 +622,7 @@ public class ProjectServiceImpl implements ProjectService {
 	        boq.setQuantity(row.getQuantity());
 	        boq.setProject(project);
 	        if (row.getUom() != null) {
-	            UOM uom = findUOM(row.getUom());
+	            Uom uom = findUOM(row.getUom());
 	            boq.setUom(uom);
 	        }
 	        if (!isValidText(row.getBoqCode()) && !isNotEmpty(row.getBoqCode())) {
@@ -664,10 +664,10 @@ public class ProjectServiceImpl implements ProjectService {
 	    return "BOQ Mapping Successfully Stored for Project " + projectId;
 	}
 
-	protected UOM findUOM(String value) {
+	protected Uom findUOM(String value) {
 		String sanitizedValue = value.trim().replaceAll("[., /]", "");
-		List<UOM> uoms = masterService.getAllUOMs();
-		for (UOM uom : uoms) {
+		List<Uom> uoms = masterService.getAllUOMs();
+		for (Uom uom : uoms) {
 			if (uom.getUomCode().equalsIgnoreCase(sanitizedValue) || uom.getUomName().equalsIgnoreCase(value)) {
 				return uom;
 			}
@@ -942,8 +942,8 @@ public class ProjectServiceImpl implements ProjectService {
 					act.setAmount(a);
 					act.setRate(act.getAmount());
 					act.setQuantity(1);
-					List<UOM> uomList = masterService.getAllUOMs();
-					for (UOM uom : uomList) {
+					List<Uom> uomList = masterService.getAllUOMs();
+					for (Uom uom : uomList) {
 						if (uom.getUomCode().equalsIgnoreCase("ls")) {
 							act.setUom(uom);
 							break;
@@ -982,7 +982,7 @@ public class ProjectServiceImpl implements ProjectService {
 				.collect(Collectors.toList());
 		if (allBoqs.isEmpty())
 			throw new DataNotFoundException("No BOQs found for mapping");
-		Set<UOM> uoms = allBoqs.stream()
+		Set<Uom> uoms = allBoqs.stream()
 				.map(b -> b.getUom())
 				.collect(Collectors.toSet());
 		double qty = allBoqs.stream().mapToDouble(BOQ::getQuantity).sum();
@@ -991,8 +991,8 @@ public class ProjectServiceImpl implements ProjectService {
 		CostCodeDto first = dtos.get(0);
 		CostCodeActivity act = mapCommonFields(first, project);
 		if (uoms.size() > 1) {
-			List<UOM> uomList = masterService.getAllUOMs();
-			for (UOM uom : uomList) {
+			List<Uom> uomList = masterService.getAllUOMs();
+			for (Uom uom : uomList) {
 				if (uom.getUomCode().equalsIgnoreCase("ls")) {
 					act.setUom(uom);
 					break;
@@ -1028,7 +1028,7 @@ public class ProjectServiceImpl implements ProjectService {
 			costCodeAct.setCostCodeType(costCodeType);
 		}
 		if (dto.getUomId() != null && !dto.getUomId().isEmpty()) {
-			UOM uom = masterService.findUomById(dto.getUomId());
+			Uom uom = masterService.findUomById(dto.getUomId());
 			costCodeAct.setUom(uom);
 		}
 		costCodeAct.setActivityCode(dto.getActivityCode());
@@ -1165,7 +1165,7 @@ public class ProjectServiceImpl implements ProjectService {
 	    Resources resource = dto.getResourceId() != null
 	        ? masterService.findResourceById(dto.getResourceId()) : null;
 	    tenderEst.setResources(resource != null ? resource : null);
-	    UOM uom = dto.getUomId() != null
+	    Uom uom = dto.getUomId() != null
 	        ? masterService.findUomById(dto.getUomId()) : null;
 	    tenderEst.setUom(uom != null ? uom : null);
 	    ResourceNature resourceNature = dto.getResourceNatureId() != null

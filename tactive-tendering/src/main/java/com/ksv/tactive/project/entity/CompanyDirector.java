@@ -1,5 +1,6 @@
 package com.ksv.tactive.project.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.ksv.tactive.util.DirectorType;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -17,7 +18,7 @@ public class CompanyDirector {
     private String directorName;
     private Double sharePercentage;
     private Integer noOfShares;
-
+    @JsonBackReference
     @ManyToOne
     @JoinColumn(name = "company_id", nullable = false)
     private Company company;

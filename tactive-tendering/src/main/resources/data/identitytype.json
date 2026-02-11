@@ -1,0 +1,19 @@
+[
+  { "idType": "Aadhaar Card", "active": true },
+  { "idType": "PAN Card", "active": true },
+  { "idType": "Passport", "active": true },
+  { "idType": "Voter ID (EPIC)", "active": true },
+  { "idType": "Driving License", "active": true },
+
+  { "idType": "Ration Card", "active": true },
+  { "idType": "NREGA Job Card", "active": true },
+
+  { "idType": "Government Issued ID Card", "active": true },
+  { "idType": "Pension Card", "active": true },
+
+  { "idType": "Birth Certificate", "active": true },
+  { "idType": "Disability ID (UDID)", "active": true },
+
+  { "idType": "Student ID Card", "active": false },
+  { "idType": "Employee ID Card", "active": false }
+]

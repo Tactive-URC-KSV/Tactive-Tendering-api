@@ -295,4 +295,8 @@ public class CompanyServiceImpl implements CompanyService {
 				.toList();
 	}
 
+	@Override
+	public List<Company> getAllCompanyDetails() {
+		return companyRepository.findAll();
+	}
 }

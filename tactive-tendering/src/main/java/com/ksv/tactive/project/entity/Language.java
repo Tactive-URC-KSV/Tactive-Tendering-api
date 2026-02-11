@@ -9,6 +9,7 @@ public class Language {
 	@Id
 	@Column(name = "id", length = 36)
 	private String id;
+	private String languageCode;
 	private String language;
 	private boolean active;
 }

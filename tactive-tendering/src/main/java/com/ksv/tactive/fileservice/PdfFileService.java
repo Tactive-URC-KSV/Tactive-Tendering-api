@@ -23,7 +23,7 @@ import com.itextpdf.text.pdf.PdfPTable;
 import com.itextpdf.text.pdf.PdfWriter;
 import com.ksv.tactive.dto.ExcelExtractBOQ;
 import com.ksv.tactive.exception.DataNotFoundException;
-import com.ksv.tactive.project.entity.UOM;
+import com.ksv.tactive.project.entity.Uom;
 import com.ksv.tactive.project.entity.BOQ;
 import com.ksv.tactive.service.MasterService;
 
@@ -189,7 +189,7 @@ public class PdfFileService {
 		title.setAlignment(Element.ALIGN_CENTER);
 		document.add(title);
 		document.add(new Paragraph("\n"));
-		String[] headers = { "S No", "BOQ Code", "BOQ Name", "UOM", "Quantity", "Rate", "Amount", "Parent Code",
+		String[] headers = { "S No", "BOQ Code", "BOQ Name", "Uom", "Quantity", "Rate", "Amount", "Parent Code",
 				"Last Level" };
 		float[] colWidths = { 1f, 2f, 4f, 1.5f, 2f, 2f, 3f, 2f, 2f };
 		PdfPTable table = new PdfPTable(colWidths);
@@ -228,7 +228,7 @@ public class PdfFileService {
 		document.close();
 	}
 	private String getUomCode(String uomId) {
-		UOM uom = masterService.findUomById(uomId);
+		Uom uom = masterService.findUomById(uomId);
 		if (uom != null) {
 			return uom.getUomCode();
 		}

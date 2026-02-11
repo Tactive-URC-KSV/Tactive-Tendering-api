@@ -36,7 +36,7 @@ public class TenderEstimation {
 	private Resources resources;
 	@ManyToOne
 	@JoinColumn(name = "uom")
-	private UOM uom;
+	private Uom uom;
 	@ManyToOne
 	@JoinColumn(name = "resource_nature")
 	private ResourceNature resourceNature;

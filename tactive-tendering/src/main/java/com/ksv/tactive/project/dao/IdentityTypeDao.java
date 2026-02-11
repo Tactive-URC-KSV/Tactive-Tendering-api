@@ -9,4 +9,5 @@ import java.util.Optional;
 @Service
 public interface IdentityTypeDao extends JpaRepository<IdentityType, String> {
     Optional<IdentityType> findByIdTypeIgnoreCaseAndActiveTrue(String idType);
+    IdentityType findByIdType(String idType);
 }

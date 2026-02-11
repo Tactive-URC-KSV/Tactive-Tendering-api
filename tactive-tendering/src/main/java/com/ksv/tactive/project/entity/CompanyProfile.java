@@ -1,5 +1,6 @@
 package com.ksv.tactive.project.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -22,7 +23,7 @@ public class CompanyProfile {
     private String remarks;
 
     private List<String> attachmentUrl;
-
+    @JsonBackReference
     @OneToOne
     @JoinColumn(name = "company_id", nullable = false, unique = true)
     private Company company;

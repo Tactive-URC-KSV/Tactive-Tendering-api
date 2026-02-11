@@ -5,7 +5,7 @@ import jakarta.persistence.Id;
 import lombok.Data;
 @Data
 @Entity
-public class UOM {
+public class Uom {
 	@Id
 	@Column(length = 36)
 	private String id;
