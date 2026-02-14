@@ -72,6 +72,8 @@ public class MasterServiceImpl implements MasterService{
 	private AttributeDao attributeDao;
 	@Autowired
 	private AttributeGroupDao attributeGroupDao;
+	@Autowired
+	private ResourceAttributeDao resourceAttributeDao;
 	
 	@Override
 	public String addSector(Sector sector) {
@@ -1075,12 +1077,28 @@ public List<CompanyTypeDto> getAllCompanyTypes() {
 
 	@Override
 	public String addAttribute(Attribute attribute) {
-		if(!attributeDao.existsByAttributeName(attribute.getAttributeName())){
+		Optional<Attribute> existingByName = attributeDao.findByAttributeName(attribute.getAttributeName());
+
+		if (existingByName.isPresent()) {
+			boolean isNew = attribute.getId() == null;
+			boolean isDifferentId = !existingByName.get().getId().equals(attribute.getId());
+
+			if (isNew || isDifferentId) {
+				return messageSource.getMessage("data.duplicate", null, Locale.ENGLISH);
+			}
+		}
+
+		if (attribute.getId() == null) {
 			attribute.setId(UUID.randomUUID().toString());
 			attributeDao.save(attribute);
-			return messageSource.getMessage("data.save.success", null, Locale.ENGLISH);
+		} else {
+			Attribute savedAttribute = attributeDao.findById(attribute.getId())
+					.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
+			savedAttribute.setAttributeName(attribute.getAttributeName());
+			savedAttribute.setActive(attribute.isActive());
+			attributeDao.save(savedAttribute);
 		}
-		return messageSource.getMessage("data.duplicate", null, Locale.ENGLISH);
+		return messageSource.getMessage("data.save.success", null, Locale.ENGLISH);
 	}
 
 	@Override
@@ -1095,27 +1113,76 @@ public List<CompanyTypeDto> getAllCompanyTypes() {
 
 	@Override
 	public String addAttributeGroup(AttributeGroup attributeGroup, List<String> attributeIds) {
-		AttributeGroup savedAttributeGroup = null;
-		if(!attributeGroupDao.existsByGroupName(attributeGroup.getGroupName())){
-			if(attributeGroup.getId() == null){
-				attributeGroup.setId(UUID.randomUUID().toString());
-				savedAttributeGroup = attributeGroupDao.save(attributeGroup);
+		Optional<AttributeGroup> existingGroupByName = attributeGroupDao.findByGroupName(attributeGroup.getGroupName());
+		if (existingGroupByName.isPresent()) {
+			boolean isNew = attributeGroup.getId() == null;
+			boolean isDifferentId = !existingGroupByName.get().getId().equals(attributeGroup.getId());
+			if (isNew || isDifferentId) {
+				return messageSource.getMessage("data.duplicate", null, Locale.ENGLISH);
 			}
-			else{
-				savedAttributeGroup = attributeGroupDao.findById(attributeGroup.getId())
-						.orElseThrow(()-> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
-			}
-
-			for(String id : attributeIds){
-				Attribute attribute = attributeDao.findById(id)
-						.orElseThrow(()-> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
-				Set<AttributeGroup> attributeGroupSet = attribute.getAttributeGroup();
-				attributeGroupSet.add(savedAttributeGroup);
-				attribute.setAttributeGroup(attributeGroupSet);
-				attributeDao.save(attribute);
-			}
-			return messageSource.getMessage("data.save.success", null, Locale.ENGLISH);
 		}
-		return messageSource.getMessage("data.duplicate", null, Locale.ENGLISH);
+		AttributeGroup savedAttributeGroup;
+		if (attributeGroup.getId() == null) {
+			attributeGroup.setId(UUID.randomUUID().toString());
+			savedAttributeGroup = attributeGroupDao.save(attributeGroup);
+		} else {
+			savedAttributeGroup = attributeGroupDao.findById(attributeGroup.getId())
+					.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
+			savedAttributeGroup.setGroupName(attributeGroup.getGroupName());
+			savedAttributeGroup.setActive(attributeGroup.isActive());
+			savedAttributeGroup = attributeGroupDao.save(savedAttributeGroup);
+		}
+		List<Attribute> requestedAttributes = attributeDao.findAllById(attributeIds);
+		List<Attribute> currentAttributes = attributeDao.findByAttributeGroup(savedAttributeGroup);
+		for (Attribute attr : currentAttributes) {
+			if (requestedAttributes.stream().noneMatch(req -> req.getId().equals(attr.getId()))) {
+				attr.getAttributeGroup().remove(savedAttributeGroup);
+				attributeDao.save(attr);
+			}
+		}
+		for (Attribute attr : requestedAttributes) {
+			if (!attr.getAttributeGroup().contains(savedAttributeGroup)) {
+				attr.getAttributeGroup().add(savedAttributeGroup);
+				attributeDao.save(attr);
+			}
+		}
+		return messageSource.getMessage("data.save.success", null, Locale.ENGLISH);
+	}
+	@Override
+	public String addResourceAttribute(ResourceAttributeDto dto) {
+		Optional<ResourceAttribute> existing = resourceAttributeDao.findByResourcesIdAndAttributeGroupId(dto.getResourceId(), dto.getAttributeGroupId());
+		if (existing.isPresent()) {
+			boolean isNew = dto.getId() == null;
+			boolean isDifferentId = !existing.get().getId().equals(dto.getId());
+
+			if (isNew || isDifferentId) {
+				return messageSource.getMessage("data.duplicate", null, Locale.ENGLISH);
+			}
+		}
+		ResourceAttribute resourceAttribute;
+		if (dto.getId() == null) {
+			resourceAttribute = new ResourceAttribute();
+			resourceAttribute.setId(UUID.randomUUID().toString());
+		} else {
+			resourceAttribute = resourceAttributeDao.findById(dto.getId())
+					.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
+		}
+		Resources resources = resourceDao.findById(dto.getResourceId())
+				.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
+		AttributeGroup attributeGroup = attributeGroupDao.findById(dto.getAttributeGroupId())
+				.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
+		resourceAttribute.setResources(resources);
+		resourceAttribute.setAttributeGroup(attributeGroup);
+		resourceAttribute.setMandatory(dto.isMandatory());
+		resourceAttributeDao.save(resourceAttribute);
+		return messageSource.getMessage("data.save.success", null, Locale.ENGLISH);
+	}
+	@Override
+	public List<ResourceAttribute> getByResourceId(String resourceId) {
+		return resourceAttributeDao.findByResourcesId(resourceId);
+	}
+	@Override
+	public List<Attribute> getAttributesByGroupId(String attributeGroupId) {
+		return attributeDao.findByAttributeGroupId(attributeGroupId);
 	}
 }

@@ -1,4 +1,5 @@
 package com.ksv.tactive.project.entity;
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -18,6 +19,7 @@ public class Resources {
 	@ManyToOne
 	@JoinColumn(name = "uom_id")
 	private Uom uom;
+	@JsonBackReference
 	@OneToMany(mappedBy = "resources", cascade = CascadeType.ALL)
 	private List<ResourceAttribute> resourceAttributes;
 	private boolean active;

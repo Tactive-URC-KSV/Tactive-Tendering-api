@@ -104,6 +104,10 @@ public class ProjectServiceImpl implements ProjectService {
 	private OfferQuotationDao offerQuotationDao;
 	@Autowired
 	private OfferNegotiateDao offerNegotiateDao;
+	@Autowired
+	private AttributeGroupDao attributeGroupDao;
+	@Autowired
+	private AttributeDao attributeDao;
 	@Override
 	public List<ProjectInfoDto> getAllProjects() {
 		List<Projects> projects = projectDao.findAll();
@@ -1073,32 +1077,77 @@ public class ProjectServiceImpl implements ProjectService {
 	}
 	@Override
 	public String addResourcesToTender(TenderResourceDto dto) {
-	    TenderEstimation tenderEst;
-	    if (dto.getId() != null && !dto.getId().isEmpty()) {
-	        tenderEst = tenderEstDao.findById(dto.getId()).orElseThrow(() -> 
-	            new RuntimeException("TenderEstimation not found with ID: " + dto.getId()));
-	        BOQ targetBoq = boqDao.findById(dto.getBoqId()).orElseThrow(() -> 
-	            new RuntimeException("BOQ not found with ID: " + dto.getBoqId()));
-	        if (tenderEst.getBoq().contains(targetBoq)) {
-	            updateCostDetailsOnly(tenderEst, targetBoq, dto);
-	            return messageSource.getMessage("tender.resource.update.success", null, Locale.ENGLISH);
-	        }
-	    } else {
-	        tenderEst = new TenderEstimation();
-	        tenderEst.setId(UUID.randomUUID().toString());
-	    }
-	    updateTenderEstimationFields(tenderEst, dto);
-	    BOQ boq = boqDao.findById(dto.getBoqId()).orElseThrow(() -> 
-	        new RuntimeException("BOQ not found with ID: " + dto.getBoqId()));
-	    
-	    if (tenderEst.getBoq() == null) {
-	        tenderEst.setBoq(new HashSet<>());
-	    }
-	    tenderEst.getBoq().add(boq); 
-	    tenderEst = tenderEstDao.save(tenderEst);
-	    createOrUpdateCostDetails(tenderEst, boq, dto);
-	    updateBoqTotals(boq, dto.getTotalCostCompanyCurrency());
-	    return messageSource.getMessage("tender.resource.save.success", null, Locale.ENGLISH);
+		TenderEstimation tenderEst;
+
+		if (dto.getId() != null && !dto.getId().isEmpty()) {
+			tenderEst = tenderEstDao.findById(dto.getId()).orElseThrow(() ->
+					new RuntimeException("TenderEstimation not found with ID: " + dto.getId()));
+
+			BOQ targetBoq = boqDao.findById(dto.getBoqId()).orElseThrow(() ->
+					new RuntimeException("BOQ not found with ID: " + dto.getBoqId()));
+
+			if (tenderEst.getBoq().contains(targetBoq)) {
+				updateCostDetailsOnly(tenderEst, targetBoq, dto);
+				syncTenderAttributes(tenderEst, dto.getAttributes());
+				return messageSource.getMessage("tender.resource.update.success", null, Locale.ENGLISH);
+			}
+		} else {
+			tenderEst = new TenderEstimation();
+			tenderEst.setId(UUID.randomUUID().toString());
+			tenderEst.setEstimationAttributes(new ArrayList<>());
+		}
+
+		updateTenderEstimationFields(tenderEst, dto);
+		syncTenderAttributes(tenderEst, dto.getAttributes());
+
+		BOQ boq = boqDao.findById(dto.getBoqId()).orElseThrow(() ->
+				new RuntimeException("BOQ not found with ID: " + dto.getBoqId()));
+
+		if (tenderEst.getBoq() == null) {
+			tenderEst.setBoq(new HashSet<>());
+		}
+		tenderEst.getBoq().add(boq);
+
+		tenderEst = tenderEstDao.save(tenderEst);
+
+		createOrUpdateCostDetails(tenderEst, boq, dto);
+		updateBoqTotals(boq, dto.getTotalCostCompanyCurrency());
+
+		return messageSource.getMessage("tender.resource.save.success", null, Locale.ENGLISH);
+	}
+
+	private void syncTenderAttributes(TenderEstimation tenderEst, List<AttributeSelectionDto> incomingAttributes) {
+		if (incomingAttributes == null) return;
+
+		Set<String> incomingGroupIds = incomingAttributes.stream()
+				.map(AttributeSelectionDto::getAttributeGroupId)
+				.collect(Collectors.toSet());
+
+		tenderEst.getEstimationAttributes().removeIf(existingAttr ->
+				!incomingGroupIds.contains(existingAttr.getAttributeGroup().getId()));
+
+		for (AttributeSelectionDto attrDto : incomingAttributes) {
+			Attribute newAttributeValue = attributeDao.findById(attrDto.getAttributeId())
+					.orElseThrow(() -> new RuntimeException("Attribute not found: " + attrDto.getAttributeId()));
+
+			Optional<TenderEstimationAttribute> existing = tenderEst.getEstimationAttributes().stream()
+					.filter(e -> e.getAttributeGroup().getId().equals(attrDto.getAttributeGroupId()))
+					.findFirst();
+
+			if (existing.isPresent()) {
+				existing.get().setAttribute(newAttributeValue);
+			} else {
+				AttributeGroup group = attributeGroupDao.findById(attrDto.getAttributeGroupId())
+						.orElseThrow(() -> new RuntimeException("Group not found: " + attrDto.getAttributeGroupId()));
+
+				TenderEstimationAttribute newLink = new TenderEstimationAttribute();
+				newLink.setTenderEstimation(tenderEst);
+				newLink.setAttributeGroup(group);
+				newLink.setAttribute(newAttributeValue);
+
+				tenderEst.getEstimationAttributes().add(newLink);
+			}
+		}
 	}
 	private void updateCostDetailsOnly(TenderEstimation tenderEst, BOQ boq, TenderResourceDto dto) {
 	    TenderEstimationCostDetails costDetails = costDetailsDao

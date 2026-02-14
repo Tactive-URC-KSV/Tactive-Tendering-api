@@ -115,5 +115,8 @@ public interface MasterService {
 	String addAttributeGroup(AttributeGroup attributeGroup, List<String> attributeIds);
 	List<Attribute> getAllAttributes();
 	List<AttributeGroup> getAllAttributeGroup();
+    String addResourceAttribute(ResourceAttributeDto resourceAttributeDto);
+	List<ResourceAttribute> getByResourceId(String resourceId);
+	List<Attribute> getAttributesByGroupId(String attributeGroupId);
 //	Cities findCityById(String countryId, String cityId);
 }

@@ -2,13 +2,9 @@ package com.ksv.tactive.controller;
 import java.util.List;
 import java.util.Locale;
 
+import com.ksv.tactive.dto.*;
 import com.ksv.tactive.project.entity.Language;
-import com.ksv.tactive.dto.CitiesDto;
-import com.ksv.tactive.dto.ResourceDto;
-import com.ksv.tactive.dto.StatesDto;
-import com.ksv.tactive.dto.Country;
 import com.ksv.tactive.project.entity.*;
-import com.ksv.tactive.dto.QuantityTypeDto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.http.HttpStatus;
@@ -471,4 +467,19 @@ public class MasterDataController {
 	public ResponseEntity<?> getAllAttributeGroup() {
 		return ResponseEntity.status(HttpStatus.OK).body(masterService.getAllAttributeGroup());
 	}
+	@PostMapping("/addResourceAttribute")
+	public ResponseEntity<String> addResourceAttribute(@RequestBody ResourceAttributeDto resourceAttributeDto) {
+		String response = masterService.addResourceAttribute(resourceAttributeDto);
+		return ResponseEntity.ok(response);
+	}
+	@GetMapping("/get-by-resource/{resourceId}")
+	public ResponseEntity<List<ResourceAttribute>> getByResourceId(@PathVariable String resourceId) {
+		return ResponseEntity.ok(masterService.getByResourceId(resourceId));
+	}
+	@GetMapping("/get-by-group/{attributeGroupId}")
+	public ResponseEntity<List<Attribute>> getAttributesByGroup(@PathVariable String attributeGroupId) {
+		return ResponseEntity.ok(masterService.getAttributesByGroupId(attributeGroupId));
+	}
+
+
 }
