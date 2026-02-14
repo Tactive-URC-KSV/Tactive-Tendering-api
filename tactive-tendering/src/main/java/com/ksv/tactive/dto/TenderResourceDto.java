@@ -3,6 +3,8 @@ package com.ksv.tactive.dto;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @NoArgsConstructor
 public class TenderResourceDto {
@@ -29,4 +31,5 @@ public class TenderResourceDto {
 	private String resourceId;
 	private String boqId;
 	private String projectId;
+	private List<AttributeSelectionDto> attributes;
 }
