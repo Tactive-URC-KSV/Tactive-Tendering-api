@@ -28,7 +28,7 @@ public class SecurityConfig {
         authBuilder.userDetailsService(userDetailsService()).passwordEncoder(bCryptPasswordEncoder());
 		return http.csrf(AbstractHttpConfigurer::disable)
 				.authorizeHttpRequests(requests -> requests
-						.requestMatchers("/tactive/login","/swagger-ui/**", "/v3/api-docs/**").permitAll()
+						.requestMatchers("/tactive/login","/swagger-ui/**", "/v3/api-docs/**","/actuator/**").permitAll()
 						.requestMatchers("/tactive/validateInvite","/tactive/validateTenderInvite").permitAll()
 						.anyRequest().authenticated())
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

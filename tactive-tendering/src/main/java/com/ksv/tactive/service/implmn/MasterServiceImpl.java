@@ -77,6 +77,9 @@ public class MasterServiceImpl implements MasterService{
 	
 	@Override
 	public String addSector(Sector sector) {
+		if(sectorDao.findBySectorNameIgnoreCase(sector.getSectorName()) != null){
+			throw new DuplicateEntryException(messageSource.getMessage("data.duplicate", null, Locale.ENGLISH));
+		}
 		sector.setId(UUID.randomUUID().toString());
 		sectorDao.save(sector);
 		return messageSource.getMessage("data.save.success", null, Locale.ENGLISH);
@@ -104,6 +107,9 @@ public class MasterServiceImpl implements MasterService{
 	}
 	@Override
 	public String addScope(ScopeOfPackage scope) {
+		if(scopeOfPackDao.findByScope(scope.getScope()) != null){
+			throw new DuplicateEntryException(messageSource.getMessage("data.duplicate", null, Locale.ENGLISH));
+		}
 		scope.setId(UUID.randomUUID().toString());
 		scopeOfPackDao.save(scope);
 		return messageSource.getMessage("data.save.success", null, Locale.ENGLISH);
@@ -131,6 +137,9 @@ public class MasterServiceImpl implements MasterService{
 	}
 	@Override
 	public String addUom(Uom uom) {
+		if(uomDao.findByUomCodeIgnoreCaseAndUomNameIgnoreCase(uom.getUomCode(),uom.getUomName()) != null){
+			throw new  DuplicateEntryException(messageSource.getMessage("data.duplicate", null, Locale.ENGLISH));
+		}
 		uom.setId(UUID.randomUUID().toString());
 		uomDao.save(uom);
 		return messageSource.getMessage("data.save.success", null, Locale.ENGLISH);
@@ -211,13 +220,11 @@ public class MasterServiceImpl implements MasterService{
 	}
 	@Override
 	public Uom findUomByCode(String uomCode) {
-		Uom uom = uomDao.findByUomCode(uomCode);
-		return uom;
+		return uomDao.findByUomCode(uomCode);
 	}
 	@Override
 	public Uom findUomById(String uomId) {
-		Uom uom = uomDao.findById(uomId).orElse(null);
-		return uom;
+		return uomDao.findById(uomId).orElse(null);
 	}
 	@Override
 	public List<Sector> getAllSector() {
@@ -255,6 +262,9 @@ public class MasterServiceImpl implements MasterService{
 	}
 	@Override
 	public String addListOfApprovals(ListOfApprovals listOfApprovals) {
+		if(listOfApprovalsDao.findByDocumentName(listOfApprovals.getDocumentName()) != null) {
+			throw new DuplicateEntryException(messageSource.getMessage("data.duplicate", null, Locale.ENGLISH));
+		}
 		listOfApprovals.setId(UUID.randomUUID().toString());
 		listOfApprovalsDao.save(listOfApprovals);
 		return messageSource.getMessage("data.save.success", null, Locale.ENGLISH);
@@ -283,8 +293,7 @@ public class MasterServiceImpl implements MasterService{
 	}
 	@Override
 	public List<ListOfApprovals> getAllListOfApprovals() {
-		List<ListOfApprovals> listOfApprovals = listOfApprovalsDao.findAll();
-		return listOfApprovals;
+		return listOfApprovalsDao.findAll();
 	}
 	@Override
 	public String addCostCodeType(CostCodeType costCodeType) {
@@ -387,52 +396,6 @@ public class MasterServiceImpl implements MasterService{
 				.map(qt -> new QuantityTypeDto(qt.name(), qt.getLabel()))
 				.toList();
 	}
-//	@Override
-//	public String addQuantityType(QuantityType quantityType) {
-//		quantityTypeDao
-//				.findByQuantityTypeIgnoreCaseAndActiveTrue(
-//						quantityType.getQuantityType()
-//				)
-//				.ifPresent(q -> {
-//					throw new DuplicateEntryException(
-//							messageSource.getMessage("data.duplicate", null, Locale.ENGLISH)
-//					);
-//				});
-//		quantityType.setId(UUID.randomUUID().toString());
-//		quantityType.setActive(true);
-//		quantityTypeDao.save(quantityType);
-//		return messageSource.getMessage(
-//				"data.save.success", null, Locale.ENGLISH
-//		);
-//	}
-//	@Override
-//	public void editQuantityType(QuantityType quantityType) {
-//		QuantityType existingQuantityType = quantityTypeDao.findById(quantityType.getId())
-//				.orElseThrow(() -> new DataNotFoundException(
-//						messageSource.getMessage("data.not.found", null, Locale.ENGLISH)
-//				));
-//		if (quantityType.isActive() &&
-//				!existingQuantityType.getQuantityType()
-//						.equalsIgnoreCase(quantityType.getQuantityType())
-//		) {
-//			quantityTypeDao
-//					.findByQuantityTypeIgnoreCaseAndActiveTrue(
-//							quantityType.getQuantityType()
-//					)
-//					.ifPresent(q -> {
-//						throw new DuplicateEntryException(
-//								messageSource.getMessage("data.duplicate", null, Locale.ENGLISH)
-//						);
-//					});
-//		}
-//		existingQuantityType.setQuantityType(quantityType.getQuantityType());
-//		existingQuantityType.setActive(quantityType.isActive());
-//		quantityTypeDao.save(existingQuantityType);
-//	}
-//	@Override
-//	public QuantityType findQuantityTypeById(String quantityTypeId) {
-//		return quantityTypeDao.findById(quantityTypeId).orElse(null);
-//	}
 	@Override
 	public List<ResourceNature> getAllResourceNatures() {
 		return resouceNatureDao.findAll();
@@ -487,18 +450,6 @@ public class MasterServiceImpl implements MasterService{
 	public AddressType findAddressTypeById(String addressTypeId) {
 		return addressTypeDao.findById(addressTypeId).orElseThrow(()-> new DataNotFoundException(messageSource.getMessage("data.not.found",null,Locale.ENGLISH)));
 	}
-
-//	@Override
-//	public Country findCountryById(String countryId) {
-//		return countryDao.findById(countryId).orElseThrow(()-> new DataNotFoundException(messageSource.getMessage("data.not.found",null,Locale.ENGLISH)));
-//	}
-//
-//	@Override
-//	public Cities findCityById(String cityId) {
-//		return citiesDao.findById(cityId)
-//				.orElse(null);
-//	}
-
 	@Override
 	public IdentityType findIdentityTypeById(String identityId) {
 		return identityTypeDao.findById(identityId).orElseThrow(()-> new DataNotFoundException(messageSource.getMessage("data.not.found",null,Locale.ENGLISH)));
@@ -508,11 +459,6 @@ public class MasterServiceImpl implements MasterService{
 	public TaxType findTaxTypeById(String taxTypeId) {
 		return taxTypeDao.findById(taxTypeId).orElseThrow(()-> new DataNotFoundException(messageSource.getMessage("data.not.found", null,Locale.ENGLISH)));
 	}
-
-//	@Override
-//	public TerritoryType findterritoryTypeId(String territoryTypeId) {
-//		return territoryTypeDao.findById(territoryTypeId).orElseThrow(()-> new DataNotFoundException(messageSource.getMessage("data.not.found",null,Locale.ENGLISH)));
-//	}
 	@Override
 	public AddressType addAddressType(AddressType addressType) {
 		List<AddressType> addressTypes = addressTypeDao.findAll();
@@ -649,55 +595,14 @@ public class MasterServiceImpl implements MasterService{
 	public List<TaxType> getAllTaxType() {
 		return taxTypeDao.findAll();
 	}
-//	@Override
-//	public void addTerritoryType(TerritoryType territoryType) {
-//		territoryTypeDao
-//				.findByTerritoryTypeIgnoreCaseAndActiveTrue(
-//						territoryType.getTerritoryType()
-//				)
-//				.ifPresent(t -> {
-//					throw new DuplicateEntryException(
-//							messageSource.getMessage("data.duplicate", null, Locale.ENGLISH)
-//					);
-//				});
-//		territoryType.setId(UUID.randomUUID().toString());
-//		territoryType.setActive(true);
-//		territoryTypeDao.save(territoryType);
-//	}
-//	@Override
-//	public void editTerritoryType(TerritoryType territoryType) {
-//		TerritoryType existing = territoryTypeDao.findById(territoryType.getId())
-//				.orElseThrow(() -> new DataNotFoundException(
-//						messageSource.getMessage("data.not.found", null, Locale.ENGLISH)
-//				));
-//
-//		if (territoryType.isActive() &&
-//				!existing.getTerritoryType()
-//						.equalsIgnoreCase(territoryType.getTerritoryType())
-//		) {
-//			territoryTypeDao
-//					.findByTerritoryTypeIgnoreCaseAndActiveTrue(
-//							territoryType.getTerritoryType()
-//					)
-//					.ifPresent(t -> {
-//						throw new DuplicateEntryException(
-//								messageSource.getMessage("data.duplicate", null, Locale.ENGLISH)
-//						);
-//					});
-//		}
-//		existing.setTerritoryType(territoryType.getTerritoryType());
-//		existing.setActive(territoryType.isActive());
-//		territoryTypeDao.save(existing);
-//	}
-@Override
-public List<TerritoryTypeDto> getAllTerritoryType() {
-	return Arrays.stream(TerritoryType.values())
-			.map(type -> new TerritoryTypeDto(type.name(), type.getLabel()))
-			.toList();
-}
+	@Override
+	public List<TerritoryTypeDto> getAllTerritoryType() {
+		return Arrays.stream(TerritoryType.values())
+				.map(type -> new TerritoryTypeDto(type.name(), type.getLabel()))
+				.toList();
+	}
 	@Override
 	public void addIdentityType(IdentityType identityType) {
-
 		identityTypeDao
 				.findByIdTypeIgnoreCaseAndActiveTrue(
 						identityType.getIdType()
@@ -780,39 +685,12 @@ public List<TerritoryTypeDto> getAllTerritoryType() {
 		existing.setActive(currency.isActive());
 		currencyDao.save(existing);
 	}
-//	@Override
-//	public void addCompanyType(CompanyType companyType) {
-//		if (companyTypeDao.existsByTypeIgnoreCase(companyType.getType())) {
-//			throw new DuplicateEntryException(
-//					messageSource.getMessage("data.duplicate", null, Locale.ENGLISH)
-//			);
-//		}
-//		companyType.setId(UUID.randomUUID().toString());
-//		companyType.setActive(true);
-//		companyTypeDao.save(companyType);
-//	}
-//	@Override
-//	public void editCompanyType(CompanyType companyType) {
-//		CompanyType existing = companyTypeDao.findById(companyType.getId())
-//				.orElseThrow(() -> new DataNotFoundException(
-//						messageSource.getMessage("data.not.found", null, Locale.ENGLISH)
-//				));
-//		if (!existing.getType().equalsIgnoreCase(companyType.getType())
-//				&& companyTypeDao.existsByTypeIgnoreCase(companyType.getType())) {
-//			throw new DuplicateEntryException(
-//					messageSource.getMessage("data.duplicate", null, Locale.ENGLISH)
-//			);
-//		}
-//		existing.setType(companyType.getType());
-//		existing.setActive(companyType.isActive());
-//		companyTypeDao.save(existing);
-//	}
-@Override
-public List<CompanyTypeDto> getAllCompanyTypes() {
-	return Arrays.stream(CompanyType.values())
-			.map(type -> new CompanyTypeDto(type.name(), type.getLabel()))
-			.collect(Collectors.toList());
-}
+	@Override
+	public List<CompanyTypeDto> getAllCompanyTypes() {
+		return Arrays.stream(CompanyType.values())
+				.map(type -> new CompanyTypeDto(type.name(), type.getLabel()))
+				.collect(Collectors.toList());
+	}
 	@Override
 	public void addCompanyLevel(CompanyLevel companyLevel) {
 		if (companyLevelDao.existsByLevelIgnoreCase(companyLevel.getLevel())) {
