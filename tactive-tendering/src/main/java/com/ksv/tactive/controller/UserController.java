@@ -3,6 +3,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.ksv.tactive.dto.LoginDto;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -38,5 +39,9 @@ public class UserController {
 		} catch (Exception e) {
 			return ResponseEntity.status(HttpStatus.CONFLICT).body("User not found");
 		}
+	}
+	@PostMapping("/logout")
+	public ResponseEntity<String> logout(HttpServletRequest request){
+		return ResponseEntity.ok(userService.logout(request.getHeader("Authorization")));
 	}
 }

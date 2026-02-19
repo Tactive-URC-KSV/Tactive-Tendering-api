@@ -2,6 +2,8 @@ package com.ksv.tactive.filter;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import javax.crypto.SecretKey;
 
 import com.ksv.tactive.config.CustomUserDetailsService;
@@ -17,6 +19,7 @@ import io.jsonwebtoken.security.Keys;
 @Service
 public class JwtService {
 	private static final String SECRET_KEY = "YWVpdGtyb3lhbHNtZmp2bHdlc3ZtZnV3dm9zZ2t4ZXlzd3N6b3h0ag==";
+	private final Set<String> blacklist = ConcurrentHashMap.newKeySet();
 	Map<String,Object> claims=new HashMap<>();
 	public String generateToken(UserPrincipal userDetails) {
 		claims.put("role", userDetails.getRole());
@@ -64,5 +67,11 @@ public class JwtService {
 	}
 	public Date extractExpiration(String jwt) {
 		return extractClaim(jwt, Claims :: getExpiration);
+	}
+	public void blacklistToken(String token) {
+		blacklist.add(token);
+	}
+	public boolean isBlacklisted(String token) {
+		return blacklist.contains(token);
 	}
 }

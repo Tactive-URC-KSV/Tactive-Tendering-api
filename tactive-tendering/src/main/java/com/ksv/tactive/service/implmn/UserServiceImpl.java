@@ -7,6 +7,7 @@ import com.ksv.tactive.project.entity.ContractorContacts;
 import com.ksv.tactive.project.entity.ContractorFormInvite;
 import com.ksv.tactive.project.entity.TenderInvites;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.MessageSource;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -18,6 +19,9 @@ import com.ksv.tactive.filter.JwtService;
 import com.ksv.tactive.service.UserService;
 import com.ksv.tactive.user.dao.UserDao;
 import com.ksv.tactive.user.entity.User;
+
+import java.util.Locale;
+
 @Service
 public class UserServiceImpl implements UserService{
 	@Autowired
@@ -28,6 +32,8 @@ public class UserServiceImpl implements UserService{
 	private UserDao userDao;
 	@Autowired
 	private ContractorContactsDao contactsDao;
+	@Autowired
+	private MessageSource messageSource;
 	@Override
 	public String login(String username, String password) {
 		Authentication authentication = authManager.authenticate(new UsernamePasswordAuthenticationToken(username, password));
@@ -79,5 +85,14 @@ public class UserServiceImpl implements UserService{
 		user.setPassword("");
 		UserPrincipal userPrincipal = new UserPrincipal(user);
 		return jwtService.generateToken(userPrincipal);
+	}
+
+	@Override
+	public String logout(String authHeader) {
+		if(authHeader!=null && authHeader.startsWith("Bearer ")) {
+			jwtService.blacklistToken(authHeader.substring(7));
+			return messageSource.getMessage("logout.success",null, Locale.ENGLISH);
+		}
+		return messageSource.getMessage("logout.failure",null, Locale.ENGLISH);
 	}
 }

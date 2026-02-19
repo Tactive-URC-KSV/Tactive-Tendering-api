@@ -10,4 +10,5 @@ public interface UserService {
 	User getUserById(String userId);
 	String getTempToken(ContractorFormInvite formInvite);
 	String getTempTokenForTender(TenderInvites tenderInvite);
+    String logout(String authorization);
 }

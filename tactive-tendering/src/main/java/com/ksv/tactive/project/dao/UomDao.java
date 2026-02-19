@@ -6,7 +6,7 @@ import java.util.Optional;
 
 public interface UomDao extends JpaRepository<Uom, String> {
 	Uom findByUomCode(String uomCode);
-	Uom findByUomCodeIgnoreCase(String uomCode);
     Optional<Uom> findByUomCodeIgnoreCaseAndActiveTrue(String uomCode);
 	Optional<Uom> findByUomNameIgnoreCaseAndActiveTrue(String uomName);
+    Uom findByUomCodeIgnoreCaseAndUomNameIgnoreCase(String uomCode, String uomName);
 }
