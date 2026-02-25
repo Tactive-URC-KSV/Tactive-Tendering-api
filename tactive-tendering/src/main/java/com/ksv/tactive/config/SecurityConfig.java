@@ -30,6 +30,7 @@ public class SecurityConfig {
 				.authorizeHttpRequests(requests -> requests
 						.requestMatchers("/tactive/login","/swagger-ui/**", "/v3/api-docs/**","/actuator/**").permitAll()
 						.requestMatchers("/tactive/validateInvite","/tactive/validateTenderInvite").permitAll()
+						.requestMatchers("/tactive/forgot-password", "/tactive/reset-password","/tactive/verify-reset-otp").permitAll()
 						.anyRequest().authenticated())
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.httpBasic(Customizer.withDefaults())
