@@ -8,6 +8,7 @@ import javax.crypto.SecretKey;
 
 import com.ksv.tactive.config.CustomUserDetailsService;
 import com.ksv.tactive.config.UserPrincipal;
+import io.jsonwebtoken.SignatureAlgorithm;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
@@ -51,7 +52,7 @@ public class JwtService {
         final Claims claims = extractAllClaims(token);
         return claimsResolver.apply(claims);
     }
-	 private Claims extractAllClaims(String token) {
+	 public Claims extractAllClaims(String token) {
         return Jwts.parser()
         		.verifyWith(getKey())
         		.build()
@@ -73,5 +74,26 @@ public class JwtService {
 	}
 	public boolean isBlacklisted(String token) {
 		return blacklist.contains(token);
+	}
+
+	public String generatePasswordResetToken(String username, String otpHash) {
+		return Jwts.builder()
+				.setSubject(username)
+				.claim("otpHash", otpHash)
+				.claim("tokenType", "PASSWORD_RESET")
+				.setIssuedAt(new Date())
+				.setExpiration(new Date(System.currentTimeMillis() + 5 * 60 * 1000)) // 5 minutes
+				.signWith(getKey())
+				.compact();
+	}
+
+	public String generateResetAuthToken(String username) {
+		return Jwts.builder()
+				.setSubject(username)
+				.claim("tokenType", "RESET_AUTH")
+				.setIssuedAt(new Date())
+				.setExpiration(new Date(System.currentTimeMillis() + 2 * 60 * 1000))
+				.signWith(getKey(), SignatureAlgorithm.HS256)
+				.compact();
 	}
 }

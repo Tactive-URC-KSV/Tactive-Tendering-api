@@ -126,6 +126,8 @@ public class ProjectServiceImpl implements ProjectService {
 					projectInfo.setEstimatedValue(project.getEstimatedValue());
 					projectInfo.setCreatedAt(project.getCreatedAt());
 					projectInfo.setArchieve(project.isArchive());
+					projectInfo.setStatus(project.getProjectStatus().getStatus());
+					projectInfo.setSectorName(project.getSector() != null ? project.getSector().getSectorName() : null);
 					filteredProjects.add(projectInfo);
 				}
 			}

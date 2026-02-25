@@ -1,16 +1,20 @@
 package com.ksv.tactive;
+import java.security.SecureRandom;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.Bean;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import com.ksv.tactive.user.dao.UserDao;
 import com.ksv.tactive.user.entity.User;
 @SpringBootApplication
-public class TactiveTenderingApplication implements CommandLineRunner{
+public class
+
+TactiveTenderingApplication implements CommandLineRunner{
 	public static void main(String[] args) {
 		SpringApplication.run(TactiveTenderingApplication.class, args);
 	}
@@ -39,6 +43,10 @@ public class TactiveTenderingApplication implements CommandLineRunner{
 			user.setRole("user");
 			userDao.save(user);
 		}
+	}
+	@Bean
+	SecureRandom getSecureRandom(){
+		return new SecureRandom();
 	}
 	
 	
