@@ -309,14 +309,16 @@ public class ProjectControler {
 		}
 	}
 
-	@GetMapping("project/getParentTotalValue/{projectId}/{parentCode}")
-	public ResponseEntity<?> getParentTotalValue(@PathVariable String projectId, @PathVariable String parentCode) {
+	@GetMapping("project/getParentBoqTotals/{projectId}")
+	public ResponseEntity<?> getParentBoqTotals(@PathVariable String projectId) {
 		try {
-			List<BOQ> boqList = projectService.getParentBOQ(projectId);
-			double totalValue = projectService.getParentTotalValue(boqList, parentCode);
-			return ResponseEntity.status(HttpStatus.OK).body(totalValue);
+			Map<String, Double> result =
+					projectService.getParentBoqTotalMap(projectId);
+			return ResponseEntity.ok(result);
 		} catch (DataNotFoundException e) {
-			return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+			return ResponseEntity
+					.status(HttpStatus.CONFLICT)
+					.body(e.getMessage());
 		}
 	}
 

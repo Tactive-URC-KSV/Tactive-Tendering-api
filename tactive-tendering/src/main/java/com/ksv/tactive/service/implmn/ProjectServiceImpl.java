@@ -789,17 +789,43 @@ public class ProjectServiceImpl implements ProjectService {
 		return null;
 	}
 	@Override
-	public double getParentTotalValue(List<BOQ> boqList, String parentCode) {
-		double totalValue = 0.0;
-		if (boqList != null) {
-			for (BOQ boq : boqList) {
-				if (boq.getParentBOQ() != null && boq.getParentBOQ().getBoqCode() != null
-						&& boq.getParentBOQ().getBoqCode().contains(parentCode)) {
-					totalValue += boq.getTotalAmount();
-				}
+	public Map<String, Double> getParentBoqTotalMap(String projectId) {
+		List<BOQ> boqList = boqDao.findByProjectId(projectId);
+		if (boqList == null || boqList.isEmpty()) {
+			throw new DataNotFoundException("No BOQ found for project");
+		}
+		Map<String, List<BOQ>> childMap = buildChildMap(boqList);
+		Map<String, Double> result = new HashMap<>();
+		for (BOQ boq : boqList) {
+			if (boq.getParentBOQ() == null) {
+				double total = calculateTotalRecursively(boq, childMap);
+				result.put(boq.getId(), total);
 			}
 		}
-		return totalValue;
+		return result;
+	}
+	private Map<String, List<BOQ>> buildChildMap(List<BOQ> boqList) {
+		Map<String, List<BOQ>> childMap = new HashMap<>();
+		for (BOQ boq : boqList) {
+			if (boq.getParentBOQ() != null) {
+				String parentId = boq.getParentBOQ().getId();
+				childMap
+						.computeIfAbsent(parentId, k -> new ArrayList<>())
+						.add(boq);
+			}
+		}
+		return childMap;
+	}
+	private double calculateTotalRecursively(BOQ boq,
+											 Map<String, List<BOQ>> childMap) {
+		if (!childMap.containsKey(boq.getId())) {
+			return boq.getTotalAmount();
+		}
+		double total = 0.0;
+		for (BOQ child : childMap.get(boq.getId())) {
+			total += calculateTotalRecursively(child, childMap);
+		}
+		return total;
 	}
 	@Override
 	public String saveTemplate(Template template, Map<String, String> mapping) {
