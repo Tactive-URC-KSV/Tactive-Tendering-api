@@ -5,6 +5,8 @@ import com.ksv.tactive.project.dao.*;
 import com.ksv.tactive.dto.*;
 import com.ksv.tactive.project.entity.*;
 import com.ksv.tactive.service.MasterService;
+import com.ksv.tactive.service.UserService;
+import com.ksv.tactive.user.entity.User;
 import com.ksv.tactive.util.CompanyType;
 import com.ksv.tactive.util.DirectorType;
 import com.ksv.tactive.util.TerritoryType;
@@ -21,6 +23,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.sql.Date;
+import java.time.LocalDate;
 import java.util.*;
 
 @Service
@@ -31,7 +35,8 @@ public class CompanyServiceImpl implements CompanyService {
 
 	@Value("${file.company.upload.path}")
 	private String fileDir;
-
+	@Autowired
+	private UserService userService;
 	@Autowired
 	private MasterService masterService;
 	@Autowired
@@ -64,6 +69,17 @@ public class CompanyServiceImpl implements CompanyService {
 		saveDirectors(company,dto);
 		saveJointVentures(company,dto);
 		companyRepository.save(company);
+		if(company.getComType().equals(CompanyType.COMPANY)){
+			User user = new User();
+			user.setCompanyId(company.getId());
+			user.setRole("user");
+			for(CompanyContact contact : company.getContacts()){
+				user.setName(contact.getName());
+				user.setEmail(contact.getEmail());
+				user.setPhoneNumber(Long.parseLong(contact.getPhoneNo()));
+				userService.addUser(user);
+			}
+		}
 	}
 	private Company saveCompanyCore(CompanySaveDTO dto){
 		Company company=(dto.getCompanyId()!=null&&!dto.getCompanyId().isBlank())
@@ -84,6 +100,7 @@ public class CompanyServiceImpl implements CompanyService {
 				.orElseThrow(()->new RuntimeException("Company not found")):null);
 		company.setBank(dto.getBank());
 		company = companyRepository.save(company);
+
 		return company;
 	}
 	private void saveAddress(Company company,CompanySaveDTO dto){

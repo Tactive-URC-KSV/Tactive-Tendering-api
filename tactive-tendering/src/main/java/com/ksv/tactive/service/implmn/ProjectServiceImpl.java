@@ -112,6 +112,7 @@ public class ProjectServiceImpl implements ProjectService {
 	public List<ProjectInfoDto> getAllProjects() {
 		List<Projects> projects = projectDao.findAll();
 		List<ProjectInfoDto> filteredProjects = new ArrayList<>();
+		String companyId = userService.findLoggedInUser().getCompanyId();
 		if (projects.isEmpty()) {
 			throw new DataNotFoundException(messageSource.getMessage("project.not.found", null, Locale.ENGLISH));
 		} else {
@@ -128,7 +129,12 @@ public class ProjectServiceImpl implements ProjectService {
 					projectInfo.setArchieve(project.isArchive());
 					projectInfo.setStatus(project.getProjectStatus().getStatus());
 					projectInfo.setSectorName(project.getSector() != null ? project.getSector().getSectorName() : null);
-					filteredProjects.add(projectInfo);
+					if(project.getCompanyId()!=null && project.getCompanyId().equals(companyId)){
+						filteredProjects.add(projectInfo);
+					}
+					else if(project.getCompanyId() == null) {
+						filteredProjects.add(projectInfo);
+					}
 				}
 			}
 		}
