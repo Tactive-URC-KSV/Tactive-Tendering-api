@@ -9,6 +9,7 @@ import com.ksv.tactive.project.entity.ContractorContacts;
 import com.ksv.tactive.project.entity.ContractorFormInvite;
 import com.ksv.tactive.project.entity.TenderInvites;
 import com.ksv.tactive.service.EmailService;
+import com.ksv.tactive.util.PasswordGenerator;
 import io.jsonwebtoken.Claims;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
@@ -29,9 +30,12 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.sql.Date;
+import java.time.LocalDate;
 import java.util.Base64;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class UserServiceImpl implements UserService{
@@ -166,5 +170,17 @@ public class UserServiceImpl implements UserService{
                 .orElseThrow(() -> new RuntimeException("User not found"));
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userDao.save(user);
+	}
+
+	@Override
+	public void addUser(User user) {
+		String password = PasswordGenerator.generatePassword();
+		user.setId(UUID.randomUUID().toString());
+		user.setUsername(user.getEmail());
+		user.setCreatedAt(Date.valueOf(LocalDate.now()));
+		user.setEnabled(true);
+		user.setPassword(passwordEncoder.encode(password));
+		userDao.save(user);
+		emailService.sentLoginCredentials(user, password);
 	}
 }
