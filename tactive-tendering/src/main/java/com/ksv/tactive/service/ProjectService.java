@@ -9,7 +9,6 @@ import com.ksv.tactive.dto.*;
 import com.ksv.tactive.project.entity.*;
 import org.springframework.core.io.Resource;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -52,7 +51,6 @@ public interface ProjectService {
 	List<BOQ> getParentBOQ(List<BOQ> boqList);
 	Map<String, Integer> getBOQCount(String projectId);
 	double findTotalAmountForParentBoqs(String boqId);
-	double getParentTotalValue(List<BOQ> boqList, String parentCode);
 	void generateBoqExcel(String projectId, HttpServletResponse response) throws IOException, DataNotFoundException;
 	void generateBoqPdf(String projectId, HttpServletResponse response) throws IOException, DocumentException, DataNotFoundException;
 	void deleteBOQ(List<String> boqCode, String projectId) throws DataIntegrityViolationException;
@@ -97,4 +95,5 @@ public interface ProjectService {
 	int findOfferNegotiation(String negotiationId);
 	String awardTender(String tenderId, String tenderOfferId, String offerQuotationId);
 	List<BOQ> searchBoq(String projectId, String searchQuery);
+	Map<String, Double> getParentBoqTotalMap(String projectId);
 }
