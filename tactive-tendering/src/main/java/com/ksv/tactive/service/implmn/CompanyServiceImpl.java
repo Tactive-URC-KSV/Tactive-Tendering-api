@@ -105,7 +105,7 @@ public class CompanyServiceImpl implements CompanyService {
 	}
 	private void saveAddress(Company company,CompanySaveDTO dto){
 		if(dto.getAddress()!=null){
-			ComAddressDetails address=company.getAddressDetails()!=null?company.getAddressDetails():new ComAddressDetails();
+			ComAddressDetails address=company.getAddressDetails()!=null?company.getAddressDetails().get(0):new ComAddressDetails();
 			if(address.getId()==null){address.setId(UUID.randomUUID().toString());}
 			address.setAddress1(dto.getAddress().getAddress1());
 			address.setAddress2(dto.getAddress().getAddress2());
@@ -118,7 +118,7 @@ public class CompanyServiceImpl implements CompanyService {
 					?masterService.findAddressTypeById(dto.getAddress().getAddressTypeId().trim())
 					:null);
 			address.setCompany(company);
-			company.setAddressDetails(comAddressDetailsDao.save(address));
+			company.setAddressDetails(Arrays.asList(comAddressDetailsDao.save(address)));
 		}else{
 			company.setAddressDetails(null);
 		}

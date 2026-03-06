@@ -19,8 +19,6 @@ public class Projects {
 	private String projectCode;
 	@Column(name = "short_name", length = 50, nullable = false)
 	private String shortName;
-	private String agreementNumber;
-	private Date agreementDate;
 	private double estimatedValue;
 	private Date startDate;
 	private Date endDate;
