@@ -104,10 +104,15 @@ public class ProjectServiceImpl implements ProjectService {
 	private OfferQuotationDao offerQuotationDao;
 	@Autowired
 	private OfferNegotiateDao offerNegotiateDao;
+	@Autowired
+	private AttributeGroupDao attributeGroupDao;
+	@Autowired
+	private AttributeDao attributeDao;
 	@Override
 	public List<ProjectInfoDto> getAllProjects() {
 		List<Projects> projects = projectDao.findAll();
 		List<ProjectInfoDto> filteredProjects = new ArrayList<>();
+		String companyId = userService.findLoggedInUser().getCompanyId();
 		if (projects.isEmpty()) {
 			throw new DataNotFoundException(messageSource.getMessage("project.not.found", null, Locale.ENGLISH));
 		} else {
@@ -122,7 +127,14 @@ public class ProjectServiceImpl implements ProjectService {
 					projectInfo.setEstimatedValue(project.getEstimatedValue());
 					projectInfo.setCreatedAt(project.getCreatedAt());
 					projectInfo.setArchieve(project.isArchive());
-					filteredProjects.add(projectInfo);
+					projectInfo.setStatus(project.getProjectStatus().getStatus());
+					projectInfo.setSectorName(project.getSector() != null ? project.getSector().getSectorName() : null);
+					if(project.getCompanyId()!=null && project.getCompanyId().equals(companyId)){
+						filteredProjects.add(projectInfo);
+					}
+					else if(project.getCompanyId() == null) {
+						filteredProjects.add(projectInfo);
+					}
 				}
 			}
 		}
@@ -783,17 +795,43 @@ public class ProjectServiceImpl implements ProjectService {
 		return null;
 	}
 	@Override
-	public double getParentTotalValue(List<BOQ> boqList, String parentCode) {
-		double totalValue = 0.0;
-		if (boqList != null) {
-			for (BOQ boq : boqList) {
-				if (boq.getParentBOQ() != null && boq.getParentBOQ().getBoqCode() != null
-						&& boq.getParentBOQ().getBoqCode().contains(parentCode)) {
-					totalValue += boq.getTotalAmount();
-				}
+	public Map<String, Double> getParentBoqTotalMap(String projectId) {
+		List<BOQ> boqList = boqDao.findByProjectId(projectId);
+		if (boqList == null || boqList.isEmpty()) {
+			throw new DataNotFoundException("No BOQ found for project");
+		}
+		Map<String, List<BOQ>> childMap = buildChildMap(boqList);
+		Map<String, Double> result = new HashMap<>();
+		for (BOQ boq : boqList) {
+			if (boq.getParentBOQ() == null) {
+				double total = calculateTotalRecursively(boq, childMap);
+				result.put(boq.getId(), total);
 			}
 		}
-		return totalValue;
+		return result;
+	}
+	private Map<String, List<BOQ>> buildChildMap(List<BOQ> boqList) {
+		Map<String, List<BOQ>> childMap = new HashMap<>();
+		for (BOQ boq : boqList) {
+			if (boq.getParentBOQ() != null) {
+				String parentId = boq.getParentBOQ().getId();
+				childMap
+						.computeIfAbsent(parentId, k -> new ArrayList<>())
+						.add(boq);
+			}
+		}
+		return childMap;
+	}
+	private double calculateTotalRecursively(BOQ boq,
+											 Map<String, List<BOQ>> childMap) {
+		if (!childMap.containsKey(boq.getId())) {
+			return boq.getTotalAmount();
+		}
+		double total = 0.0;
+		for (BOQ child : childMap.get(boq.getId())) {
+			total += calculateTotalRecursively(child, childMap);
+		}
+		return total;
 	}
 	@Override
 	public String saveTemplate(Template template, Map<String, String> mapping) {
@@ -1073,32 +1111,77 @@ public class ProjectServiceImpl implements ProjectService {
 	}
 	@Override
 	public String addResourcesToTender(TenderResourceDto dto) {
-	    TenderEstimation tenderEst;
-	    if (dto.getId() != null && !dto.getId().isEmpty()) {
-	        tenderEst = tenderEstDao.findById(dto.getId()).orElseThrow(() -> 
-	            new RuntimeException("TenderEstimation not found with ID: " + dto.getId()));
-	        BOQ targetBoq = boqDao.findById(dto.getBoqId()).orElseThrow(() -> 
-	            new RuntimeException("BOQ not found with ID: " + dto.getBoqId()));
-	        if (tenderEst.getBoq().contains(targetBoq)) {
-	            updateCostDetailsOnly(tenderEst, targetBoq, dto);
-	            return messageSource.getMessage("tender.resource.update.success", null, Locale.ENGLISH);
-	        }
-	    } else {
-	        tenderEst = new TenderEstimation();
-	        tenderEst.setId(UUID.randomUUID().toString());
-	    }
-	    updateTenderEstimationFields(tenderEst, dto);
-	    BOQ boq = boqDao.findById(dto.getBoqId()).orElseThrow(() -> 
-	        new RuntimeException("BOQ not found with ID: " + dto.getBoqId()));
-	    
-	    if (tenderEst.getBoq() == null) {
-	        tenderEst.setBoq(new HashSet<>());
-	    }
-	    tenderEst.getBoq().add(boq); 
-	    tenderEst = tenderEstDao.save(tenderEst);
-	    createOrUpdateCostDetails(tenderEst, boq, dto);
-	    updateBoqTotals(boq, dto.getTotalCostCompanyCurrency());
-	    return messageSource.getMessage("tender.resource.save.success", null, Locale.ENGLISH);
+		TenderEstimation tenderEst;
+
+		if (dto.getId() != null && !dto.getId().isEmpty()) {
+			tenderEst = tenderEstDao.findById(dto.getId()).orElseThrow(() ->
+					new RuntimeException("TenderEstimation not found with ID: " + dto.getId()));
+
+			BOQ targetBoq = boqDao.findById(dto.getBoqId()).orElseThrow(() ->
+					new RuntimeException("BOQ not found with ID: " + dto.getBoqId()));
+
+			if (tenderEst.getBoq().contains(targetBoq)) {
+				updateCostDetailsOnly(tenderEst, targetBoq, dto);
+				syncTenderAttributes(tenderEst, dto.getAttributes());
+				return messageSource.getMessage("tender.resource.update.success", null, Locale.ENGLISH);
+			}
+		} else {
+			tenderEst = new TenderEstimation();
+			tenderEst.setId(UUID.randomUUID().toString());
+			tenderEst.setEstimationAttributes(new ArrayList<>());
+		}
+
+		updateTenderEstimationFields(tenderEst, dto);
+		syncTenderAttributes(tenderEst, dto.getAttributes());
+
+		BOQ boq = boqDao.findById(dto.getBoqId()).orElseThrow(() ->
+				new RuntimeException("BOQ not found with ID: " + dto.getBoqId()));
+
+		if (tenderEst.getBoq() == null) {
+			tenderEst.setBoq(new HashSet<>());
+		}
+		tenderEst.getBoq().add(boq);
+
+		tenderEst = tenderEstDao.save(tenderEst);
+
+		createOrUpdateCostDetails(tenderEst, boq, dto);
+		updateBoqTotals(boq, dto.getTotalCostCompanyCurrency());
+
+		return messageSource.getMessage("tender.resource.save.success", null, Locale.ENGLISH);
+	}
+
+	private void syncTenderAttributes(TenderEstimation tenderEst, List<AttributeSelectionDto> incomingAttributes) {
+		if (incomingAttributes == null) return;
+
+		Set<String> incomingGroupIds = incomingAttributes.stream()
+				.map(AttributeSelectionDto::getAttributeGroupId)
+				.collect(Collectors.toSet());
+
+		tenderEst.getEstimationAttributes().removeIf(existingAttr ->
+				!incomingGroupIds.contains(existingAttr.getAttributeGroup().getId()));
+
+		for (AttributeSelectionDto attrDto : incomingAttributes) {
+			Attribute newAttributeValue = attributeDao.findById(attrDto.getAttributeId())
+					.orElseThrow(() -> new RuntimeException("Attribute not found: " + attrDto.getAttributeId()));
+
+			Optional<TenderEstimationAttribute> existing = tenderEst.getEstimationAttributes().stream()
+					.filter(e -> e.getAttributeGroup().getId().equals(attrDto.getAttributeGroupId()))
+					.findFirst();
+
+			if (existing.isPresent()) {
+				existing.get().setAttribute(newAttributeValue);
+			} else {
+				AttributeGroup group = attributeGroupDao.findById(attrDto.getAttributeGroupId())
+						.orElseThrow(() -> new RuntimeException("Group not found: " + attrDto.getAttributeGroupId()));
+
+				TenderEstimationAttribute newLink = new TenderEstimationAttribute();
+				newLink.setTenderEstimation(tenderEst);
+				newLink.setAttributeGroup(group);
+				newLink.setAttribute(newAttributeValue);
+
+				tenderEst.getEstimationAttributes().add(newLink);
+			}
+		}
 	}
 	private void updateCostDetailsOnly(TenderEstimation tenderEst, BOQ boq, TenderResourceDto dto) {
 	    TenderEstimationCostDetails costDetails = costDetailsDao

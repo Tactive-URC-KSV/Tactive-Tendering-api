@@ -3,6 +3,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.ksv.tactive.dto.LoginDto;
+import com.ksv.tactive.dto.ResetPasswordRequest;
+import com.ksv.tactive.dto.VerifyOtpRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -38,5 +41,31 @@ public class UserController {
 		} catch (Exception e) {
 			return ResponseEntity.status(HttpStatus.CONFLICT).body("User not found");
 		}
+	}
+	@PostMapping("/logout")
+	public ResponseEntity<String> logout(HttpServletRequest request){
+		return ResponseEntity.ok(userService.logout(request.getHeader("Authorization")));
+	}
+	@PostMapping("/forgot-password")
+	public ResponseEntity<?> forgotPassword(@RequestParam String username) throws Exception {
+		String resetToken = userService.handleForgotPassword(username);
+		return ResponseEntity.ok(Map.of(
+				"resetToken", resetToken,
+				"message", "If account exists, OTP sent"
+		));
+	}
+	@PostMapping("/verify-reset-otp")
+	public ResponseEntity<?> verifyResetOtp(
+			@RequestBody VerifyOtpRequest request) throws Exception {
+		String resetAuthToken = userService.verifyResetOtp(request);
+		return ResponseEntity.ok(Map.of(
+				"resetAuthToken", resetAuthToken,
+				"message", "OTP verified successfully"
+		));
+	}
+	@PostMapping("/reset-password")
+	public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest request) throws Exception {
+		userService.handleResetPassword(request);
+		return ResponseEntity.ok("Password updated successfully");
 	}
 }

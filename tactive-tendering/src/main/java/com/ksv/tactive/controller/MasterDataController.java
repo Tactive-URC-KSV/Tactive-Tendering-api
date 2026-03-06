@@ -2,13 +2,9 @@ package com.ksv.tactive.controller;
 import java.util.List;
 import java.util.Locale;
 
+import com.ksv.tactive.dto.*;
 import com.ksv.tactive.project.entity.Language;
-import com.ksv.tactive.dto.CitiesDto;
-import com.ksv.tactive.dto.ResourceDto;
-import com.ksv.tactive.dto.StatesDto;
-import com.ksv.tactive.dto.Country;
 import com.ksv.tactive.project.entity.*;
-import com.ksv.tactive.dto.QuantityTypeDto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.http.HttpStatus;
@@ -16,7 +12,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import com.ksv.tactive.project.entity.Currency;
-import com.ksv.tactive.exception.DuplicateEntryException;
 import com.ksv.tactive.service.MasterService;
 @RestController
 @RequestMapping("/tactive")
@@ -27,19 +22,10 @@ public class MasterDataController {
 	private MessageSource messageSource;
 	@PostMapping("/addRegion")
 	public ResponseEntity<String> addRegion(@RequestBody Region region) {
-		try {
-			return ResponseEntity.status(HttpStatus.OK).body(masterService.addRegion(region));
-		} catch (DuplicateEntryException e) {
-			return ResponseEntity.status(HttpStatus.CONFLICT)
-					.body(e.getMessage());
-		}
+		return ResponseEntity.status(HttpStatus.OK).body(masterService.addRegion(region));
 	}
 	@GetMapping("/regions")
 	public ResponseEntity<?> getAllRegions(){
-		if(masterService.getAllRegions().isEmpty()) {
-			return ResponseEntity.status(HttpStatus.NO_CONTENT)
-					.body(messageSource.getMessage("data.not.found", null, Locale.ENGLISH));
-		}
 		return ResponseEntity.status(HttpStatus.OK).body(masterService.getAllRegions());
 	}
 	@PostMapping("/sector")
@@ -129,12 +115,7 @@ public class MasterDataController {
 	}
     @PostMapping("/costCodeType/add")
     public ResponseEntity<?> addCostCodeType(@RequestBody CostCodeType costCodeType) {
-    	try {
-			return ResponseEntity.status(HttpStatus.OK).body(masterService.addCostCodeType(costCodeType));
-		} catch (DuplicateEntryException e) {
-			return ResponseEntity.status(HttpStatus.CONFLICT)
-					.body(e.getMessage());
-		}
+		return ResponseEntity.status(HttpStatus.OK).body(masterService.addCostCodeType(costCodeType));
     }
 	@PutMapping("/costCodeType/edit")
 	public ResponseEntity<?> editCostCodeType(@RequestBody CostCodeType costCodeType){
@@ -230,13 +211,7 @@ public class MasterDataController {
 	}
 	@PostMapping("/resourceNature/add")
 	public ResponseEntity<String> addResourceNature(@RequestBody ResourceNature resourceNature){
-		try {
-			return ResponseEntity.status(HttpStatus.OK).body(masterService.addResourceNature(resourceNature));
-		}
-		catch (DuplicateEntryException e) {
-			return ResponseEntity.status(HttpStatus.CONFLICT)
-					.body(e.getMessage());
-		}
+		return ResponseEntity.status(HttpStatus.OK).body(masterService.addResourceNature(resourceNature));
 	}
 	@PutMapping("/resourceNature/edit")
 	public ResponseEntity<?> editResourceNature(@RequestBody ResourceNature resourceNature){
@@ -290,16 +265,6 @@ public class MasterDataController {
 	public ResponseEntity<?> getAllTaxType(){
 		return ResponseEntity.status(HttpStatus.OK).body(masterService.getAllTaxType());
 	}
-//	@PostMapping("/territoryType/add")
-//	public ResponseEntity<?> addTerritoryType(@RequestBody TerritoryType territoryType){
-//		masterService.addTerritoryType(territoryType);
-//		return ResponseEntity.status(HttpStatus.OK).body(messageSource.getMessage("data.save.success",null,Locale.ENGLISH));
-//	}
-//	@PutMapping("/territoryType/edit")
-//	public ResponseEntity<?> editTaxType(@RequestBody TerritoryType territoryType){
-//		masterService.editTerritoryType(territoryType);
-//		return ResponseEntity.status(HttpStatus.OK).body(messageSource.getMessage("data.updated",null,Locale.ENGLISH));
-//	}
 	@GetMapping("/territoryType")
 	public ResponseEntity<?> getAllTerritoryType(){
 		return ResponseEntity.status(HttpStatus.OK).body(masterService.getAllTerritoryType());
@@ -328,16 +293,6 @@ public class MasterDataController {
 		masterService.editCurrency(currency);
 		return ResponseEntity.status(HttpStatus.OK).body(messageSource.getMessage("data.updated",null,Locale.ENGLISH));
 	}
-//	@PostMapping("/companyType/add")
-//	public ResponseEntity<?> addCompanyType(@RequestBody CompanyType companyType){
-//		masterService.addCompanyType(companyType);
-//		return ResponseEntity.status(HttpStatus.OK).body(messageSource.getMessage("data.save.success",null,Locale.ENGLISH));
-//	}
-//	@PutMapping("/companyType/edit")
-//	public ResponseEntity<?> editCompanyType(@RequestBody CompanyType companyType){
-//		masterService.editCompanyType(companyType);
-//		return ResponseEntity.status(HttpStatus.OK).body(messageSource.getMessage("data.updated",null,Locale.ENGLISH));
-//	}
 	@GetMapping("/companyType")
 	public ResponseEntity<?> getAllCompanyType(){
 		return ResponseEntity.status(HttpStatus.OK).body(masterService.getAllCompanyTypes());
@@ -470,5 +425,18 @@ public class MasterDataController {
 	@GetMapping("/attributeGroup")
 	public ResponseEntity<?> getAllAttributeGroup() {
 		return ResponseEntity.status(HttpStatus.OK).body(masterService.getAllAttributeGroup());
+	}
+	@PostMapping("/addResourceAttribute")
+	public ResponseEntity<String> addResourceAttribute(@RequestBody ResourceAttributeDto resourceAttributeDto) {
+		String response = masterService.addResourceAttribute(resourceAttributeDto);
+		return ResponseEntity.ok(response);
+	}
+	@GetMapping("/get-by-resource/{resourceId}")
+	public ResponseEntity<List<ResourceAttribute>> getByResourceId(@PathVariable String resourceId) {
+		return ResponseEntity.ok(masterService.getByResourceId(resourceId));
+	}
+	@GetMapping("/get-by-group/{attributeGroupId}")
+	public ResponseEntity<List<Attribute>> getAttributesByGroup(@PathVariable String attributeGroupId) {
+		return ResponseEntity.ok(masterService.getAttributesByGroupId(attributeGroupId));
 	}
 }

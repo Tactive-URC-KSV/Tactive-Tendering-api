@@ -33,6 +33,9 @@ public class JwtFilter extends OncePerRequestFilter{
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             jwt = authHeader.substring(7);
             username = jwtService.extractUsername(jwt);
+			if(jwtService.isBlacklisted(jwt)) {
+				throw new JwtTokenException("Login to access");
+			}
         }
         if(username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
         	UserDetails userDetails=context.getBean(CustomUserDetailsService.class).loadUserByUsername(username);

@@ -45,8 +45,8 @@ public class Company {
 	private Currency currency;
 	private String bank;
 
-	@OneToOne(mappedBy = "company", cascade = CascadeType.ALL, orphanRemoval = true)
-	private ComAddressDetails addressDetails;
+	@OneToMany(mappedBy = "company", cascade = CascadeType.ALL, orphanRemoval = true)
+	private List<ComAddressDetails> addressDetails;
 
 	@OneToMany(mappedBy = "company", cascade = CascadeType.ALL, orphanRemoval = true)
 	private List<CompanyContact> contacts;

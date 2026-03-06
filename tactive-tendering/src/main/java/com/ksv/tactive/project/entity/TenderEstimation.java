@@ -1,4 +1,6 @@
 package com.ksv.tactive.project.entity;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
@@ -47,4 +49,6 @@ public class TenderEstimation {
 	@JoinColumn(name = "currency")
 	private Currency currency;
 	private double exchangeRate;
+	@OneToMany(mappedBy = "tenderEstimation", cascade = CascadeType.ALL, orphanRemoval = true)
+	private List<TenderEstimationAttribute> estimationAttributes = new ArrayList<>();
 }

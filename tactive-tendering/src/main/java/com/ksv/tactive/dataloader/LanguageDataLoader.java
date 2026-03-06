@@ -25,7 +25,7 @@ public class LanguageDataLoader implements MasterDataLoader<Language> {
 
     @Override
     public void loadData() throws IOException, DataAccessException {
-        try (InputStream inputStream = getClass().getResourceAsStream("/data/Language.json")) {
+        try (InputStream inputStream = getClass().getResourceAsStream("/data/language.json")) {
             if (inputStream == null) {
                 throw new IOException("Resource file 'language.json' not found");
             }

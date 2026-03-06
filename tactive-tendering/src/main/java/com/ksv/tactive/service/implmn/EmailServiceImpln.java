@@ -5,6 +5,7 @@ import com.ksv.tactive.fileservice.ExcelFileService;
 import com.ksv.tactive.project.dao.ContractorContactsDao;
 import com.ksv.tactive.project.entity.*;
 import com.ksv.tactive.service.EmailService;
+import com.ksv.tactive.user.entity.User;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,7 +15,6 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -244,6 +244,147 @@ public class EmailServiceImpln implements EmailService {
         } catch (MessagingException e) {
             e.printStackTrace();
             return "Failed to Send Negotiation Email";
+        }
+    }
+    @Override
+    public void sendOtp(User user, String otp) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            helper.setFrom(sendFrom);
+            helper.setTo(user.getEmail());
+            helper.setSubject("Password Reset OTP - Secure Verification");
+            String htmlContent = """
+            <!DOCTYPE html>
+            <html>
+            <body style='font-family: Arial, sans-serif; margin: 0; padding: 0;'>
+                <div style='background-color: #f4f4f4; max-width: 600px; margin: 20px auto; border: 1px solid #ddd;'>
+
+                    <div style='background-color: #005197; padding: 25px; text-align: center;'>
+                        <h2 style='color: #ffffff; margin: 0;'>ERP Security Center</h2>
+                    </div>
+
+                    <div style='padding: 30px; color: #333333; line-height: 1.6;'>
+
+                        <p>Dear %s,</p>
+
+                        <p>We received a request to reset your account password. 
+                        To proceed securely, please use the One-Time Password (OTP) provided below:</p>
+
+                        <div style='text-align: center; margin: 30px 0;'>
+                            <span style='font-size: 28px; letter-spacing: 8px; 
+                            font-weight: bold; color: #005197; 
+                            background-color: #e9f2fb; padding: 15px 25px; 
+                            border-radius: 6px; display: inline-block;'>
+                                %s
+                            </span>
+                        </div>
+
+                        <p style='font-size: 14px; color: #555;'>
+                            This OTP is valid for <strong>5 minutes</strong>. 
+                            For your security, do not share this code with anyone.
+                        </p>
+
+                        <p style='background-color: #fff3cd; border: 1px solid #ffeeba; 
+                        padding: 12px; color: #856404; font-size: 13px;'>
+                            <strong>⚠ Security Notice:</strong> 
+                            If you did not request a password reset, please ignore this email 
+                            or contact the system administrator immediately.
+                        </p>
+
+                        <p style='font-size: 12px; color: #777; margin-top: 30px;'>
+                            This is an automated security message from ERP System.
+                        </p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """.formatted(user.getUsername(), otp);
+            helper.setText(htmlContent, true);
+            mailSender.send(message);
+        } catch (MessagingException e) {
+            throw new RuntimeException("Failed to send OTP email: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public void sentLoginCredentials(User user, String password) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            helper.setFrom(sendFrom);
+            helper.setTo(user.getEmail());
+            helper.setSubject("Your ERP Login Credentials");
+            String htmlContent = """
+        <!DOCTYPE html>
+        <html>
+        <body style='font-family: Arial, sans-serif; margin: 0; padding: 0;'>
+            <div style='background-color: #f4f4f4; max-width: 600px; margin: 20px auto; border: 1px solid #ddd;'>
+
+                <div style='background-color: #005197; padding: 25px; text-align: center;'>
+                    <h2 style='color: #ffffff; margin: 0;'>Welcome to ERP System</h2>
+                </div>
+
+                <div style='padding: 30px; color: #333333; line-height: 1.6;'>
+
+                    <p>Dear %s,</p>
+
+                    <p>Your account has been successfully created. 
+                    Please find your login credentials below:</p>
+
+                    <div style='background-color: #e9f2fb; padding: 20px; 
+                    border-radius: 6px; margin: 25px 0;'>
+
+                        <p style='margin: 8px 0; font-size: 14px;'>
+                            <strong>Username:</strong> %s
+                        </p>
+
+                        <p style='margin: 8px 0; font-size: 14px;'>
+                            <strong>Temporary Password:</strong> %s
+                        </p>
+
+                    </div>
+
+                    <div style='text-align: center; margin: 25px 0;'>
+                        <a href='%s' 
+                           style='background-color: #005197; color: #ffffff; 
+                           padding: 12px 25px; text-decoration: none; 
+                           border-radius: 5px; font-weight: bold;'>
+                           Login to ERP
+                        </a>
+                    </div>
+
+                    <p style='font-size: 14px; color: #555;'>
+                        For security reasons, we strongly recommend that you change 
+                        your password immediately after logging in.
+                    </p>
+
+                    <p style='background-color: #fff3cd; border: 1px solid #ffeeba; 
+                    padding: 12px; color: #856404; font-size: 13px;'>
+                        <strong>⚠ Security Notice:</strong> 
+                        Do not share your login credentials with anyone. 
+                        If you did not expect this email, please contact the administrator immediately.
+                    </p>
+
+                    <p style='font-size: 12px; color: #777; margin-top: 30px;'>
+                        This is an automated message from ERP System.
+                    </p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+                    .formatted(
+                            user.getUsername(),
+                            user.getUsername(),
+                            password,
+                            "https://tactive-tendering-ui.onrender.com"
+                    );
+
+            helper.setText(htmlContent, true);
+            mailSender.send(message);
+        } catch (MessagingException e) {
+            throw new RuntimeException("Failed to send Login Credentials email: " + e.getMessage());
         }
     }
 }

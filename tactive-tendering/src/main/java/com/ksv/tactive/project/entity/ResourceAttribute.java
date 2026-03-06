@@ -16,6 +16,6 @@ public class ResourceAttribute {
     private Resources resources;
     @ManyToOne
     @JoinColumn(name = "attribute_id")
-    private Attribute attribute;
+    private AttributeGroup attributeGroup;
     private boolean mandatory;
 }

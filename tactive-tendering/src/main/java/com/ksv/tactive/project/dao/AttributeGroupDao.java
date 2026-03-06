@@ -4,7 +4,9 @@ import com.ksv.tactive.project.entity.AttributeGroup;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
 @Repository
 public interface AttributeGroupDao extends JpaRepository<AttributeGroup, String> {
-    boolean existsByGroupName(String groupName);
+    Optional<AttributeGroup> findByGroupName(String groupName);
 }
