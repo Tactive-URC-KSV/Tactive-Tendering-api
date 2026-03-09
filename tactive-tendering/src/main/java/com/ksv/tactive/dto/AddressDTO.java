@@ -13,4 +13,5 @@ public class AddressDTO {
     private String faxNo;
     private String phone;
     private String addressTypeId;
+    private boolean isPrimary;
 }
