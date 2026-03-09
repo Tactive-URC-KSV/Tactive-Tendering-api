@@ -21,14 +21,11 @@ public class CompanyTax {
     private String territory;
     private String taxRegNo;
     private String taxRegDate;
-
     private String address1;
     private String address2;
     private String city;
     private String pinCode;
     private String email;
-
-    private boolean isPrimary;
     @JsonBackReference
     @ManyToOne
     @JoinColumn(name = "company_id", nullable = false)

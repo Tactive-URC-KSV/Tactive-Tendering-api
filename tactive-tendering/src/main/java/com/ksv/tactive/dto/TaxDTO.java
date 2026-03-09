@@ -19,7 +19,5 @@ public class TaxDTO {
     private String city;
     private String pinCode;
     private String email;
-
-    private boolean primary;
 }
 

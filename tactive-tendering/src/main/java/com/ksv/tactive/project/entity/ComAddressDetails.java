@@ -16,11 +16,12 @@ public class ComAddressDetails {
 	private String website;
 	private String faxNo;
 	private String phone;
-	@ManyToOne(cascade = CascadeType.ALL,  fetch = FetchType.LAZY)
+	private boolean primary;
+	@ManyToOne
 	@JoinColumn(name = "address_type")
 	private AddressType addressType;
 	@JsonBackReference
-	@ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+	@OneToOne
 	@JoinColumn(name = "company_id")
 	private Company company;
 }

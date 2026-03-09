@@ -25,11 +25,8 @@ public class CompanySaveDTO {
     private String bank;
 
     /* ===== ONE–TO–ONE ===== */
-    private AddressDTO address;
-
+    private List<AddressDTO> address;
     private CompanyProfileDTO profile;
-
-    /* ===== ONE–TO–MANY ===== */
     private List<ContactDTO> contacts;
     private List<TaxDTO> taxDetails;
     private List<DirectorDTO> directors;
