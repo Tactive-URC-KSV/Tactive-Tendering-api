@@ -5,13 +5,16 @@ import jakarta.persistence.*;
 import lombok.Data;
 
 import java.sql.Date;
+import java.util.UUID;
 
 @Entity
 @Data
 public class ContractorFormInvite {
 
     @Id
-    private String id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(length = 36)
+    private UUID id;
     private String email;
     private String name;
     private String message;

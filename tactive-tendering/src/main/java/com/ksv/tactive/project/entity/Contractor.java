@@ -1,10 +1,7 @@
 package com.ksv.tactive.project.entity;
 
 import java.sql.Date;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import com.ksv.tactive.util.ContractorStatus;
 import jakarta.persistence.*;
@@ -13,9 +10,11 @@ import lombok.Data;
 @Data
 @Entity
 public class Contractor {
-	
+
 	@Id
-	private String id;
+	@GeneratedValue(strategy = GenerationType.UUID)
+	@Column(length = 36)
+	private UUID id;
 	private String entityCode;
 	private String entityName;
 	private Date effectiveDate;

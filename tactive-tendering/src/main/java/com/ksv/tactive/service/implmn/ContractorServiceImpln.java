@@ -4,7 +4,6 @@ import com.ksv.tactive.dto.*;
 import com.ksv.tactive.exception.DataNotFoundException;
 import com.ksv.tactive.exception.DuplicateEntryException;
 import com.ksv.tactive.exception.FormAlreadySubmittedException;
-import com.ksv.tactive.dto.Cities;
 import com.ksv.tactive.dto.Country;
 import com.ksv.tactive.project.entity.AddressType;
 import com.ksv.tactive.project.entity.IdentityType;
@@ -82,6 +81,10 @@ public class ContractorServiceImpln implements ContractorService {
     @Autowired
     private MessageSource messageSource;
 
+    private UUID convertToUUID(String value){
+        return UUID.fromString(value);
+    }
+
     @Override
     public List<Map<String, Object>>getAllContractor() {
         List<Contractor> contractors = contractorDao.findAll()
@@ -104,23 +107,20 @@ public class ContractorServiceImpln implements ContractorService {
                                 ContractorContacts contractorContacts, ContractorTaxDetails contractorTaxDetails,
                                 ContractorBankDetails contractorBankDetails, ContractorAddInfo contractorAddInfo) {
         Contractor contractor = new Contractor();
-        if(contractorInputDto.getId() == null){
-            contractor.setId(UUID.randomUUID().toString());
-        }
-        else{
-            contractor.setId(contractorInputDto.getId());
+        if(contractorInputDto.getId() != null){
+            contractor.setId(UUID.fromString(contractorInputDto.getId()));
         }
         contractor.setEntityCode(contractorInputDto.getEntityCode());
         contractor.setEntityName(contractorInputDto.getEntityName());
         contractor.setEffectiveDate(contractorInputDto.getEffectiveDate());
         contractor.setAttachmentUrls(contractorInputDto.getPaths());
-        ContractorType conType = conTypeDao.findById(contractorInputDto.getContractorTypeId()).orElse(null);
+        ContractorType conType = conTypeDao.findById(convertToUUID(contractorInputDto.getContractorTypeId())).orElse(null);
         contractor.setContractorType(conType);
         Set<ContractorNature> conNatures = contractorInputDto.getContractorNatureId().stream()
-                .map(id -> conNatureDao.findById(id).orElse(null))
+                .map(id -> conNatureDao.findById(convertToUUID(id)).orElse(null))
                 .collect(Collectors.toSet());
         contractor.setContractorNature(conNatures);
-        ContractorGrade conGrade = conGradeDao.findById(contractorInputDto.getContractorGradeId()).orElse(null);
+        ContractorGrade conGrade = conGradeDao.findById(convertToUUID(contractorInputDto.getContractorGradeId())).orElse(null);
         contractor.setContractorGrade(conGrade);
         contractor.setSubmissionMode(contractorInputDto.getSubbmissionMode());
         if(contractor.getSubmissionMode().equals("MANUAL")){
@@ -137,19 +137,14 @@ public class ContractorServiceImpln implements ContractorService {
         }
         Contractor savedContractor = contractorDao.save(contractor);
         if(savedContractor != null){
-            contractorAddress.setId(UUID.randomUUID().toString());
             contractorAddress.setContractor(savedContractor);
             saveContratorAddress(contractorAddress,contractorInputDto);
-            contractorContacts.setId(UUID.randomUUID().toString());
             contractorContacts.setContractor(savedContractor);
             saveContractorContacts(contractorContacts);
-            contractorTaxDetails.setId(UUID.randomUUID().toString());
             contractorTaxDetails.setContractor(savedContractor);
             saveContractorTaxDetails(contractorTaxDetails,contractorInputDto);
-            contractorBankDetails.setId(UUID.randomUUID().toString());
             contractorBankDetails.setContractor(savedContractor);
             saveContractorBankDetails(contractorBankDetails);
-            contractorAddInfo.setId(UUID.randomUUID().toString());
             contractorAddInfo.setContractor(savedContractor);
             saveContractorAddInfo(contractorAddInfo,contractorInputDto);
         }
@@ -209,7 +204,6 @@ public class ContractorServiceImpln implements ContractorService {
         if (conTypeDao.existsByTypeIgnoreCase(contractorType.getType())) {
             throw new DuplicateEntryException(messageSource.getMessage("data.duplicate",null,Locale.ENGLISH));
         }
-        contractorType.setId(UUID.randomUUID().toString());
         contractorType.setActive(true);
         conTypeDao.save(contractorType);
     }
@@ -232,7 +226,7 @@ public class ContractorServiceImpln implements ContractorService {
                     messageSource.getMessage("data.not.found", null, Locale.ENGLISH)
             );
         }
-        ContractorType contractorType = conTypeDao.findById(contractorNatureDto.getEntityTypeId())
+        ContractorType contractorType = conTypeDao.findById(convertToUUID(contractorNatureDto.getEntityTypeId()))
                 .orElseThrow(() -> new DataNotFoundException(
                         messageSource.getMessage("data.not.found", null, Locale.ENGLISH)
                 ));
@@ -244,7 +238,6 @@ public class ContractorServiceImpln implements ContractorService {
             );
         }
         ContractorNature contractorNature = new ContractorNature();
-        contractorNature.setId(UUID.randomUUID().toString());
         contractorNature.setNature(contractorNatureDto.getNature());
         contractorNature.setContractorType(contractorType);
         contractorNature.setActive(contractorNatureDto.isActive());
@@ -252,11 +245,11 @@ public class ContractorServiceImpln implements ContractorService {
     }
     @Override
     public void editContractorNature(ContractorNatureDto contractorNatureDto) {
-        ContractorNature existing = conNatureDao.findById(contractorNatureDto.getId())
+        ContractorNature existing = conNatureDao.findById(convertToUUID(contractorNatureDto.getId()))
                 .orElseThrow(() -> new DataNotFoundException(
                         messageSource.getMessage("data.not.found", null, Locale.ENGLISH)
                 ));
-        ContractorType contractorType = conTypeDao.findById(contractorNatureDto.getEntityTypeId())
+        ContractorType contractorType = conTypeDao.findById(convertToUUID(contractorNatureDto.getEntityTypeId()))
                 .orElseThrow(() -> new DataNotFoundException(
                         messageSource.getMessage("data.not.found", null, Locale.ENGLISH)
                 ));
@@ -278,7 +271,6 @@ public class ContractorServiceImpln implements ContractorService {
         if (conGradeDao.existsByGradeNameIgnoreCase(contractorGrade.getGradeName())) {
             throw new DuplicateEntryException(messageSource.getMessage("data.duplicate",null,Locale.ENGLISH));
         }
-        contractorGrade.setId(UUID.randomUUID().toString());
         contractorGrade.setActive(true);
         conGradeDao.save(contractorGrade);
     }
@@ -308,12 +300,12 @@ public class ContractorServiceImpln implements ContractorService {
     }
     @Override
     public List<ContractorNature> getContractorNatureByContractorType(String contractorTypeId) {
-        return conNatureDao.findByContractorTypeId(contractorTypeId);
+        return conNatureDao.findByContractorTypeId(UUID.fromString(contractorTypeId));
     }
     @Override
-    public List<ContractorStatusDto> getAllContractorStatus() {
+    public List<EnumDto> getAllContractorStatus() {
         return Arrays.stream(ContractorStatus.values())
-                .map(status -> new ContractorStatusDto(status.name(), status.getLabel()))
+                .map(status -> new EnumDto(status.name(), status.getLabel()))
                 .toList();
     }
     @Override
@@ -322,7 +314,6 @@ public class ContractorServiceImpln implements ContractorService {
         if(contractorFormInvite.getEmail() == null){
             throw new IllegalArgumentException(messageSource.getMessage("contractor.email.not.found",null,Locale.ENGLISH));
         }
-        contractorFormInvite.setId(UUID.randomUUID().toString());
         contractorFormInvite.setContractorStatus(ContractorStatus.INVITED);
         contractorFormInvite.setInvitedBy(userService.findLoggedInUser().getId());
         contractorFormInvite.setInvitedOn(Date.valueOf(LocalDate.now()));
@@ -353,13 +344,13 @@ public class ContractorServiceImpln implements ContractorService {
 
     @Override
     public ContractorFormInvite getInviteById(String id) {
-        return contractorFormInviteDao.findById(id)
+        return contractorFormInviteDao.findById(convertToUUID(id))
                 .orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("contractor.not.found",null, Locale.ENGLISH)));
     }
 
     @Override
     public String generateToken(String id) {
-        ContractorFormInvite formInvite = contractorFormInviteDao.findById(id)
+        ContractorFormInvite formInvite = contractorFormInviteDao.findById(convertToUUID(id))
                 .orElseThrow(() -> new DataNotFoundException(
                         messageSource.getMessage("contractor.not.invited", null, Locale.ENGLISH)));
         if (formInvite.isSubmitted()) {
@@ -370,7 +361,7 @@ public class ContractorServiceImpln implements ContractorService {
     @Override
     public ContractorResDto getContractorById(String contractorId) {
         ContractorResDto contractorResDto = new ContractorResDto();
-        Contractor contractor = contractorDao.findById(contractorId)
+        Contractor contractor = contractorDao.findById(convertToUUID(contractorId))
                 .orElseThrow(()->new DataNotFoundException(messageSource.getMessage("contractor.not.found",null,Locale.ENGLISH)));
         contractorResDto.setContractor(contractor);
         ContractorContacts contacts = contactsDao.findByContractorId(contractor.getId());
@@ -387,9 +378,9 @@ public class ContractorServiceImpln implements ContractorService {
     }
     @Override
     public String verifyContractor(String contractorId, String contractorStatus) {
-        Contractor contractor = contractorDao.findById(contractorId)
+        Contractor contractor = contractorDao.findById(convertToUUID(contractorId))
                 .orElseThrow(()-> new DataNotFoundException(messageSource.getMessage("contractor.not.found",null,Locale.ENGLISH)));
-        ContractorFormInvite formInvite = contractorFormInviteDao.findById(contractorId)
+        ContractorFormInvite formInvite = contractorFormInviteDao.findById(convertToUUID(contractorId))
                 .orElseThrow(()-> new DataNotFoundException(messageSource.getMessage("contractor.not.found", null, Locale.ENGLISH)));
         if(contractorStatus.equals("VERIFIED")){
             contractor.setStatus(ContractorStatus.VERIFIED);
@@ -406,12 +397,12 @@ public class ContractorServiceImpln implements ContractorService {
     }
     @Override
     public Contractor findContractorById(String contractorId) {
-        return contractorDao.findById(contractorId)
+        return contractorDao.findById(convertToUUID(contractorId))
                 .orElseThrow(()->new DataNotFoundException(messageSource.getMessage("contractor.not.found",null,Locale.ENGLISH)));
     }
     @Override
     public String generateTenderToken(String contractorId, String tenderId) {
-        TenderInvites tenderInvite = tenderInviteDao.findByContractor_IdAndTender_Id(contractorId, tenderId)
+        TenderInvites tenderInvite = tenderInviteDao.findByContractor_IdAndTender_Id(UUID.fromString(contractorId), UUID.fromString(tenderId))
                 .orElseThrow(() -> new DataNotFoundException(
                         messageSource.getMessage("tender.invite.not.found", null, Locale.ENGLISH)));
         if (tenderInvite.isSubmitted()) {
@@ -428,7 +419,7 @@ public class ContractorServiceImpln implements ContractorService {
 
     @Override
     public String submitOffer(OfferDTO offerDTO) {
-        TenderInvites tenderInvite = tenderInviteDao.findByContractor_IdAndTender_Id(offerDTO.getContractorId(), offerDTO.getTenderId())
+        TenderInvites tenderInvite = tenderInviteDao.findByContractor_IdAndTender_Id(UUID.fromString(offerDTO.getContractorId()), UUID.fromString(offerDTO.getTenderId()))
                 .orElseThrow(() -> new DataNotFoundException(
                         messageSource.getMessage("tender.invite.not.found", null, Locale.ENGLISH)));
         tenderInvite.setSubmitted(true);

@@ -1,6 +1,7 @@
 package com.ksv.tactive.project.entity;
 
 import java.sql.Date;
+import java.util.UUID;
 
 import com.ksv.tactive.util.TerritoryType;
 import jakarta.persistence.*;
@@ -9,9 +10,11 @@ import lombok.Data;
 @Data
 @Entity
 public class ContractorTaxDetails {
-	
+
 	@Id
-	private String id;
+	@GeneratedValue(strategy = GenerationType.UUID)
+	@Column(length = 36)
+	private UUID id;
 	@ManyToOne
 	@JoinColumn(name = "tax_type")
 	private TaxType taxType;

@@ -6,9 +6,10 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface ResourceAttributeDao extends JpaRepository<ResourceAttribute, String> {
-    Optional<ResourceAttribute> findByResourcesIdAndAttributeGroupId(String resourceId, String attributeGroupId);
-    List<ResourceAttribute> findByResourcesId(String resourceId);
+public interface ResourceAttributeDao extends JpaRepository<ResourceAttribute, UUID> {
+    Optional<ResourceAttribute> findByResourcesIdAndAttributeGroupId(UUID resourceId, UUID attributeGroupId);
+    List<ResourceAttribute> findByResourcesId(UUID resourceId);
 }

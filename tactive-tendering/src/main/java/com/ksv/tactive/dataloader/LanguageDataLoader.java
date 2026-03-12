@@ -38,7 +38,6 @@ public class LanguageDataLoader implements MasterDataLoader<Language> {
     private void saveLanguage(Language languageInput) {
         Language existingLanguage = languageDao.findByLanguageCode(languageInput.getLanguageCode());
         if (existingLanguage == null) {
-            languageInput.setId(UUID.randomUUID().toString());
             languageInput.setActive(true);
             languageDao.save(languageInput);
         }

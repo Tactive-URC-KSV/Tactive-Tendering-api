@@ -1,6 +1,7 @@
 package com.ksv.tactive.project.dao;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -9,7 +10,7 @@ import org.springframework.stereotype.Repository;
 
 import com.ksv.tactive.project.entity.TenderEstimationCostDetails;
 @Repository
-public interface TenderEstCostDao extends JpaRepository<TenderEstimationCostDetails, String>{
+public interface TenderEstCostDao extends JpaRepository<TenderEstimationCostDetails, UUID>{
 
 	@Query("SELECT c FROM TenderEstimationCostDetails c WHERE c.tenderEstimation.id = :tenderEstimationId AND c.boq.id = :boqId")
     Optional<TenderEstimationCostDetails> findByTenderEstimationIdAndBoqId(

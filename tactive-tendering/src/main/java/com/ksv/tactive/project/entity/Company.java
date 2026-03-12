@@ -1,18 +1,22 @@
 package com.ksv.tactive.project.entity;
 
+import com.ksv.tactive.util.CompanyLevel;
+import com.ksv.tactive.util.CompanyNature;
 import com.ksv.tactive.util.CompanyType;
 import jakarta.persistence.*;
 import lombok.Data;
 
 import java.sql.Date;
 import java.util.List;
+import java.util.UUID;
 
 @Data
 @Entity
 public class Company {
 	@Id
-	@Column(name = "id", length = 36)
-	private String id;
+	@GeneratedValue(strategy = GenerationType.UUID)
+	@Column(length = 36)
+	private UUID id;
 	private String companyName;
 	private String shortName;
 	private Date createdAt;
@@ -22,11 +26,10 @@ public class Company {
 	@Enumerated(EnumType.STRING)
 	@Column(name = "type")
 	private CompanyType comType;
-	@ManyToOne
-	@JoinColumn(name = "com_level")
+	@Enumerated(EnumType.STRING)
 	private CompanyLevel companyLevel;
-	@ManyToOne
-	@JoinColumn(name = "com_nature")
+	@Enumerated(EnumType.STRING)
+	@Column(name = "nature")
 	private CompanyNature companyNature;
 	@ManyToOne
 	@JoinColumn(name = "com_nature_of_business")

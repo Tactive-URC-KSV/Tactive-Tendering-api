@@ -1,17 +1,18 @@
 package com.ksv.tactive.project.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
+import jakarta.persistence.*;
 import lombok.Data;
+
+import java.util.UUID;
 
 @Data
 @Entity
 public class ContractorBankDetails {
-	
+
 	@Id
-	private String id;
+	@GeneratedValue(strategy = GenerationType.UUID)
+	@Column(length = 36)
+	private UUID id;
 	private String accHolderName;
 	private String accNumber;
 	private String bankName;

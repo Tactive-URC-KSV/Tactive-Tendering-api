@@ -3,6 +3,7 @@ import java.sql.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import jakarta.persistence.*;
 import lombok.Data;
@@ -11,23 +12,17 @@ import lombok.Data;
 @Table(name = "project_info")
 public class Projects {
 	@Id
-	@Column(name = "id", nullable = false, length = 36)
-	private String id;
+	@GeneratedValue(strategy = GenerationType.UUID)
+	@Column(length = 36)
+	private UUID id;
 	@Column(name = "project_name", nullable = false, length = 255)
 	private String projectName;
 	@Column(name = "project_code", length = 50, nullable = false, unique = true)
 	private String projectCode;
 	@Column(name = "short_name", length = 50, nullable = false)
 	private String shortName;
-	private double estimatedValue;
 	private Date startDate;
 	private Date endDate;
-	private double buildingArea;
-	private int numberOfFloors;
-	private int numberOfAboveGround;
-	private int numberOfBelowGround;
-	private int carParkingFloors;
-	private double ratePerUnit;
 	@Column(nullable = true)
 	private long phoneNo;
 	private String email;
@@ -35,7 +30,6 @@ public class Projects {
 	private String address;
 	@Column(nullable = true)
 	private boolean archive;
-	private List<String> otherAmenities;
 	private Date createdAt;
 	private Date updateAt;
 	@Column(length = 36)

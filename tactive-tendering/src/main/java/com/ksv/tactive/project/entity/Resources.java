@@ -4,12 +4,15 @@ import jakarta.persistence.*;
 import lombok.Data;
 
 import java.util.List;
+import java.util.UUID;
 
 @Data
 @Entity
 public class Resources {
 	@Id
-	private String id;
+	@GeneratedValue(strategy = GenerationType.UUID)
+	@Column(length = 36)
+	private UUID id;
 	private String resourceCode;
 	private String resourceName;
 	private double unitRate;

@@ -1,6 +1,7 @@
 package com.ksv.tactive.exception;
 
 import com.ksv.tactive.dto.ErrorResponse;
+import io.jsonwebtoken.ExpiredJwtException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -69,6 +70,16 @@ public class GlobalExceptionHandler {
         ErrorResponse error = ErrorResponse.builder()
                 .message(exception.getMessage())
                 .status(HttpStatus.BAD_REQUEST.value())
+                .timestamp(LocalDateTime.now())
+                .build();
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+
+    @ExceptionHandler(ExpiredJwtException.class)
+    public ResponseEntity<ErrorResponse> handleDataNotFoundException(ExpiredJwtException exception) {
+        ErrorResponse error = ErrorResponse.builder()
+                .message("JWT Token has expired")
+                .status(HttpStatus.UNAUTHORIZED.value())
                 .timestamp(LocalDateTime.now())
                 .build();
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);

@@ -38,7 +38,6 @@ public class UomDataLoader implements MasterDataLoader<Uom> {
     private void saveUom(Uom uomInput) {
         Uom existingUom = uomDao.findByUomCode(uomInput.getUomCode());
         if (existingUom == null) {
-            uomInput.setId(UUID.randomUUID().toString());
             uomInput.setActive(true);
             uomDao.save(uomInput);
         }

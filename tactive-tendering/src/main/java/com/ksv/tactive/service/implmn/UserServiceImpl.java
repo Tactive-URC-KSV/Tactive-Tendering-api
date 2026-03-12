@@ -83,7 +83,7 @@ public class UserServiceImpl implements UserService{
 	@Override
 	public String getTempToken(ContractorFormInvite formInvite) {
 		User user = new User();
-		user.setId(formInvite.getId());
+		user.setId(formInvite.getId().toString());
 		user.setRole("CONTRACTOR");
 		user.setName(formInvite.getName());
 		user.setUsername(formInvite.getUsername());
@@ -94,7 +94,7 @@ public class UserServiceImpl implements UserService{
 	@Override
 	public String getTempTokenForTender(TenderInvites tenderInvite) {
 		User user = new User();
-		user.setId(tenderInvite.getId());
+		user.setId(tenderInvite.getId().toString());
 		user.setUsername(tenderInvite.getTempToken());
 		Contractor contractor = tenderInvite.getContractor();
 		if (contractor != null) {

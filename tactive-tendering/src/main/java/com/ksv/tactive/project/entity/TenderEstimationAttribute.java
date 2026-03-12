@@ -3,6 +3,8 @@ package com.ksv.tactive.project.entity;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.util.UUID;
+
 @Data
 @Entity
 @Table(name = "tender_estimation_attribute",
@@ -12,7 +14,9 @@ import lombok.Data;
 public class TenderEstimationAttribute {
 
     @Id
-    private String id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(length = 36)
+    private UUID id;
 
     @ManyToOne
     @JoinColumn(name = "tender_estimation_id", nullable = false)

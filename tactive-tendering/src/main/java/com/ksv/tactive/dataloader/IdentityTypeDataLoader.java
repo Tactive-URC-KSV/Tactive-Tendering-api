@@ -38,7 +38,6 @@ public class IdentityTypeDataLoader implements MasterDataLoader<IdentityType> {
     private void saveIdentityType(IdentityType identityTypeInput) {
         IdentityType existing = identityTypeDao.findByIdType(identityTypeInput.getIdType());
         if (existing == null) {
-            identityTypeInput.setId(UUID.randomUUID().toString());
             if (!identityTypeInput.isActive()) {
                 identityTypeInput.setActive(true);
             }

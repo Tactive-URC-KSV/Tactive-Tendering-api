@@ -5,14 +5,16 @@ import jakarta.persistence.*;
 import lombok.Data;
 
 import java.util.List;
+import java.util.UUID;
 
 @Entity
 @Data
 public class CompanyProfile {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(length = 36)
-    private String id;
+    private UUID id;
 
     private Integer orderNo;
 

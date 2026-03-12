@@ -2,7 +2,6 @@ package com.ksv.tactive.service;
 
 import com.ksv.tactive.dto.*;
 import com.ksv.tactive.project.entity.*;
-import com.ksv.tactive.util.ContractorStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -27,7 +26,7 @@ public interface ContractorService {
     List<ContractorNature> getAllContractorNature();
     List<ContractorGrade> getAllContractorGrade();
     List<ContractorNature> getContractorNatureByContractorType(String contractorTypeId);
-    List<ContractorStatusDto> getAllContractorStatus();
+    List<EnumDto> getAllContractorStatus();
     String inviteContractor(ContractorFormInvite contractorFormInvite);
     List<ContractorFormInvite> getAllinvitedContractor();
     String generateToken(String id);

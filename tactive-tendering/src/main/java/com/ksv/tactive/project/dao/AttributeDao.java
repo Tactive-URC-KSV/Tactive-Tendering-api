@@ -7,10 +7,11 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface AttributeDao extends JpaRepository<Attribute, String> {
+public interface AttributeDao extends JpaRepository<Attribute, UUID> {
     List<Attribute> findByAttributeGroup(AttributeGroup savedAttributeGroup);
     Optional<Attribute> findByAttributeName(String attributeName);
-    List<Attribute> findByAttributeGroupId(String attributeGroupId);
+    List<Attribute> findByAttributeGroupId(UUID attributeGroupId);
 }

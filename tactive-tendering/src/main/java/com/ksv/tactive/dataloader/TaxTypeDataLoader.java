@@ -42,7 +42,6 @@ public class TaxTypeDataLoader implements MasterDataLoader<TaxType> {
         TaxType existing = taxTypeDao.findByTaxType(taxTypeInput.getTaxType());
 
         if (existing == null) {
-            taxTypeInput.setId(UUID.randomUUID().toString());
             if (!taxTypeInput.isActive()) {
                 taxTypeInput.setActive(true);
             }

@@ -2,17 +2,21 @@ package com.ksv.tactive.project.entity;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 
 import com.ksv.tactive.util.QuantityType;
+import com.ksv.tactive.util.ResourceNature;
 import jakarta.persistence.*;
 import lombok.Data;
 @Data
 @Entity
 public class TenderEstimation {
 	@Id
-	private String id;
+	@GeneratedValue(strategy = GenerationType.UUID)
+	@Column(length = 36)
+	private UUID id;
 	private String docNumber;
 	
 	@JsonBackReference
@@ -39,8 +43,8 @@ public class TenderEstimation {
 	@ManyToOne
 	@JoinColumn(name = "uom")
 	private Uom uom;
-	@ManyToOne
-	@JoinColumn(name = "resource_nature")
+	@Enumerated(EnumType.STRING)
+	@Column(name = "nature")
 	private ResourceNature resourceNature;
 	@Enumerated(EnumType.STRING)
 	@Column(name = "quantity_type")

@@ -5,7 +5,9 @@ import org.springframework.stereotype.Repository;
 
 import com.ksv.tactive.project.entity.AddressType;
 
+import java.util.UUID;
+
 @Repository
-public interface AddressTypeDao extends JpaRepository<AddressType, String>{
-    boolean existsByAddressTypeIgnoreCaseAndActiveTrueAndIdNot(String addressType, String id);
+public interface AddressTypeDao extends JpaRepository<AddressType, UUID>{
+    boolean existsByAddressTypeIgnoreCaseAndActiveTrue(String addressType);
 }

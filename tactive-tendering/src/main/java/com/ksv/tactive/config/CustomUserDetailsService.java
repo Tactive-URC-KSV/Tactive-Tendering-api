@@ -16,6 +16,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import java.sql.Timestamp;
+import java.util.UUID;
 
 public class CustomUserDetailsService implements UserDetailsService {
 
@@ -41,7 +42,7 @@ public class CustomUserDetailsService implements UserDetailsService {
 		ContractorFormInvite invite = inviteRepository.findByUsername(username).orElse(null);
 		if (invite != null && invite.getContractorStatus() != ContractorStatus.VERIFIED) {
 			User inviteUser = new User();
-			inviteUser.setId(invite.getId());
+			inviteUser.setId(invite.getId().toString());
 			inviteUser.setEmail(invite.getEmail());
 			inviteUser.setName(invite.getName());
 			inviteUser.setRole("CONTRACTOR");
@@ -60,7 +61,7 @@ public class CustomUserDetailsService implements UserDetailsService {
 			}
 
 			User tenderUser = new User();
-			tenderUser.setId(tenderInvite.getId());
+			tenderUser.setId(tenderInvite.getId().toString());
 			tenderUser.setUsername(tenderInvite.getTempToken());
 			tenderUser.setRole("CONTRACTOR");
 			tenderUser.setPassword("");

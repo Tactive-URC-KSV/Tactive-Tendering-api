@@ -3,8 +3,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import com.ksv.tactive.project.entity.Projects;
+
+import java.util.UUID;
+
 @Repository
-public interface ProjectDao extends JpaRepository<Projects, String> {
+public interface ProjectDao extends JpaRepository<Projects, UUID> {
 	Projects findByProjectCode(String projectCode);
 	
 }

@@ -39,7 +39,6 @@ public class CurrencyDataLoader implements MasterDataLoader<Currency> {
     private void saveCurrency(Currency currencyInput) {
         Currency existingCurrency = currencyDao.findByCurrencyCode(currencyInput.getCurrencyCode());
         if (existingCurrency == null) {
-            currencyInput.setId(UUID.randomUUID().toString());
             currencyInput.setActive(true);
             currencyDao.save(currencyInput);
         }

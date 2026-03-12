@@ -1,15 +1,17 @@
 package com.ksv.tactive.project.entity;
 import com.fasterxml.jackson.annotation.JsonBackReference;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
+import jakarta.persistence.*;
 import lombok.Data;
+
+import java.util.UUID;
+
 @Data
 @Entity
 public class TenderEstimationCostDetails {
-	@Id
-	private String id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(length = 36)
+    private UUID id;
 	@JsonBackReference
 	@ManyToOne
     @JoinColumn(name = "tender_estimation_id")

@@ -5,7 +5,9 @@ import org.springframework.stereotype.Repository;
 
 import com.ksv.tactive.project.entity.ContractorGrade;
 
+import java.util.UUID;
+
 @Repository
-public interface ContractorGradeDao extends JpaRepository<ContractorGrade, String>{
+public interface ContractorGradeDao extends JpaRepository<ContractorGrade, UUID>{
     boolean existsByGradeNameIgnoreCase(String gradeName);
 }

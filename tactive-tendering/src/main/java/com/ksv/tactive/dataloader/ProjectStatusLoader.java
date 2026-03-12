@@ -32,9 +32,7 @@ public class ProjectStatusLoader implements MasterDataLoader<ProjectStatus>{
 			List<ProjectStatus> projectStatuses = objectMapper.readValue(inputStream, new TypeReference<>() {});
 				for(ProjectStatus projectStatus : projectStatuses) {
 					if(projectStatusDao.findByStatusIgnoreCase(projectStatus.getStatus()) != null) {
-						continue;
-					}else {
-						projectStatus.setId(UUID.randomUUID().toString());
+                    }else {
 						projectStatus.setActive(true);
 						projectStatusDao.save(projectStatus);
 					}

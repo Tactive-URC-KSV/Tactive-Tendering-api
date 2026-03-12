@@ -3,7 +3,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import com.ksv.tactive.project.entity.CompanyStatus;
+
+import java.util.UUID;
+
 @Repository
-public interface CompanyStatusDao extends JpaRepository<CompanyStatus, String>{
+public interface CompanyStatusDao extends JpaRepository<CompanyStatus, UUID>{
     boolean existsByComStatusIgnoreCase(String comStatus);
 }

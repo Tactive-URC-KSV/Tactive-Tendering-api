@@ -208,7 +208,7 @@ public class PdfFileService {
 		int slNo = 1;
 		for (BOQ boq : boqList) {
 			String[] rowData = { String.valueOf(slNo++), safe(boq.getBoqCode()),
-					safe(boq.getBoqName()), boq.getUom() != null ? getUomCode(boq.getUom().getId()) : "",
+					safe(boq.getBoqName()), boq.getUom() != null ? getUomCode(boq.getUom().getId().toString()) : "",
 					String.valueOf(boq.getQuantity()), String.valueOf(boq.getTotalRate()),
 					String.valueOf(boq.getTotalAmount()),
 					boq.getParentBOQ() != null ? boq.getParentBOQ().getBoqCode() : "",

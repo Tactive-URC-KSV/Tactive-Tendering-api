@@ -6,13 +6,16 @@ import lombok.Data;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Data
 @Entity
 public class OfferQuotation {
 
     @Id
-    private String id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(length = 36)
+    private UUID id;
     @JsonBackReference
     @ManyToOne
     @JoinColumn(name = "offer_id")

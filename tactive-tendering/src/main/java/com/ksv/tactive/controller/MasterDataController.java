@@ -172,7 +172,7 @@ public class MasterDataController {
 
 	@GetMapping("/quantityType")
 	public ResponseEntity<?> getAllQuantityTypes() {
-		List<QuantityTypeDto> quantityTypes = masterService.getAllQuantityTypes();
+		List<EnumDto> quantityTypes = masterService.getAllQuantityTypes();
 		if (quantityTypes.isEmpty()) {
 			return ResponseEntity.status(HttpStatus.NO_CONTENT)
 					.body(messageSource.getMessage("data.not.found", null, Locale.ENGLISH));
@@ -182,7 +182,7 @@ public class MasterDataController {
 
 	@GetMapping("/resourceNature")
 	public ResponseEntity<?> getAllResourceNatures() {
-		List<ResourceNature> resourceNatures = masterService.getAllResourceNatures();
+		List<EnumDto> resourceNatures = masterService.getAllResourceNatures();
 		if (resourceNatures.isEmpty()) {
 			return ResponseEntity.status(HttpStatus.NO_CONTENT)
 					.body(messageSource.getMessage("data.not.found", null, Locale.ENGLISH));
@@ -208,16 +208,6 @@ public class MasterDataController {
 			return ResponseEntity.status(HttpStatus.NO_CONTENT).body(messageSource.getMessage("data.not.found", null, Locale.ENGLISH));
 		}
 		return ResponseEntity.status(HttpStatus.OK).body(currencies);
-	}
-	@PostMapping("/resourceNature/add")
-	public ResponseEntity<String> addResourceNature(@RequestBody ResourceNature resourceNature){
-		return ResponseEntity.status(HttpStatus.OK).body(masterService.addResourceNature(resourceNature));
-	}
-	@PutMapping("/resourceNature/edit")
-	public ResponseEntity<?> editResourceNature(@RequestBody ResourceNature resourceNature){
-		masterService.editResourceNature(resourceNature);
-		return ResponseEntity.status(HttpStatus.OK).body(messageSource.getMessage("data.updated", null, Locale.ENGLISH));
-
 	}
 	@GetMapping("/countries")
 	public ResponseEntity<?> getAllCountries(){
@@ -297,19 +287,6 @@ public class MasterDataController {
 	public ResponseEntity<?> getAllCompanyType(){
 		return ResponseEntity.status(HttpStatus.OK).body(masterService.getAllCompanyTypes());
 	}
-	@PostMapping("/companyLevel/add")
-	public ResponseEntity<?> addCompanyLevel(@RequestBody CompanyLevel companyLevel) {
-		masterService.addCompanyLevel(companyLevel);
-		return ResponseEntity.status(HttpStatus.OK)
-				.body(messageSource.getMessage("data.save.success", null, Locale.ENGLISH));
-	}
-	@PutMapping("/companyLevel/edit")
-	public ResponseEntity<?> editCompanyLevel(@RequestBody CompanyLevel companyLevel) {
-		masterService.editCompanyLevel(companyLevel);
-		return ResponseEntity.status(HttpStatus.OK)
-				.body(messageSource.getMessage("data.updated", null, Locale.ENGLISH));
-	}
-
 	@GetMapping("/companyLevel")
 	public ResponseEntity<?> getAllCompanyLevel() {
 		return ResponseEntity.status(HttpStatus.OK)
@@ -348,18 +325,6 @@ public class MasterDataController {
 	public ResponseEntity<?> getAllCompanyConstitution() {
 		return ResponseEntity.status(HttpStatus.OK)
 				.body(masterService.getAllCompanyConstitution());
-	}
-	@PostMapping("/companyNature/add")
-	public ResponseEntity<?> addCompanyNature(@RequestBody CompanyNature companyNature) {
-		masterService.addCompanyNature(companyNature);
-		return ResponseEntity.status(HttpStatus.OK)
-				.body(messageSource.getMessage("data.save.success", null, Locale.ENGLISH));
-	}
-	@PutMapping("/companyNature/edit")
-	public ResponseEntity<?> editCompanyNature(@RequestBody CompanyNature companyNature) {
-		masterService.editCompanyNature(companyNature);
-		return ResponseEntity.status(HttpStatus.OK)
-				.body(messageSource.getMessage("data.updated", null, Locale.ENGLISH));
 	}
 	@GetMapping("/companyNature")
 	public ResponseEntity<?> getAllCompanyNature() {

@@ -5,13 +5,16 @@ import lombok.Data;
 
 import java.sql.Date;
 import java.sql.Timestamp;
+import java.util.UUID;
 
 @Entity
 @Data
 public class TenderInvites {
 
     @Id
-    private String id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(length = 36)
+    private UUID id;
     @ManyToOne
     @JoinColumn(name = "tender_id")
     private Tender tender;

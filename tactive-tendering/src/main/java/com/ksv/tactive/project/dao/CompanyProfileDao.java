@@ -4,6 +4,8 @@ import com.ksv.tactive.project.entity.CompanyProfile;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.UUID;
+
 @Repository
-public interface CompanyProfileDao extends JpaRepository<CompanyProfile, String> {
+public interface CompanyProfileDao extends JpaRepository<CompanyProfile, UUID> {
 }

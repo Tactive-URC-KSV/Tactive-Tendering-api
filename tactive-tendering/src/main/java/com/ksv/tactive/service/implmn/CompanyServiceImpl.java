@@ -5,9 +5,7 @@ import com.ksv.tactive.project.dao.CompanyDao;
 import com.ksv.tactive.project.entity.*;
 import com.ksv.tactive.service.CompanyService;
 import com.ksv.tactive.service.MasterService;
-import com.ksv.tactive.util.CompanyType;
-import com.ksv.tactive.util.DirectorType;
-import com.ksv.tactive.util.TerritoryType;
+import com.ksv.tactive.util.*;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -52,13 +50,9 @@ public class CompanyServiceImpl implements CompanyService {
 	private Company buildCompany(CompanySaveDTO dto) {
 
 		Company company = (dto.getCompanyId() != null && !dto.getCompanyId().isBlank())
-				? companyRepository.findById(dto.getCompanyId())
+				? companyRepository.findById(UUID.fromString(dto.getCompanyId()))
 				.orElseThrow(() -> new RuntimeException("Company not found"))
 				: new Company();
-
-		if (company.getId() == null) {
-			company.setId(UUID.randomUUID().toString());
-		}
 
 		company.setCompanyName(dto.getCompanyName());
 		company.setShortName(dto.getShortName());
@@ -66,15 +60,14 @@ public class CompanyServiceImpl implements CompanyService {
 		company.setComType(isValid(dto.getComTypeId())
 				? CompanyType.valueOf(dto.getComTypeId().toUpperCase())
 				: null);
-
+		company.setCompanyNature(
+				isValid(dto.getComNatureId())
+						? CompanyNature.valueOf(dto.getComNatureId().toUpperCase())
+						: null
+		);
 		company.setCompanyLevel(isValid(dto.getComLevelId())
-				? masterService.getCompanyLevelById(dto.getComLevelId())
-				: null);
-
-		company.setCompanyNature(isValid(dto.getComNatureId())
-				? masterService.getCompanyNatureById(dto.getComNatureId())
-				: null);
-
+			? CompanyLevel.valueOf(dto.getComLevelId().toUpperCase())
+			: null);
 		company.setBusinessNature(isValid(dto.getBusinessNatureId())
 				? masterService.getBusinessNatureById(dto.getBusinessNatureId())
 				: null);
@@ -106,7 +99,6 @@ public class CompanyServiceImpl implements CompanyService {
 		if (dto.getAddress() == null) return addresses;
 		for (AddressDTO a : dto.getAddress()) {
 			ComAddressDetails address = new ComAddressDetails();
-			address.setId(UUID.randomUUID().toString());
 			address.setAddress1(a.getAddress1());
 			address.setAddress2(a.getAddress2());
 			address.setZipcode(a.getZipcode());
@@ -136,7 +128,6 @@ public class CompanyServiceImpl implements CompanyService {
 
 			CompanyContact contact = new CompanyContact();
 
-			contact.setId(UUID.randomUUID().toString());
 			contact.setName(c.getName());
 			contact.setPhoneNo(c.getPhoneNo());
 			contact.setEmail(c.getEmail());
@@ -158,8 +149,6 @@ public class CompanyServiceImpl implements CompanyService {
 		for (TaxDTO t : dto.getTaxDetails()) {
 
 			CompanyTax tax = new CompanyTax();
-
-			tax.setId(UUID.randomUUID().toString());
 
 			tax.setTaxType(isValid(t.getTaxTypeId())
 					? masterService.findTaxTypeById(t.getTaxTypeId())
@@ -197,8 +186,6 @@ public class CompanyServiceImpl implements CompanyService {
 
 			CompanyAdditionalInfo info = new CompanyAdditionalInfo();
 
-			info.setId(UUID.randomUUID().toString());
-
 			info.setIdentityType(isValid(a.getIdTypeId())
 					? masterService.findIdentityTypeById(a.getIdTypeId())
 					: null);
@@ -222,7 +209,6 @@ public class CompanyServiceImpl implements CompanyService {
 
 			CompanyLocalName local = new CompanyLocalName();
 
-			local.setId(UUID.randomUUID().toString());
 			local.setLanguage(isValid(l.getLanguageId())
 					? masterService.getLanguageById(l.getLanguageId())
 					: null);
@@ -245,8 +231,6 @@ public class CompanyServiceImpl implements CompanyService {
 		for (DirectorDTO d : dto.getDirectors()) {
 
 			CompanyDirector director = new CompanyDirector();
-
-			director.setId(UUID.randomUUID().toString());
 
 			director.setDirectorType(isValid(d.getDirectorTypeId())
 					? DirectorType.valueOf(d.getDirectorTypeId().toUpperCase())
@@ -273,7 +257,6 @@ public class CompanyServiceImpl implements CompanyService {
 
 			CompanyJointVenture venture = new CompanyJointVenture();
 
-			venture.setId(UUID.randomUUID().toString());
 			venture.setPartnerId(j.getPartnerId());
 			venture.setSharePercentage(j.getSharePercentage());
 			venture.setCompany(company);
@@ -290,7 +273,6 @@ public class CompanyServiceImpl implements CompanyService {
 
 		CompanyProfile profile = new CompanyProfile();
 
-		profile.setId(UUID.randomUUID().toString());
 		profile.setOrderNo(dto.getProfile().getOrderNo());
 		profile.setDescription(dto.getProfile().getDescription());
 		profile.setRemarks(dto.getProfile().getRemarks());
@@ -346,7 +328,7 @@ public class CompanyServiceImpl implements CompanyService {
 		return companies.stream().map(company -> {
 
 			Map<String, String> map = new HashMap<>();
-			map.put(company.getId(), company.getCompanyName());
+			map.put(company.getId().toString(), company.getCompanyName());
 
 			return map;
 
