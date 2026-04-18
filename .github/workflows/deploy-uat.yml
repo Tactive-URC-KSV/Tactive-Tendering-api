@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout code
+      # 1. Checkout
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -21,56 +21,64 @@ jobs:
           distribution: temurin
           java-version: 21
 
-      # 3. Build JAR
+      # 3. Build
       - name: Build JAR
         run: mvn clean package -DskipTests
         working-directory: ./tactive-tendering
 
-      # 4. Debug info (optional but useful)
-      - name: Debug Info
-        run: |
-          echo "Deploying to ${{ secrets.SERVER_HOST }}"
-          ls -la tactive-tendering/target
+      # 4. Debug
+      - name: Debug Files
+        run: ls -la tactive-tendering/target
 
-      # 5. Upload stop script
+      # 5. Upload stop script (FIXED SCP)
       - name: Upload stop-app.bat
         run: |
-          sshpass -p "${{ secrets.SERVER_PASS }}" scp -o StrictHostKeyChecking=no -P ${{ secrets.SERVER_PORT }} \
-          stop-app.bat \
-          ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:"E:/APP/Application/TactiveKSV/stop-app.bat"
+          sshpass -p "${{ secrets.SERVER_PASS }}" scp \
+            -o StrictHostKeyChecking=no \
+            -P ${{ secrets.SERVER_PORT }} \
+            stop-app.bat \
+            "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:E:/APP/Application/TactiveKSV/stop-app.bat"
 
-      # 6. Stop application (FIXED)
+      # 6. Stop app (FIXED EXECUTION)
       - name: Stop Spring Boot App
         run: |
-          sshpass -p "${{ secrets.SERVER_PASS }}" ssh -o StrictHostKeyChecking=no -p ${{ secrets.SERVER_PORT }} \
-          ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
-          "cmd /c E:\APP\Application\TactiveKSV\stop-app.bat"
+          sshpass -p "${{ secrets.SERVER_PASS }}" ssh \
+            -o StrictHostKeyChecking=no \
+            -p ${{ secrets.SERVER_PORT }} \
+            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
+            "cmd /c E:\APP\Application\TactiveKSV\stop-app.bat"
 
-      # 7. Wait to ensure process stops
+      # 7. Wait
       - name: Wait before deploy
         run: sleep 5
 
-      # 8. Upload JAR
-      - name: Upload JAR via SCP
+      # 8. Upload JAR (FIXED SCP)
+      - name: Upload JAR
         run: |
-          sshpass -p "${{ secrets.SERVER_PASS }}" scp -o StrictHostKeyChecking=no -P ${{ secrets.SERVER_PORT }} \
-          tactive-tendering/target/*.jar \
-          ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:"E:/APP/Application/TactiveKSV/tactive.jar"
+          sshpass -p "${{ secrets.SERVER_PASS }}" scp \
+            -o StrictHostKeyChecking=no \
+            -P ${{ secrets.SERVER_PORT }} \
+            tactive-tendering/target/*.jar \
+            "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:E:/APP/Application/TactiveKSV/tactive.jar"
 
       # 9. Upload start script
       - name: Upload start-app.bat
         run: |
-          sshpass -p "${{ secrets.SERVER_PASS }}" scp -o StrictHostKeyChecking=no -P ${{ secrets.SERVER_PORT }} \
-          start-app.bat \
-          ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:"E:/APP/Application/TactiveKSV/start-app.bat"
+          sshpass -p "${{ secrets.SERVER_PASS }}" scp \
+            -o StrictHostKeyChecking=no \
+            -P ${{ secrets.SERVER_PORT }} \
+            start-app.bat \
+            "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:E:/APP/Application/TactiveKSV/start-app.bat"
 
-      # 10. Start application (FIXED)
+      # 10. Start app (FIXED EXECUTION)
       - name: Start Spring Boot App
         run: |
-          sshpass -p "${{ secrets.SERVER_PASS }}" ssh -o StrictHostKeyChecking=no -p ${{ secrets.SERVER_PORT }} \
-          ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
-          "cmd /c E:\APP\Application\TactiveKSV\start-app.bat"
+          sshpass -p "${{ secrets.SERVER_PASS }}" ssh \
+            -o StrictHostKeyChecking=no \
+            -p ${{ secrets.SERVER_PORT }} \
+            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
+            "cmd /c E:\APP\Application\TactiveKSV\start-app.bat"
 
-      # 11. Success message
+      # 11. Done
       - name: Deployment Success
         run: echo "Deployment completed successfully 🚀"
