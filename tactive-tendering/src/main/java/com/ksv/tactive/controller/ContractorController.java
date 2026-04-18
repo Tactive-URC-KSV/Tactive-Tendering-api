@@ -78,17 +78,12 @@ public class ContractorController {
 		return ResponseEntity.status(HttpStatus.OK).body(contractorService.getAllContractorGrade());
 	}
 	@PostMapping(value = "/addContractor", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-	public ResponseEntity<?> addContractor(@RequestPart ContractorInputDto contractorInputDto,
-										   @RequestPart ContractorAddress contractorAddress,
-										   @RequestPart ContractorContacts contractorContacts,
-										   @RequestPart ContractorTaxDetails contractorTaxDetails,
-										   @RequestPart ContractorBankDetails contractorBankDetails,
-										   @RequestPart ContractorAddInfo contractorAddInfo,
-										   @RequestParam(required = false, value = "files") List<MultipartFile> files){
+	public ResponseEntity<?> addContractor(
+			@RequestPart("contractor") ContractorDTO contractorDTO,
+			@RequestParam(value = "files", required = false) List<MultipartFile> files) {
 		List<String> paths = contractorService.saveDocuments(files);
-		contractorInputDto.setPaths(paths);
-		String message = contractorService.addContractor(contractorInputDto,contractorAddress,contractorContacts,
-				contractorTaxDetails,contractorBankDetails,contractorAddInfo);
+		contractorDTO.setAttachmentUrls(paths);
+		String message = contractorService.addContractor(contractorDTO);
 		return ResponseEntity.status(HttpStatus.OK).body(message);
 	}
 	@GetMapping("/contractor")
@@ -179,5 +174,9 @@ public class ContractorController {
 	public ResponseEntity<?> getOfferDetails(@RequestParam String negotiationId){
 		int version = projectService.findOfferNegotiation(negotiationId);
 		return ResponseEntity.status(HttpStatus.OK).body(version);
+	}
+	@GetMapping("/contractor/byInviteId/{inviteId}")
+	public ResponseEntity<?> getContractorByInviteId(@PathVariable String inviteId){
+		return ResponseEntity.status(HttpStatus.OK).body(contractorService.getContractorByInviteId(inviteId));
 	}
 }

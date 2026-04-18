@@ -28,11 +28,7 @@ public class UserController {
 	}
 	@GetMapping("/user/{userId}")
 	public ResponseEntity<?> getUserById(@PathVariable String userId) {
-		try {
-			return ResponseEntity.status(HttpStatus.OK).body(userService.getUserById(userId));
-		} catch (Exception e) {
-			return ResponseEntity.status(HttpStatus.CONFLICT).body("User not found");
-		}
+		return ResponseEntity.status(HttpStatus.OK).body(userService.getUserById(userId));
 	}
 	@GetMapping("/loggedin-user")
 	public ResponseEntity<?> getLoggedInUser() {

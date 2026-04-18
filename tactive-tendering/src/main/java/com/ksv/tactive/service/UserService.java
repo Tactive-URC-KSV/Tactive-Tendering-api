@@ -20,4 +20,5 @@ public interface UserService {
 	void handleResetPassword(ResetPasswordRequest request) throws NoSuchAlgorithmException;
 	String verifyResetOtp(VerifyOtpRequest request) throws NoSuchAlgorithmException;
 	void addUser(User user);
+	User findByEmail(String email);
 }

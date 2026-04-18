@@ -11,7 +11,9 @@ import com.ksv.tactive.project.dao.*;
 import com.ksv.tactive.project.entity.*;
 import com.ksv.tactive.service.*;
 import com.ksv.tactive.util.ContractorStatus;
+import com.ksv.tactive.util.TaxType;
 import com.ksv.tactive.util.TerritoryType;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
@@ -81,10 +83,12 @@ public class ContractorServiceImpln implements ContractorService {
     @Autowired
     private MessageSource messageSource;
 
-    private UUID convertToUUID(String value){
-        return UUID.fromString(value);
+    private UUID convertToUUID(String id) {
+        if (id == null || id.trim().isEmpty()) {
+            return null;
+        }
+        return UUID.fromString(id);
     }
-
     @Override
     public List<Map<String, Object>>getAllContractor() {
         List<Contractor> contractors = contractorDao.findAll()
@@ -101,84 +105,186 @@ public class ContractorServiceImpln implements ContractorService {
         }
         return contractorDto;
     }
-
     @Override
-    public String addContractor(ContractorInputDto contractorInputDto, ContractorAddress contractorAddress,
-                                ContractorContacts contractorContacts, ContractorTaxDetails contractorTaxDetails,
-                                ContractorBankDetails contractorBankDetails, ContractorAddInfo contractorAddInfo) {
-        Contractor contractor = new Contractor();
-        if(contractorInputDto.getId() != null){
-            contractor.setId(UUID.fromString(contractorInputDto.getId()));
+    @Transactional
+    public String addContractor(ContractorDTO dto) {
+        Contractor contractor;
+        UUID contractorId = convertToUUID(dto.getId());
+        if (contractorId != null) {
+            contractor = contractorDao.findById(contractorId)
+                    .orElseThrow(() -> new RuntimeException("Contractor not found"));
+        } else {
+            contractor = new Contractor();
         }
-        contractor.setEntityCode(contractorInputDto.getEntityCode());
-        contractor.setEntityName(contractorInputDto.getEntityName());
-        contractor.setEffectiveDate(contractorInputDto.getEffectiveDate());
-        contractor.setAttachmentUrls(contractorInputDto.getPaths());
-        ContractorType conType = conTypeDao.findById(convertToUUID(contractorInputDto.getContractorTypeId())).orElse(null);
-        contractor.setContractorType(conType);
-        Set<ContractorNature> conNatures = contractorInputDto.getContractorNatureId().stream()
-                .map(id -> conNatureDao.findById(convertToUUID(id)).orElse(null))
-                .collect(Collectors.toSet());
-        contractor.setContractorNature(conNatures);
-        ContractorGrade conGrade = conGradeDao.findById(convertToUUID(contractorInputDto.getContractorGradeId())).orElse(null);
-        contractor.setContractorGrade(conGrade);
-        contractor.setSubmissionMode(contractorInputDto.getSubbmissionMode());
-        if(contractor.getSubmissionMode().equals("MANUAL")){
-            contractor.setStatus(ContractorStatus.VERIFIED);
+        contractor.setEntityCode(dto.getEntityCode());
+        contractor.setEntityName(dto.getEntityName());
+        contractor.setEffectiveDate(dto.getEffectiveDate());
+        contractor.setAttachmentUrls(dto.getAttachmentUrls());
+        contractor.setInviteId(dto.getInviteId());
+        UUID typeId = convertToUUID(dto.getContractorTypeId());
+        if (typeId != null) {
+            contractor.setContractorType(conTypeDao.findById(typeId).orElse(null));
+        } else {
+            contractor.setContractorType(null);
         }
-        else{
-            contractor.setStatus(ContractorStatus.PENDING);
-            ContractorFormInvite invite = contractorFormInviteDao.findById(contractor.getId()).orElse(null);
-            if(invite != null) {
-                invite.setContractorStatus(ContractorStatus.PENDING);
-                invite.setSubmitted(true);
-                contractorFormInviteDao.save(invite);
+        UUID gradeId = convertToUUID(dto.getContractorGradeId());
+        if (gradeId != null) {
+            contractor.setContractorGrade(conGradeDao.findById(gradeId).orElse(null));
+        } else {
+            contractor.setContractorGrade(null);
+        }
+        Set<ContractorNature> natures =
+                dto.getContractorNatureIds() != null
+                        ? dto.getContractorNatureIds().stream()
+                        .map(this::convertToUUID)
+                        .filter(Objects::nonNull)
+                        .map(id -> conNatureDao.findById(id))
+                        .filter(Optional::isPresent)
+                        .map(Optional::get)
+                        .collect(Collectors.toSet())
+                        : new HashSet<>();
+        contractor.setContractorNature(natures);
+        contractor.setSubmissionMode(dto.getSubmissionMode());
+        contractor.setStatus(
+                "MANUAL".equalsIgnoreCase(dto.getSubmissionMode())
+                        ? ContractorStatus.VERIFIED
+                        : ContractorStatus.PENDING
+        );
+
+        Map<UUID, ContractorContacts> existingContacts =
+                contractor.getContractorContacts().stream()
+                        .collect(Collectors.toMap(ContractorContacts::getId, c -> c));
+
+        List<ContractorContacts> updatedContacts = new ArrayList<>();
+
+        if (dto.getContacts() != null) {
+            for (ContactDTO c : dto.getContacts()) {
+                ContractorContacts entity;
+                UUID id = convertToUUID(c.getId());
+
+                if (id != null) {
+                    entity = existingContacts.getOrDefault(id, new ContractorContacts());
+                } else {
+                    entity = new ContractorContacts();
+                }
+
+                entity.setName(c.getName());
+                entity.setDesignation(c.getPosition());
+                entity.setPhoneNumber(c.getPhoneNo());
+                entity.setEmail(c.getEmail());
+                entity.setContractor(contractor);
+
+                updatedContacts.add(entity);
             }
         }
-        Contractor savedContractor = contractorDao.save(contractor);
-        if(savedContractor != null){
-            contractorAddress.setContractor(savedContractor);
-            saveContratorAddress(contractorAddress,contractorInputDto);
-            contractorContacts.setContractor(savedContractor);
-            saveContractorContacts(contractorContacts);
-            contractorTaxDetails.setContractor(savedContractor);
-            saveContractorTaxDetails(contractorTaxDetails,contractorInputDto);
-            contractorBankDetails.setContractor(savedContractor);
-            saveContractorBankDetails(contractorBankDetails);
-            contractorAddInfo.setContractor(savedContractor);
-            saveContractorAddInfo(contractorAddInfo,contractorInputDto);
+
+        contractor.getContractorContacts().clear();
+        contractor.getContractorContacts().addAll(updatedContacts);
+
+        Map<UUID, ContractorAddress> existingAddresses =
+                contractor.getContractorAddresses().stream()
+                        .collect(Collectors.toMap(ContractorAddress::getId, a -> a));
+
+        List<ContractorAddress> updatedAddresses = new ArrayList<>();
+
+        if (dto.getAddresses() != null) {
+            for (AddressDTO a : dto.getAddresses()) {
+                ContractorAddress entity;
+                UUID id = convertToUUID(a.getId());
+
+                if (id != null) {
+                    entity = existingAddresses.getOrDefault(id, new ContractorAddress());
+                } else {
+                    entity = new ContractorAddress();
+                }
+
+                entity.setAddress1(a.getAddress1());
+                entity.setAddress2(a.getAddress2());
+                entity.setCity(a.getCityId());
+                entity.setZipCode(a.getZipcode());
+                entity.setPhoneNumber(a.getPhone());
+                entity.setEmail(a.getEmail());
+
+                if (a.getAddressTypeId() != null) {
+                    entity.setAddressType(
+                            masterService.findAddressTypeById(a.getAddressTypeId())
+                    );
+                }
+
+                entity.setCountry(a.getCountryId());
+                entity.setContractor(contractor);
+
+                updatedAddresses.add(entity);
+            }
         }
-        return "";
-    }
 
-    private void saveContratorAddress(ContractorAddress contractorAddress, ContractorInputDto contractorInputDto) {
-        Country country = masterService.findCountryById(contractorAddress.getCountry());
-//        Cities city = masterService.findCityById(contractorAddress.getCountry(), contractorAddress.getCity());
-        AddressType addressType = masterService.findAddressTypeById(contractorInputDto.getAddressTypeId());
-        contractorAddress.setAddressType(addressType);
-        contractorAddress.setCountry(country.getId());
-//        contractorAddress.setCity(city.getId());
-        contractorAddressDao.save(contractorAddress);
-    }
+        contractor.getContractorAddresses().clear();
+        contractor.getContractorAddresses().addAll(updatedAddresses);
 
-    private void saveContractorContacts(ContractorContacts contractorContacts) {
-        contactsDao.save(contractorContacts);
-    }
+        Map<UUID, ContractorTaxDetails> existingTax =
+                contractor.getContractorTaxDetails().stream()
+                        .collect(Collectors.toMap(ContractorTaxDetails::getId, t -> t));
 
-    private void saveContractorTaxDetails(ContractorTaxDetails contractorTaxDetails, ContractorInputDto contractorInputDto) {
-        TaxType taxType = masterService.findTaxTypeById(contractorInputDto.getTaxTypeId());
-        contractorTaxDetails.setTaxType(taxType);
-        contractorTaxDetails.setTerritory(TerritoryType.valueOf(contractorInputDto.getTerritoryTypeId()).name());
-        taxDetailsDao.save(contractorTaxDetails);
-    }
-    private void saveContractorBankDetails(ContractorBankDetails contractorBankDetails) {
-        bankDetailsDao.save(contractorBankDetails);
-    }
-    private void saveContractorAddInfo(ContractorAddInfo contractorAddInfo, ContractorInputDto contractorInputDto) {
-        IdentityType identityType =
-                masterService.findIdentityTypeById(contractorInputDto.getIdTypeId());
-        contractorAddInfo.setIdentityType(identityType);
-        addInfoDao.save(contractorAddInfo);
+        List<ContractorTaxDetails> updatedTax = new ArrayList<>();
+        if (dto.getTaxDetails() != null) {
+            for (TaxDTO t : dto.getTaxDetails()) {
+                ContractorTaxDetails entity;
+                UUID id = convertToUUID(t.getId());
+                if (id != null) {
+                    entity = existingTax.getOrDefault(id, new ContractorTaxDetails());
+                } else {
+                    entity = new ContractorTaxDetails();
+                }
+                if (t.getTaxTypeId() != null && !t.getTaxTypeId().isEmpty()) {
+                    entity.setTaxType(TaxType.valueOf(t.getTaxTypeId().toUpperCase()));
+                }
+                if (t.getTerritoryTypeId() != null && !t.getTerritoryTypeId().isEmpty()) {
+                    entity.setTerritoryType(TerritoryType.valueOf(t.getTerritoryTypeId().toUpperCase()));
+                }
+                entity.setTerritory(t.getTerritory());
+                entity.setTaxRegNumber(t.getTaxRegNo());
+                if (t.getTaxRegDate() != null && !t.getTaxRegDate().isEmpty()) {
+                    entity.setTaxRegDate(Date.valueOf(t.getTaxRegDate()));
+                }
+                entity.setAddress1(t.getAddress1());
+                entity.setAddress2(t.getAddress2());
+                entity.setCity(t.getCity());
+                entity.setPinCode(t.getPinCode());
+                entity.setEmail(t.getEmail());
+                entity.setContractor(contractor);
+                updatedTax.add(entity);
+            }
+        }
+        contractor.getContractorTaxDetails().clear();
+        contractor.getContractorTaxDetails().addAll(updatedTax);
+        Map<UUID, ContractorBankDetails> existingBanks =
+                contractor.getContractorBankDetails().stream()
+                        .collect(Collectors.toMap(ContractorBankDetails::getId, b -> b));
+        List<ContractorBankDetails> updatedBanks = new ArrayList<>();
+        if (dto.getBankDetails() != null) {
+            for (BankDTO b : dto.getBankDetails()) {
+                ContractorBankDetails entity;
+                UUID id = convertToUUID(b.getId());
+                if (id != null) {
+                    entity = existingBanks.getOrDefault(id, new ContractorBankDetails());
+                } else {
+                    entity = new ContractorBankDetails();
+                }
+                entity.setAccHolderName(b.getAccHolderName());
+                entity.setAccNumber(b.getAccNumber());
+                entity.setBankName(b.getBankName());
+                entity.setBranch(b.getBranch());
+                entity.setBankAddress(b.getBankAddress());
+                entity.setContractor(contractor);
+                updatedBanks.add(entity);
+            }
+        }
+        contractor.getContractorBankDetails().clear();
+        contractor.getContractorBankDetails().addAll(updatedBanks);
+        contractorDao.save(contractor);
+        return contractorId == null
+                ? "Contractor created successfully"
+                : "Contractor updated successfully";
     }
     @Override
     public List<String> saveDocuments(List<MultipartFile> files) {
@@ -314,8 +420,12 @@ public class ContractorServiceImpln implements ContractorService {
         if(contractorFormInvite.getEmail() == null){
             throw new IllegalArgumentException(messageSource.getMessage("contractor.email.not.found",null,Locale.ENGLISH));
         }
+        ContractorFormInvite existing = contractorFormInviteDao.findByEmail(contractorFormInvite.getEmail());
+        if(existing != null){
+            throw new DuplicateEntryException(messageSource.getMessage("data.duplicate",null,Locale.ENGLISH));
+        }
         contractorFormInvite.setContractorStatus(ContractorStatus.INVITED);
-        contractorFormInvite.setInvitedBy(userService.findLoggedInUser().getId());
+        contractorFormInvite.setInvitedBy(userService.findLoggedInUser().getId().toString());
         contractorFormInvite.setInvitedOn(Date.valueOf(LocalDate.now()));
         contractorFormInvite.setUsername(contractorFormInvite.getEmail());
         ContractorFormInvite savedInvite = contractorFormInviteDao.save(contractorFormInvite);
@@ -328,7 +438,7 @@ public class ContractorServiceImpln implements ContractorService {
     @Override
     public List<ContractorFormInvite> getAllinvitedContractor() {
         List<ContractorFormInvite> invites = contractorFormInviteDao.findAll();
-        if (invites != null && !invites.isEmpty()) {
+        if (!invites.isEmpty()) {
             return invites.stream()
                     .filter(invite -> invite.getContractorStatus() != ContractorStatus.VERIFIED)
                     .sorted(Comparator.comparingInt(invite -> {
@@ -380,7 +490,8 @@ public class ContractorServiceImpln implements ContractorService {
     public String verifyContractor(String contractorId, String contractorStatus) {
         Contractor contractor = contractorDao.findById(convertToUUID(contractorId))
                 .orElseThrow(()-> new DataNotFoundException(messageSource.getMessage("contractor.not.found",null,Locale.ENGLISH)));
-        ContractorFormInvite formInvite = contractorFormInviteDao.findById(convertToUUID(contractorId))
+        String inviteId = contractor.getInviteId();
+        ContractorFormInvite formInvite = contractorFormInviteDao.findById(convertToUUID(inviteId))
                 .orElseThrow(()-> new DataNotFoundException(messageSource.getMessage("contractor.not.found", null, Locale.ENGLISH)));
         if(contractorStatus.equals("VERIFIED")){
             contractor.setStatus(ContractorStatus.VERIFIED);
@@ -427,5 +538,10 @@ public class ContractorServiceImpln implements ContractorService {
         tenderInviteDao.save(tenderInvite);
         return messageSource.getMessage("offer.submitted", null, Locale.ENGLISH);
 
+    }
+
+    @Override
+    public Contractor getContractorByInviteId(String inviteId) {
+        return contractorDao.findByInviteId(inviteId);
     }
 }

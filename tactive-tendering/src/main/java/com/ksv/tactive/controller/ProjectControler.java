@@ -3,6 +3,7 @@ package com.ksv.tactive.controller;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.sql.SQLIntegrityConstraintViolationException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -13,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.core.io.Resource;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -57,7 +59,10 @@ public class ProjectControler {
 			return ResponseEntity.status(HttpStatus.NO_CONTENT).body(e.getMessage());
 		}
 	}
-
+	@GetMapping("/projects/{companyId}")
+	public ResponseEntity<?> getProjectById(@PathVariable("companyId") String companyId) {
+		return ResponseEntity.status(HttpStatus.OK).body(projectService.getAllProjectsByCompanyId(companyId));
+	}
 	@PostMapping("project/createProject")
 	public ResponseEntity<?> createProject(@RequestBody ProjectInputDTO projectInputDTO, HttpServletRequest request) {
 		try {
@@ -232,7 +237,13 @@ public class ProjectControler {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid request: " + e.getMessage());
 		}
 	}
-
+	@PutMapping("/update-boq-hierarchy/{projectId}")
+	public ResponseEntity<?> updateBOQHierarchy(
+			@PathVariable String projectId,
+			@RequestBody Map<String, String> parentChildUpdateMap) {
+		String response = projectService.updateBOQHierarchy(projectId, parentChildUpdateMap);
+		return ResponseEntity.status(HttpStatus.OK).body(response);
+	}
 	//    @PostMapping("project/mapBOQ/{sheetName}/{projectId}")
 //    public ResponseEntity<?> uploadBOQ(
 //    		@PathVariable String projectId,
@@ -277,11 +288,30 @@ public class ProjectControler {
 		}
 	}
 
-	@GetMapping("project/getParentBoq/{projectId}")
+	@GetMapping("getParentBoq/{projectId}")
 	public ResponseEntity<?> getParentBOQ(@PathVariable String projectId) {
 		try {
 			List<BOQ> boqList = projectService.getParentBOQ(projectId);
 			return ResponseEntity.status(HttpStatus.OK).body(boqList);
+		} catch (DataNotFoundException e) {
+			return ResponseEntity.status(HttpStatus.NO_CONTENT).body(e.getMessage());
+		}
+	}
+	@GetMapping("project/getParentBoq/{projectId}")
+	public ResponseEntity<?> getParentBOQ(
+			@PathVariable String projectId,
+			@RequestParam(defaultValue = "0") int page,
+			@RequestParam(defaultValue = "15") int size) {
+
+		try {
+			Page<BOQ> boqPage = projectService.getParentBOQs(projectId, page, size);
+			Map<String, Object> response = new HashMap<>();
+			response.put("data", boqPage.getContent());
+			response.put("currentPage", boqPage.getNumber());
+			response.put("totalItems", boqPage.getTotalElements());
+			response.put("totalPages", boqPage.getTotalPages());
+			return ResponseEntity.ok(response);
+
 		} catch (DataNotFoundException e) {
 			return ResponseEntity.status(HttpStatus.NO_CONTENT).body(e.getMessage());
 		}
@@ -518,17 +548,12 @@ public class ProjectControler {
 			return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
 		}
 	}
-
-	@PostMapping("tenderEstimation/pasteResourceToBoq/{boqId}")
-	public ResponseEntity<?> pasteResource(@PathVariable String boqId, @RequestBody List<String> tenderEstimationIds) {
-		try {
-			String message = projectService.pasteResourceToBOQ(boqId, tenderEstimationIds);
-			return ResponseEntity.status(HttpStatus.OK).body(message);
-		} catch (DataNotFoundException e) {
-			return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
-		}
+	@GetMapping("/tender-estimation/complex/project/{projectId}")
+	public ResponseEntity<?> getComplexResourcesByProject(@PathVariable String projectId) {
+		List<?> data =
+				projectService.getComplexResourcesByProject(projectId);
+		return ResponseEntity.ok(data);
 	}
-
 	@GetMapping("tenderEstimation/estimatedResources/{boqId}")
 	public ResponseEntity<?> getEstimatedResourcesByBoq(@PathVariable String boqId) {
 		try {
@@ -557,6 +582,21 @@ public class ProjectControler {
 			return ResponseEntity.status(HttpStatus.OK).body(estimatedResource);
 		} catch (DataNotFoundException e) {
 			return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+		}
+	}
+	@GetMapping("tenderEstimation/internal-boq/{internalBoqId}")
+	public ResponseEntity<?> getInternalBoq(
+			@PathVariable String tenderEstimationId
+	) {
+		try {
+			return ResponseEntity.status(HttpStatus.OK)
+					.body(projectService.getInternalBoqByTender(tenderEstimationId));
+		} catch (DataNotFoundException e) {
+			return ResponseEntity.status(HttpStatus.CONFLICT)
+					.body(e.getMessage());
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+					.body("Error fetching Internal BOQ: " + e.getMessage());
 		}
 	}
 
@@ -652,12 +692,27 @@ public class ProjectControler {
 	}
 	@GetMapping("/searchBoq/{projectId}")
 	public ResponseEntity<?> searchBoq(@PathVariable String projectId, @RequestParam String searchQuery) {
-		System.out.println("Search BOQ called with ID: " + projectId + " and Query: " + searchQuery); // Add this
 		try {
 			return ResponseEntity.ok(projectService.searchBoq(projectId, searchQuery));
 		} catch (Exception e) {
 			e.printStackTrace();
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
 		}
+	}
+	@PostMapping("globalValue/{projectId}")
+	public ResponseEntity<?> addGlobalValue(@PathVariable String projectId,
+						   @RequestBody GlobalValue globalValue) {
+		return ResponseEntity.status(HttpStatus.OK).body(projectService.addGlobalValue(projectId, globalValue));
+	}
+
+	@GetMapping("globalValue/{projectId}")
+	public ResponseEntity<?> viewAllGlobalValue(@PathVariable String projectId) {
+		return ResponseEntity.status(HttpStatus.OK).body(projectService.viewAllGlobalValueByProjectId(projectId));
+	}
+
+	@PutMapping("globalVaue/edit/{projectId}")
+	public ResponseEntity<?> editGlobalValue(@PathVariable String projectId,
+							@RequestBody GlobalValue globalValue) {
+		return ResponseEntity.status(HttpStatus.OK).body(projectService.editGlobalValue(projectId, globalValue));
 	}
 }

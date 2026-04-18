@@ -20,13 +20,17 @@ public class ComAddressDetails {
 	private String email;
 	private String website;
 	private String faxNo;
+	private String country;
+	private String state;
+	private String city;
 	private String phone;
-	private boolean primary;
-	@ManyToOne(cascade = CascadeType.ALL)
+	@Column(name = "primary_address")
+	private boolean primaryAddress;
+	@ManyToOne
 	@JoinColumn(name = "address_type")
 	private AddressType addressType;
 	@JsonBackReference
-	@OneToOne(cascade = CascadeType.DETACH)
+	@ManyToOne
 	@JoinColumn(name = "company_id")
 	private Company company;
 }

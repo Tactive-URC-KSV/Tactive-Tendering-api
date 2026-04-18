@@ -11,10 +11,7 @@ import java.util.Map;
 @Service
 public interface ContractorService {
     List<Map<String, Object>> getAllContractor();
-    String addContractor(ContractorInputDto contractorInputDto, ContractorAddress contractorAddress,
-                         ContractorContacts contractorContacts, ContractorTaxDetails contractorTaxDetails,
-                         ContractorBankDetails contractorBankDetails, ContractorAddInfo contractorAddInfo);
-
+    String addContractor(ContractorDTO dto);
     List<String> saveDocuments(List<MultipartFile> files);
     void addContractorType(ContractorType contractorType);
     void editContractorType(ContractorType contractorType);
@@ -36,4 +33,5 @@ public interface ContractorService {
     Contractor findContractorById(String contractorId);
     String generateTenderToken(String contractorId, String tenderId);
     String submitOffer(OfferDTO offerDTO);
+    Contractor getContractorByInviteId(String inviteId);
 }

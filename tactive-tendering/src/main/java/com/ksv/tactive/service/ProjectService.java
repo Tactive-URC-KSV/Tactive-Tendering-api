@@ -9,6 +9,8 @@ import com.ksv.tactive.dto.*;
 import com.ksv.tactive.project.entity.*;
 import org.springframework.core.io.Resource;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -72,7 +74,6 @@ public interface ProjectService {
 	String addResourcesToTender(TenderResourceDto tenderResourceDto);
 	List<TenderEstResourceDto> getEstimatedResourcesByBoq(String boqId);
 //	List<TenderEstimation> getEstimatedResourcesByActivityGroup(String activityGroupId);
-	String pasteResourceToBOQ(String boqId, List<String> tenderEstimationIds);
 //	String pasteResourceToActivity(String activityGroupId, List<String> tenderEstimationIds);
 //	String updateTenderEstimationResource(TenderResourceDto tenderResourceDto);
 	String deleteTenderEstimationForBoq(String tenderEstimationId, String boqId);
@@ -96,4 +97,12 @@ public interface ProjectService {
 	String awardTender(String tenderId, String tenderOfferId, String offerQuotationId);
 	List<BOQ> searchBoq(String projectId, String searchQuery);
 	Map<String, Double> getParentBoqTotalMap(String projectId);
+    List<ProjectInfoDto> getAllProjectsByCompanyId(String companyId);
+	String updateBOQHierarchy(String projectId, Map<String, String> parentChildUpdateMap);
+	Page<BOQ> getParentBOQs(String projectId, int page, int size);
+	List<?> getComplexResourcesByProject(String projectId);
+    String addGlobalValue(String projectId, GlobalValue globalValue);
+	List<GlobalValue> viewAllGlobalValueByProjectId(String projectId);
+	String editGlobalValue(String id, GlobalValue globalValue);
+    Object getInternalBoqByTender(String tenderEstimationId);
 }

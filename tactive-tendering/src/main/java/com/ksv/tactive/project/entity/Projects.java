@@ -1,9 +1,7 @@
 package com.ksv.tactive.project.entity;
+import java.math.BigDecimal;
 import java.sql.Date;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 import jakarta.persistence.*;
 import lombok.Data;
@@ -23,11 +21,8 @@ public class Projects {
 	private String shortName;
 	private Date startDate;
 	private Date endDate;
-	@Column(nullable = true)
-	private long phoneNo;
-	private String email;
-	private String city;
-	private String address;
+	@Column(name = "total_estimated_value", precision = 15, scale = 2)
+	private BigDecimal totalEstimatedValue = BigDecimal.ZERO;
 	@Column(nullable = true)
 	private boolean archive;
 	private Date createdAt;
@@ -55,4 +50,12 @@ public class Projects {
 	private Uom uom;
 	@Column(length = 36)
 	private String companyId;
+	private boolean needFeasibility;
+
+	@OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
+	private List<ProjectAddress> projectAddresses = new ArrayList<>();
+
+	@OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
+	private List<ProjectTechFields> techFields = new ArrayList<>();
+
 }

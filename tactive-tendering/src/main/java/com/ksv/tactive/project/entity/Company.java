@@ -1,7 +1,9 @@
 package com.ksv.tactive.project.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.ksv.tactive.util.CompanyLevel;
 import com.ksv.tactive.util.CompanyNature;
+import com.ksv.tactive.util.CompanyStatus;
 import com.ksv.tactive.util.CompanyType;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -20,7 +22,7 @@ public class Company {
 	private String companyName;
 	private String shortName;
 	private Date createdAt;
-	@ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+	@ManyToOne(cascade = CascadeType.ALL)
 	@JoinColumn(name = "parent_company_id")
 	private Company parentCompany;
 	@Enumerated(EnumType.STRING)
@@ -37,8 +39,8 @@ public class Company {
 	@ManyToOne
 	@JoinColumn(name = "com_constitution")
 	private CompanyConstitution companyConstitution;
-	@ManyToOne
-	@JoinColumn(name = "com_status")
+	@Enumerated(EnumType.STRING)
+	@Column(name = "com_status")
 	private CompanyStatus companyStatus;
 	@ManyToOne(cascade = CascadeType.ALL)
 	@JoinColumn(name = "language_id")
@@ -46,9 +48,8 @@ public class Company {
 	@ManyToOne
 	@JoinColumn(name = "com_currency")
 	private Currency currency;
-	private String bank;
-
-	@OneToMany(mappedBy = "company", cascade = CascadeType.ALL, orphanRemoval = true)
+	private String finStartMonth;
+    @OneToMany(mappedBy = "company", cascade = CascadeType.ALL, orphanRemoval = true)
 	private List<ComAddressDetails> addressDetails;
 
 	@OneToMany(mappedBy = "company", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -63,8 +64,8 @@ public class Company {
 	@OneToMany(mappedBy = "company", cascade = CascadeType.ALL, orphanRemoval = true)
 	private List<CompanyJointVenture> jointVentures;
 
-	@OneToOne(mappedBy = "company", cascade = CascadeType.ALL, orphanRemoval = true)
-	private CompanyProfile profile;
+	@OneToMany(mappedBy = "company", cascade = CascadeType.ALL, orphanRemoval = true)
+	private List<CompanyProfile> profile;
 
 	@OneToMany(mappedBy = "company", cascade = CascadeType.ALL, orphanRemoval = true)
 	private List<CompanyAdditionalInfo> additionalInfos;

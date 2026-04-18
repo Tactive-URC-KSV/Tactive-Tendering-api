@@ -33,6 +33,7 @@ public class BOQ {
 	@ManyToOne(cascade = CascadeType.DETACH)
 	@JoinColumn(name = "project_id")
 	private Projects project;
+	@JsonIgnore
 	@ManyToOne(cascade = CascadeType.DETACH)
 	@JoinColumn(name = "parent_boq_id")
 	private BOQ parentBOQ;

@@ -1,10 +1,13 @@
 package com.ksv.tactive.service.implmn;
 
+import com.ksv.tactive.dataloader.LocationMemoryEngine;
 import com.ksv.tactive.dto.*;
 import com.ksv.tactive.project.dao.CompanyDao;
 import com.ksv.tactive.project.entity.*;
 import com.ksv.tactive.service.CompanyService;
 import com.ksv.tactive.service.MasterService;
+import com.ksv.tactive.service.UserService;
+import com.ksv.tactive.user.entity.User;
 import com.ksv.tactive.util.*;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,74 +30,142 @@ public class CompanyServiceImpl implements CompanyService {
 	@Autowired
 	private MasterService masterService;
 
+	@Autowired
+	private UserService userService;
+
+	@Autowired
+	private LocationMemoryEngine locationMemoryEngine;
+
 	@Value("${file.company.upload.path}")
 	private String fileDir;
 
 	@Override
 	public void saveCompany(CompanySaveDTO dto, List<MultipartFile> files) {
-
+		boolean isEdit = dto.getCompanyId() != null && !dto.getCompanyId().isBlank();
 		Company company = buildCompany(dto);
 
-		company.setAddressDetails(buildAddress(company, dto));
-		company.setContacts(buildContacts(company, dto));
-		company.setTaxDetails(buildTaxes(company, dto));
-		company.setAdditionalInfos(buildAdditionalInfos(company, dto));
-		company.setLocalNames(buildLocalNames(company, dto));
-		company.setDirectors(buildDirectors(company, dto));
-		company.setJointVentures(buildJointVentures(company, dto));
-		company.setProfile(buildProfile(company, dto, files));
+		if (!"COMPANY".equalsIgnoreCase(dto.getComTypeId())) {
 
-		companyRepository.save(company);
+			company.getAddressDetails().clear();
+			company.getAddressDetails().addAll(buildAddress(company, dto));
+
+			company.getContacts().clear();
+			company.getContacts().addAll(buildContacts(company, dto));
+
+			company.getTaxDetails().clear();
+			company.getTaxDetails().addAll(buildTaxes(company, dto));
+
+			company.getAdditionalInfos().clear();
+			company.getAdditionalInfos().addAll(buildAdditionalInfos(company, dto));
+
+			company.getLocalNames().clear();
+			company.getLocalNames().addAll(buildLocalNames(company, dto));
+
+			company.getDirectors().clear();
+			company.getDirectors().addAll(buildDirectors(company, dto));
+
+			company.getJointVentures().clear();
+			company.getJointVentures().addAll(buildJointVentures(company, dto));
+
+			if (company.getProfile() == null || company.getProfile().isEmpty()) {
+				company.setProfile(buildProfile(company, dto, files));
+			} else {
+				CompanyProfile existingProfile = company.getProfile().get(0);
+				CompanyProfile newProfile = buildProfile(company, dto, files).get(0);
+
+				existingProfile.setAttachmentUrl(newProfile.getAttachmentUrl());
+				existingProfile.setDescription(newProfile.getDescription());
+				existingProfile.setOrderNo(newProfile.getOrderNo());
+				existingProfile.setRemarks(newProfile.getRemarks());
+			}
+		}
+
+		Company savedCompany = companyRepository.save(company);
+
+		if (!isEdit) {
+			createUser(savedCompany);
+		}
 	}
 
-	private Company buildCompany(CompanySaveDTO dto) {
+	private void createUser(Company savedCompany) {
+		List<CompanyContact> contacts = savedCompany.getContacts();
 
+		for (CompanyContact contact : contacts) {
+
+			User existingUser = userService.findByEmail(contact.getEmail());
+			if (existingUser != null) {
+				continue;
+			}
+			User user = new User();
+			user.setName(contact.getName());
+			user.setEmail(contact.getEmail());
+			user.setCompanyId(savedCompany.getId().toString());
+
+			userService.addUser(user);
+		}
+	}
+	private Company buildCompany(CompanySaveDTO dto) {
 		Company company = (dto.getCompanyId() != null && !dto.getCompanyId().isBlank())
 				? companyRepository.findById(UUID.fromString(dto.getCompanyId()))
 				.orElseThrow(() -> new RuntimeException("Company not found"))
 				: new Company();
-
 		company.setCompanyName(dto.getCompanyName());
 		company.setShortName(dto.getShortName());
-
-		company.setComType(isValid(dto.getComTypeId())
-				? CompanyType.valueOf(dto.getComTypeId().toUpperCase())
-				: null);
-		company.setCompanyNature(
-				isValid(dto.getComNatureId())
-						? CompanyNature.valueOf(dto.getComNatureId().toUpperCase())
-						: null
-		);
-		company.setCompanyLevel(isValid(dto.getComLevelId())
-			? CompanyLevel.valueOf(dto.getComLevelId().toUpperCase())
-			: null);
-		company.setBusinessNature(isValid(dto.getBusinessNatureId())
-				? masterService.getBusinessNatureById(dto.getBusinessNatureId())
-				: null);
-
-		company.setCompanyConstitution(isValid(dto.getCompanyConstitutionId())
-				? masterService.getCompanyConstitutionById(dto.getCompanyConstitutionId())
-				: null);
-
-		company.setCompanyStatus(isValid(dto.getStatusId())
-				? masterService.getCompanyStatusById(dto.getStatusId())
-				: null);
-
-		company.setCurrency(isValid(dto.getCurrencyId())
-				? masterService.getCurrencyById(dto.getCurrencyId())
-				: null);
-
-		company.setLanguage(isValid(dto.getLanguageId())
-				? masterService.getLanguageById(dto.getLanguageId())
-				: null);
-
-		company.setBank(dto.getBank());
-
+		company.setFinStartMonth(dto.getFinStartMonth());
+		if (isValid(dto.getComTypeId())) {
+			company.setComType(CompanyType.valueOf(dto.getComTypeId().toUpperCase()));
+		}
+		if ("COMPANY".equalsIgnoreCase(dto.getComTypeId())) {
+			if (isValid(dto.getComLevelId())) {
+				company.setCompanyLevel(
+						CompanyLevel.valueOf(dto.getComLevelId().toUpperCase())
+				);
+			}
+			if (isValid(dto.getParentCompanyId())) {
+				Company parent = companyRepository.findById(UUID.fromString(dto.getParentCompanyId()))
+						.orElseThrow(() -> new RuntimeException("Parent company not found"));
+				company.setParentCompany(parent);
+			}
+			return company;
+		}
+		if (isValid(dto.getComNatureId())) {
+			company.setCompanyNature(
+					CompanyNature.valueOf(dto.getComNatureId().toUpperCase())
+			);
+		}
+		if (isValid(dto.getComLevelId())) {
+			company.setCompanyLevel(
+					CompanyLevel.valueOf(dto.getComLevelId().toUpperCase())
+			);
+		}
+		if (isValid(dto.getBusinessNatureId())) {
+			company.setBusinessNature(
+					masterService.getBusinessNatureById(dto.getBusinessNatureId())
+			);
+		}
+		if (isValid(dto.getCompanyConstitutionId())) {
+			company.setCompanyConstitution(
+					masterService.getCompanyConstitutionById(dto.getCompanyConstitutionId())
+			);
+		}
+		if (isValid(dto.getCurrencyId())) {
+			company.setCurrency(
+					masterService.getCurrencyById(dto.getCurrencyId())
+			);
+		}
+		if (isValid(dto.getStatusId())) {
+			company.setCompanyStatus(
+					CompanyStatus.valueOf(dto.getStatusId().toUpperCase())
+			);
+		}
+		if (isValid(dto.getLanguageId())) {
+			company.setLanguage(
+					masterService.getLanguageById(dto.getLanguageId())
+			);
+		}
 		return company;
 	}
-
 	private List<ComAddressDetails> buildAddress(Company company, CompanySaveDTO dto) {
-
 		List<ComAddressDetails> addresses = new ArrayList<>();
 		if (dto.getAddress() == null) return addresses;
 		for (AddressDTO a : dto.getAddress()) {
@@ -105,13 +176,46 @@ public class CompanyServiceImpl implements CompanyService {
 			address.setEmail(a.getEmail());
 			address.setPhone(a.getPhone());
 			address.setWebsite(a.getWebsite());
-			address.setPrimary(a.isPrimary());
 			address.setFaxNo(a.getFaxNo());
-			address.setAddressType(
-					isValid(a.getAddressTypeId())
-							? masterService.findAddressTypeById(a.getAddressTypeId())
-							: null
-			);
+			address.setPrimaryAddress(a.isPrimary());
+			if (isValid(a.getCountryId())) {
+				Country country = locationMemoryEngine.findAllCountries().stream()
+						.filter(c -> c.getId().equals(a.getCountryId()))
+						.findFirst()
+						.orElse(null);
+				if (country != null) {
+					address.setCountry(country.getCountry());
+				}
+			}
+			if (isValid(a.getCountryId()) && isValid(a.getStateId())) {
+				States state = locationMemoryEngine
+						.findStatesByCountryId(a.getCountryId())
+						.stream()
+						.filter(s -> s.getId().equals(a.getStateId()))
+						.findFirst()
+						.orElse(null);
+
+				if (state != null) {
+					address.setState(state.getState());
+				}
+			}
+			if (isValid(a.getStateId()) && isValid(a.getCityId())) {
+				Cities city = locationMemoryEngine
+						.findCitiesByStateId(a.getStateId())
+						.stream()
+						.filter(c -> c.getId().equals(a.getCityId()))
+						.findFirst()
+						.orElse(null);
+
+				if (city != null) {
+					address.setCity(city.getCity());
+				}
+			}
+			if (isValid(a.getAddressTypeId())) {
+				address.setAddressType(
+						masterService.findAddressTypeById(a.getAddressTypeId())
+				);
+			}
 			address.setCompany(company);
 			addresses.add(address);
 		}
@@ -131,9 +235,8 @@ public class CompanyServiceImpl implements CompanyService {
 			contact.setName(c.getName());
 			contact.setPhoneNo(c.getPhoneNo());
 			contact.setEmail(c.getEmail());
-			contact.setPosition(c.getPosition());
+			contact.setDesignation(masterService.getDesignationById(c.getPosition()));
 			contact.setCompany(company);
-
 			contacts.add(contact);
 		}
 
@@ -147,17 +250,11 @@ public class CompanyServiceImpl implements CompanyService {
 		if (dto.getTaxDetails() == null) return taxes;
 
 		for (TaxDTO t : dto.getTaxDetails()) {
-
 			CompanyTax tax = new CompanyTax();
-
-			tax.setTaxType(isValid(t.getTaxTypeId())
-					? masterService.findTaxTypeById(t.getTaxTypeId())
-					: null);
-
+			tax.setTaxType(TaxType.valueOf(t.getTaxTypeId().toUpperCase()));
 			tax.setTerritoryTypeId(isValid(t.getTerritoryTypeId())
 					? TerritoryType.valueOf(t.getTerritoryTypeId().toUpperCase()).name()
 					: null);
-
 			tax.setTerritory(t.getTerritory());
 			tax.setTaxRegNo(t.getTaxRegNo());
 			tax.setTaxRegDate(t.getTaxRegDate());
@@ -169,7 +266,6 @@ public class CompanyServiceImpl implements CompanyService {
 			tax.setPinCode(t.getPinCode());
 			tax.setEmail(t.getEmail());
 			tax.setCompany(company);
-
 			taxes.add(tax);
 		}
 
@@ -267,19 +363,21 @@ public class CompanyServiceImpl implements CompanyService {
 		return ventures;
 	}
 
-	private CompanyProfile buildProfile(Company company, CompanySaveDTO dto, List<MultipartFile> files) {
+	private List<CompanyProfile> buildProfile(Company company, CompanySaveDTO dto, List<MultipartFile> files) {
 
+		List<CompanyProfile> profiles = new ArrayList<>();
 		if (dto.getProfile() == null) return null;
+		for (CompanyProfileDTO p : dto.getProfile()) {
+			CompanyProfile profile = new CompanyProfile();
+			profile.setCompany(company);
+			profile.setDescription(p.getDescription());
+			profile.setRemarks(p.getRemarks());
+			profile.setOrderNo(p.getOrderNo());
+			profile.setAttachmentUrl(saveDocuments(files));
+			profiles.add(profile);
+		}
 
-		CompanyProfile profile = new CompanyProfile();
-
-		profile.setOrderNo(dto.getProfile().getOrderNo());
-		profile.setDescription(dto.getProfile().getDescription());
-		profile.setRemarks(dto.getProfile().getRemarks());
-		profile.setAttachmentUrl(saveDocuments(files));
-		profile.setCompany(company);
-
-		return profile;
+		return profiles;
 	}
 
 	private boolean isValid(String value) {

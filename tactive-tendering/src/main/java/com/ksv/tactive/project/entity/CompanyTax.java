@@ -1,6 +1,7 @@
 package com.ksv.tactive.project.entity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.ksv.tactive.util.TaxType;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -17,8 +18,7 @@ public class CompanyTax {
 
     private String effectiveFrom;
     private String effectiveTo;
-    @ManyToOne
-    @JoinColumn(name = "tax_type")
+    @Enumerated(EnumType.STRING)
     private TaxType taxType;
     private String territoryTypeId;
     private String territory;

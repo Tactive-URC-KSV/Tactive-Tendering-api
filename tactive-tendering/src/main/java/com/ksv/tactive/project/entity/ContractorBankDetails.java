@@ -1,5 +1,6 @@
 package com.ksv.tactive.project.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -18,6 +19,7 @@ public class ContractorBankDetails {
 	private String bankName;
 	private String branch;
 	private String bankAddress;
+	@JsonIgnore
 	@ManyToOne
 	@JoinColumn(name = "contractor_id")
 	private Contractor contractor;

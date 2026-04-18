@@ -6,53 +6,61 @@ import java.util.UUID;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.ksv.tactive.util.QuantityType;
 import com.ksv.tactive.util.ResourceNature;
+import com.ksv.tactive.util.ResourceType;
 import jakarta.persistence.*;
 import lombok.Data;
-@Data
+
 @Entity
+@Data
 public class TenderEstimation {
+
 	@Id
 	@GeneratedValue(strategy = GenerationType.UUID)
-	@Column(length = 36)
 	private UUID id;
 	private String docNumber;
-	
-	@JsonBackReference
-	@ManyToMany
-	@JoinTable(
-		name = "boq_tender_estimation",
-		joinColumns = @JoinColumn(name = "tender_estimation_id"),
-		inverseJoinColumns = @JoinColumn(name = "boq_id")
-	)
-	private Set<BOQ> boq;
+	@ManyToOne
+	@JoinColumn(name = "boq_id")
+	private BOQ boq;
+	@Enumerated(EnumType.STRING)
+	private ResourceType resourceType;
+	@ManyToOne
+	private Resources resources;
+	@ManyToOne
+	private Uom uom;
+	@Enumerated(EnumType.STRING)
+	private ResourceNature resourceNature;
+	@Enumerated(EnumType.STRING)
+	private QuantityType quantityType;
+	private int refCode;
+	@ManyToOne
+	private Currency currency;
 	private double coEfficient;
 	private double wastePercentage;
+	private double calculatedQuantity;
+	private double wasteQuantity;
+	private double netQuantity;
 	private double rate;
 	private double additionalRate;
 	private double shippingPrice;
 	private double costUnitRate;
-	private boolean rateLock;
-	@ManyToOne
-	@JoinColumn(name = "resource_type")
-	private ResourceType resourceType;
-	@ManyToOne
-	@JoinColumn(name = "resource")
-	private Resources resources;
-	@ManyToOne
-	@JoinColumn(name = "uom")
-	private Uom uom;
-	@Enumerated(EnumType.STRING)
-	@Column(name = "nature")
-	private ResourceNature resourceNature;
-	@Enumerated(EnumType.STRING)
-	@Column(name = "quantity_type")
-	private QuantityType quantityType;
-	@ManyToOne
-	@JoinColumn(name = "currency")
-	private Currency currency;
 	private double exchangeRate;
+	private double totalCostCompanyCurrency;
+	private double resourceTotalCost;
+	private boolean rateLock;
 	@OneToMany(mappedBy = "tenderEstimation", cascade = CascadeType.ALL, orphanRemoval = true)
 	private List<TenderEstimationAttribute> estimationAttributes = new ArrayList<>();
+	@ManyToOne
+	@JoinColumn(name = "parent_id")
+	private TenderEstimation parent;
+	@ManyToOne
+	@JoinColumn(name = "project_id")
+	private Projects project;
+	@OneToMany(mappedBy = "tenderEstimation", cascade = CascadeType.ALL, orphanRemoval = true)
+	private List<TenderFormulaElement> formulaElements = new ArrayList<>();
+	@JsonIgnore
+	@OneToMany(mappedBy = "tenderEstimation", cascade = CascadeType.ALL, orphanRemoval = true)
+	private List<InternalBoqItem> internalBoqItems = new ArrayList<>();
 }

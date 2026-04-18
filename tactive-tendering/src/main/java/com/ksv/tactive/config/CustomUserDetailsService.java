@@ -42,7 +42,7 @@ public class CustomUserDetailsService implements UserDetailsService {
 		ContractorFormInvite invite = inviteRepository.findByUsername(username).orElse(null);
 		if (invite != null && invite.getContractorStatus() != ContractorStatus.VERIFIED) {
 			User inviteUser = new User();
-			inviteUser.setId(invite.getId().toString());
+			inviteUser.setId(invite.getId());
 			inviteUser.setEmail(invite.getEmail());
 			inviteUser.setName(invite.getName());
 			inviteUser.setRole("CONTRACTOR");
@@ -61,7 +61,7 @@ public class CustomUserDetailsService implements UserDetailsService {
 			}
 
 			User tenderUser = new User();
-			tenderUser.setId(tenderInvite.getId().toString());
+			tenderUser.setId(tenderInvite.getId());
 			tenderUser.setUsername(tenderInvite.getTempToken());
 			tenderUser.setRole("CONTRACTOR");
 			tenderUser.setPassword("");

@@ -26,7 +26,7 @@ public class CompanyProfile {
 
     private List<String> attachmentUrl;
     @JsonBackReference
-    @OneToOne
+    @ManyToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "company_id", nullable = false, unique = true)
     private Company company;
 }

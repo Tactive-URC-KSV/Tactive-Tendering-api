@@ -14,8 +14,9 @@ public class CompanyContact {
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(length = 36)
     private UUID id;
-
-    private String position;
+    @ManyToOne
+    @JoinColumn(name = "designation_id")
+    private Designation designation;
     private String name;
     private String phoneNo;
     private String email;

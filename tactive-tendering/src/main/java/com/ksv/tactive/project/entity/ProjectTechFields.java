@@ -1,5 +1,6 @@
 package com.ksv.tactive.project.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -13,11 +14,12 @@ public class ProjectTechFields {
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(length =36)
     private UUID id;
-    @ManyToOne(cascade = CascadeType.ALL)
+    @JsonIgnore
+    @ManyToOne
     @JoinColumn(name = "project_id")
     private Projects project;
-    @ManyToOne(cascade = CascadeType.ALL)
+    @ManyToOne
     @JoinColumn(name = "tech_field_id")
-    private TechFields techField;
+    private SectorFields techField;
     private String value;
 }

@@ -6,6 +6,8 @@ import java.util.*;
 import com.ksv.tactive.util.ContractorStatus;
 import jakarta.persistence.*;
 import lombok.Data;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 @Data
 @Entity
@@ -18,7 +20,10 @@ public class Contractor {
 	private String entityCode;
 	private String entityName;
 	private Date effectiveDate;
-	private List<String> attachmentUrls;
+	@ElementCollection
+	@CollectionTable(name = "contractor_attachments", joinColumns = @JoinColumn(name = "contractor_id"))
+	@Column(name = "attachment_url")
+	private List<String> attachmentUrls = new ArrayList<>();
 	@ManyToOne
 	@JoinColumn(name = "con_type_id")
 	private ContractorType contractorType;
@@ -38,4 +43,17 @@ public class Contractor {
 	private ContractorStatus status;
 	@OneToMany(mappedBy = "contractor", cascade = CascadeType.ALL, orphanRemoval = true)
 	private List<ContractorContacts> contractorContacts = new ArrayList<>();
+	@OneToMany(mappedBy = "contractor", cascade = CascadeType.ALL, orphanRemoval = true)
+	private List<ContractorAddress> contractorAddresses = new ArrayList<>();
+	@OneToMany(mappedBy = "contractor", cascade = CascadeType.ALL, orphanRemoval = true)
+	private List<ContractorTaxDetails> contractorTaxDetails = new ArrayList<>();
+	@OneToMany(mappedBy = "contractor", cascade = CascadeType.ALL, orphanRemoval = true)
+	private List<ContractorBankDetails> contractorBankDetails = new ArrayList<>();
+	@OneToMany(mappedBy = "contractor", cascade = CascadeType.ALL, orphanRemoval = true)
+	private List<ContractorAddInfo> contractorAddInfos = new ArrayList<>();
+	private String inviteId;
+	@CreationTimestamp
+	private Date createdAt;
+	@UpdateTimestamp
+	private Date updatedAt;
 }
