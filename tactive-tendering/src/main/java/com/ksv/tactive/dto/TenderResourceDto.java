@@ -10,6 +10,7 @@ import java.util.List;
 public class TenderResourceDto {
 	private String id;
 	private String docNumber;
+	private int refCode;
 	private double coEfficient;
 	private double calculatedQuantity;
 	private double wastePercentage;
@@ -31,5 +32,7 @@ public class TenderResourceDto {
 	private String resourceId;
 	private String boqId;
 	private String projectId;
+	private String parentId;
 	private List<AttributeSelectionDto> attributes;
+	private List<FormulaElementDto> formula;
 }

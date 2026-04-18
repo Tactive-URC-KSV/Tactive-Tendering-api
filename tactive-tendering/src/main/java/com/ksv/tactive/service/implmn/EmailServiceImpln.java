@@ -87,7 +87,7 @@ public class EmailServiceImpln implements EmailService {
     public String sendquoteMail(List<Contractor> contractors, Tender tender) {
         Set<BOQDto> boqDtos = tender.getBoq().stream().map(b -> {
             BOQDto dto = new BOQDto();
-            dto.setBoqId(b.getId());
+            dto.setBoqId(b.getId().toString());
             dto.setBoqCode(b.getBoqCode());
             dto.setBoqName(b.getBoqName());
             dto.setQuantity(b.getQuantity());

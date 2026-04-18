@@ -1,4 +1,5 @@
 package com.ksv.tactive.controller;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Locale;
 
@@ -7,6 +8,8 @@ import com.ksv.tactive.project.entity.Language;
 import com.ksv.tactive.project.entity.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
+import org.springframework.data.domain.Page;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -55,6 +58,10 @@ public class MasterDataController {
 	public ResponseEntity<String> addUOM(@RequestBody Uom uom){
 		return ResponseEntity.status(HttpStatus.OK).body(masterService.addUom(uom));
 	}
+	@PostMapping("/uom/conversion/add")
+	public ResponseEntity<String> addConversion(@RequestBody UomConversionDto uomConversionDto){
+		return ResponseEntity.status(HttpStatus.OK).body(masterService.addUomConversion(uomConversionDto));
+	}
 	@GetMapping("/uoms")
     public ResponseEntity<?> getAllUOMs() {
         List<Uom> uoms = masterService.getAllUOMs();
@@ -63,6 +70,10 @@ public class MasterDataController {
         }
         return ResponseEntity.status(HttpStatus.OK).body(uoms);
     }
+	@GetMapping("/uom/conversion/{baseUomId}")
+	public ResponseEntity<?> getAllConversion(@PathVariable String baseUomId) {
+		return  ResponseEntity.status(HttpStatus.OK).body(masterService.getUomConversionByBaseUom(baseUomId));
+	}
 	@PutMapping("/uom/edit")
 	public ResponseEntity<?> editUom(@RequestBody Uom uom){
 		masterService.editUom(uom);
@@ -76,6 +87,22 @@ public class MasterDataController {
         }
         return ResponseEntity.status(HttpStatus.OK).body(sectors);
     }
+	@GetMapping("/fieldType")
+	public ResponseEntity<?> getAllFieldTypes() {
+		return ResponseEntity.status(HttpStatus.OK).body(masterService.getAllFieldType());
+	}
+	@GetMapping("/fieldSection")
+	public ResponseEntity<?> getAllFieldSection() {
+		return ResponseEntity.status(HttpStatus.OK).body(masterService.getAllFieldSection());
+	}
+	@PostMapping("/sector/fields")
+	public ResponseEntity<?> addSectorFields(@RequestBody SectorFieldsDto sectorFieldsDto){
+		return ResponseEntity.status(HttpStatus.OK).body(masterService.addSectorFields(sectorFieldsDto));
+	}
+	@GetMapping("/sector/fields/{sectorId}")
+	public ResponseEntity<?> getFieldsBySectorId(@PathVariable String sectorId){
+		return ResponseEntity.status(HttpStatus.OK).body(masterService.getFieldsBySector(sectorId));
+	}
     @GetMapping("/scopes")
     public ResponseEntity<?> getAllScopes() {
         List<ScopeOfPackage> scopes = masterService.getAllScopes();
@@ -96,23 +123,6 @@ public class MasterDataController {
     public ResponseEntity<String> addProjectStatus(@RequestBody ProjectStatus projectStatus) {
 		return ResponseEntity.status(HttpStatus.OK).body(masterService.addProjectStatus(projectStatus));
     }
-    @PostMapping("/approvalDocuments/add")
-    public ResponseEntity<String> addListOfApprovals(@RequestBody ListOfApprovals listOfApprovals) {
-		return ResponseEntity.status(HttpStatus.OK).body(masterService.addListOfApprovals(listOfApprovals));
-    }
-	@PutMapping("/approvalDocuments/edit")
-	public ResponseEntity<?> editListOfApprovals(@RequestBody ListOfApprovals listOfApprovals){
-		masterService.editListOfApprovals(listOfApprovals);
-		return ResponseEntity.status(HttpStatus.OK).body(messageSource.getMessage("data.updated", null, Locale.ENGLISH));
-	}
-    @GetMapping("/listOfApprovals")
-	public ResponseEntity<?> getAllListOfApprovals(){
-    	List<ListOfApprovals> approvals = masterService.getAllListOfApprovals();
-        if(approvals.isEmpty()) {
-        	return ResponseEntity.status(HttpStatus.NO_CONTENT).body(messageSource.getMessage("data.not.found", null, Locale.ENGLISH));
-        }
-        return ResponseEntity.status(HttpStatus.OK).body(approvals);
-	}
     @PostMapping("/costCodeType/add")
     public ResponseEntity<?> addCostCodeType(@RequestBody CostCodeType costCodeType) {
 		return ResponseEntity.status(HttpStatus.OK).body(masterService.addCostCodeType(costCodeType));
@@ -132,29 +142,33 @@ public class MasterDataController {
 	}
     @GetMapping("/resourceType")
     public ResponseEntity<?> getAllResourceTypes() {
-		List<ResourceType> resourceTypes = masterService.getAllResourceTypes();
-		if(resourceTypes.isEmpty()) {
-			return ResponseEntity.status(HttpStatus.NO_CONTENT).body(messageSource.getMessage("data.not.found", null, Locale.ENGLISH));
-		}
-		return ResponseEntity.status(HttpStatus.OK).body(resourceTypes);
+		return ResponseEntity.status(HttpStatus.OK).body(masterService.getAllResourceTypes());
     }
-	@PostMapping("/resourceType")
-	public ResponseEntity<?> addResourceTypes(@RequestBody ResourceType resourceType ) {
-		return ResponseEntity.status(HttpStatus.OK).body(masterService.addResourceType(resourceType));
-	}
-	@PutMapping("/resourceType/edit")
-	public ResponseEntity<?> editResourceType(@RequestBody ResourceType resourceType){
-		masterService.editResourceType(resourceType);
-		return ResponseEntity.status(HttpStatus.OK).body(messageSource.getMessage("data.updated", null, Locale.ENGLISH));
-	}
 	@GetMapping("/resources")
-	public ResponseEntity<?> getAllResources() {
-		List<Resources> resources = masterService.getAllResources();
-		if (resources.isEmpty()) {
+	public ResponseEntity<?> getAllResources(
+			@RequestParam(defaultValue = "0") int page,
+			@RequestParam(defaultValue = "30") int size,
+			@RequestParam(required = false) String resourceType) {
+		Page<ResourceDto> resourcePage = masterService.getAllResources(page, size, resourceType);
+		if (resourcePage.isEmpty()) {
 			return ResponseEntity.status(HttpStatus.NO_CONTENT)
 					.body(messageSource.getMessage("data.not.found", null, Locale.ENGLISH));
 		}
-		return ResponseEntity.status(HttpStatus.OK).body(resources);
+		return ResponseEntity.ok(resourcePage);
+	}
+	@GetMapping("/resources/search")
+	public ResponseEntity<?> searchResources(
+			@RequestParam(defaultValue = "0") int page,
+			@RequestParam(defaultValue = "30") int size,
+			@RequestParam(required = false) String search,
+			@RequestParam(required = false) String resourceType) {
+		Page<ResourceDto> resourcePage =
+				masterService.searchResources(page, size, search, resourceType);
+		if (resourcePage.isEmpty()) {
+			return ResponseEntity.status(HttpStatus.NO_CONTENT)
+					.body(messageSource.getMessage("data.not.found", null, Locale.ENGLISH));
+		}
+		return ResponseEntity.ok(resourcePage);
 	}
 	@PostMapping("resource/add")
 	public ResponseEntity<?> addResource(@RequestBody ResourceDto resourceDto) {
@@ -172,7 +186,7 @@ public class MasterDataController {
 
 	@GetMapping("/quantityType")
 	public ResponseEntity<?> getAllQuantityTypes() {
-		List<QuantityTypeDto> quantityTypes = masterService.getAllQuantityTypes();
+		List<EnumDto> quantityTypes = masterService.getAllQuantityTypes();
 		if (quantityTypes.isEmpty()) {
 			return ResponseEntity.status(HttpStatus.NO_CONTENT)
 					.body(messageSource.getMessage("data.not.found", null, Locale.ENGLISH));
@@ -182,24 +196,12 @@ public class MasterDataController {
 
 	@GetMapping("/resourceNature")
 	public ResponseEntity<?> getAllResourceNatures() {
-		List<ResourceNature> resourceNatures = masterService.getAllResourceNatures();
+		List<EnumDto> resourceNatures = masterService.getAllResourceNatures();
 		if (resourceNatures.isEmpty()) {
 			return ResponseEntity.status(HttpStatus.NO_CONTENT)
 					.body(messageSource.getMessage("data.not.found", null, Locale.ENGLISH));
 		}
 		return ResponseEntity.status(HttpStatus.OK).body(resourceNatures);
-	}
-	@GetMapping("/resources/{resourceTypeId}")
-	public ResponseEntity<?> getAllResources(@PathVariable String resourceTypeId) {
-		List<Resources> resources = masterService.getAllResources();
-		if (resources.isEmpty()) {
-			return ResponseEntity.status(HttpStatus.NO_CONTENT)
-					.body(messageSource.getMessage("data.not.found", null, Locale.ENGLISH));
-		}
-		List<Resources> filteredResources = resources.stream()
-				.filter(res -> res.getResourceType().getId().equals(resourceTypeId))
-				.toList();
-		return ResponseEntity.status(HttpStatus.OK).body(filteredResources);
 	}
 	@GetMapping("/project/currency")
 	public ResponseEntity<?> getAllCurrencies(){
@@ -208,16 +210,6 @@ public class MasterDataController {
 			return ResponseEntity.status(HttpStatus.NO_CONTENT).body(messageSource.getMessage("data.not.found", null, Locale.ENGLISH));
 		}
 		return ResponseEntity.status(HttpStatus.OK).body(currencies);
-	}
-	@PostMapping("/resourceNature/add")
-	public ResponseEntity<String> addResourceNature(@RequestBody ResourceNature resourceNature){
-		return ResponseEntity.status(HttpStatus.OK).body(masterService.addResourceNature(resourceNature));
-	}
-	@PutMapping("/resourceNature/edit")
-	public ResponseEntity<?> editResourceNature(@RequestBody ResourceNature resourceNature){
-		masterService.editResourceNature(resourceNature);
-		return ResponseEntity.status(HttpStatus.OK).body(messageSource.getMessage("data.updated", null, Locale.ENGLISH));
-
 	}
 	@GetMapping("/countries")
 	public ResponseEntity<?> getAllCountries(){
@@ -251,23 +243,13 @@ public class MasterDataController {
 		}
 		return ResponseEntity.status(HttpStatus.CONFLICT).body(messageSource.getMessage("addressType.edit.failure", null, Locale.ENGLISH));
 	}
-	@PostMapping("/taxType/add")
-	public ResponseEntity<?> addTaxType(@RequestBody TaxType taxType){
-		masterService.addTaxType(taxType);
-		return ResponseEntity.status(HttpStatus.OK).body(messageSource.getMessage("data.save.success",null,Locale.ENGLISH));
-	}
-	@PutMapping("/taxType/edit")
-	public ResponseEntity<?> editTaxType(@RequestBody TaxType taxType){
-		masterService.editTaxType(taxType);
-		return ResponseEntity.status(HttpStatus.OK).body(messageSource.getMessage("data.updated",null,Locale.ENGLISH));
+	@GetMapping("/territoryType")
+	public ResponseEntity<?> getAllTerritoryType(){
+		return ResponseEntity.status(HttpStatus.OK).body(masterService.getAllTerritoryType());
 	}
 	@GetMapping("/taxType")
 	public ResponseEntity<?> getAllTaxType(){
 		return ResponseEntity.status(HttpStatus.OK).body(masterService.getAllTaxType());
-	}
-	@GetMapping("/territoryType")
-	public ResponseEntity<?> getAllTerritoryType(){
-		return ResponseEntity.status(HttpStatus.OK).body(masterService.getAllTerritoryType());
 	}
 	@PostMapping("/identityType/add")
 	public ResponseEntity<?> addIdentityType(@RequestBody IdentityType identityType){
@@ -293,39 +275,36 @@ public class MasterDataController {
 		masterService.editCurrency(currency);
 		return ResponseEntity.status(HttpStatus.OK).body(messageSource.getMessage("data.updated",null,Locale.ENGLISH));
 	}
+	@PostMapping("/currency-conversion")
+	public ResponseEntity<String> addCurrencyConversion(
+			@RequestParam String baseCurrencyId,
+			@RequestParam String conversionCurrencyId,
+			@RequestParam double rate,
+			@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate effectiveDate) {
+		return ResponseEntity.ok(
+				masterService.addCurrencyConversion(
+						baseCurrencyId,
+						conversionCurrencyId,
+						rate,
+						effectiveDate
+				)
+		);
+	}
+	@GetMapping("/currency-conversion/base")
+	public ResponseEntity<List<CurrencyConversion>> getLatestByBaseCurrency(
+			@RequestParam String baseCurrencyId) {
+		return ResponseEntity.ok(
+				masterService.getLatestByBaseCurrency(baseCurrencyId)
+		);
+	}
 	@GetMapping("/companyType")
 	public ResponseEntity<?> getAllCompanyType(){
 		return ResponseEntity.status(HttpStatus.OK).body(masterService.getAllCompanyTypes());
 	}
-	@PostMapping("/companyLevel/add")
-	public ResponseEntity<?> addCompanyLevel(@RequestBody CompanyLevel companyLevel) {
-		masterService.addCompanyLevel(companyLevel);
-		return ResponseEntity.status(HttpStatus.OK)
-				.body(messageSource.getMessage("data.save.success", null, Locale.ENGLISH));
-	}
-	@PutMapping("/companyLevel/edit")
-	public ResponseEntity<?> editCompanyLevel(@RequestBody CompanyLevel companyLevel) {
-		masterService.editCompanyLevel(companyLevel);
-		return ResponseEntity.status(HttpStatus.OK)
-				.body(messageSource.getMessage("data.updated", null, Locale.ENGLISH));
-	}
-
 	@GetMapping("/companyLevel")
 	public ResponseEntity<?> getAllCompanyLevel() {
 		return ResponseEntity.status(HttpStatus.OK)
 				.body(masterService.getAllCompanyLevel());
-	}
-	@PostMapping("/companyStatus/add")
-	public ResponseEntity<?> addCompanyStatus(@RequestBody CompanyStatus companyStatus) {
-		masterService.addCompanyStatus(companyStatus);
-		return ResponseEntity.status(HttpStatus.OK)
-				.body(messageSource.getMessage("data.save.success", null, Locale.ENGLISH));
-	}
-	@PutMapping("/companyStatus/edit")
-	public ResponseEntity<?> editCompanyStatus(@RequestBody CompanyStatus companyStatus) {
-		masterService.editCompanyStatus(companyStatus);
-		return ResponseEntity.status(HttpStatus.OK)
-				.body(messageSource.getMessage("data.updated", null, Locale.ENGLISH));
 	}
 	@GetMapping("/companyStatus")
 	public ResponseEntity<?> getAllCompanyStatus() {
@@ -349,18 +328,6 @@ public class MasterDataController {
 		return ResponseEntity.status(HttpStatus.OK)
 				.body(masterService.getAllCompanyConstitution());
 	}
-	@PostMapping("/companyNature/add")
-	public ResponseEntity<?> addCompanyNature(@RequestBody CompanyNature companyNature) {
-		masterService.addCompanyNature(companyNature);
-		return ResponseEntity.status(HttpStatus.OK)
-				.body(messageSource.getMessage("data.save.success", null, Locale.ENGLISH));
-	}
-	@PutMapping("/companyNature/edit")
-	public ResponseEntity<?> editCompanyNature(@RequestBody CompanyNature companyNature) {
-		masterService.editCompanyNature(companyNature);
-		return ResponseEntity.status(HttpStatus.OK)
-				.body(messageSource.getMessage("data.updated", null, Locale.ENGLISH));
-	}
 	@GetMapping("/companyNature")
 	public ResponseEntity<?> getAllCompanyNature() {
 		return ResponseEntity.status(HttpStatus.OK)
@@ -382,6 +349,14 @@ public class MasterDataController {
 	public ResponseEntity<?> getAllLanguage() {
 		return ResponseEntity.status(HttpStatus.OK)
 				.body(masterService.getAllLanguage());
+	}
+	@PostMapping("/designation")
+	public ResponseEntity<?> addDesignation(@RequestBody Designation designation) {
+		return ResponseEntity.status(HttpStatus.OK).body(masterService.addDesignation(designation));
+	}
+	@GetMapping("/designation")
+	public ResponseEntity<?> getAllDesignation() {
+		return ResponseEntity.status(HttpStatus.OK).body(masterService.getDesignation());
 	}
 	@PostMapping("/businessNature/add")
 	public ResponseEntity<?> addBusinessNature(@RequestBody BusinessNature businessNature) {
@@ -418,13 +393,28 @@ public class MasterDataController {
 	public ResponseEntity<?> addAttributeGroup(@RequestBody AttributeGroup attributeGroup,@RequestParam List<String> attributeIds) {
 		return ResponseEntity.status(HttpStatus.OK).body(masterService.addAttributeGroup(attributeGroup,attributeIds));
 	}
-	@GetMapping("/attribute")
-	public ResponseEntity<?> getAllAttribute() {
-		return ResponseEntity.status(HttpStatus.OK).body(masterService.getAllAttributes());
+	@GetMapping("/attribute/by-group/{groupId}")
+	public ResponseEntity<?> getAttributesByGroup(@PathVariable String groupId) {
+		return ResponseEntity.ok(masterService.getAttributesByGroup(groupId));
 	}
 	@GetMapping("/attributeGroup")
-	public ResponseEntity<?> getAllAttributeGroup() {
-		return ResponseEntity.status(HttpStatus.OK).body(masterService.getAllAttributeGroup());
+	public ResponseEntity<?> getAttributeGroups(
+			@RequestParam(defaultValue = "0") int page,
+			@RequestParam(defaultValue = "30") int size) {
+		return ResponseEntity.ok(masterService.getAttributeGroups(page, size));
+	}
+	@GetMapping("/attributeGroup/search")
+	public ResponseEntity<?> searchAttributeGroups(
+			@RequestParam(defaultValue = "0") int page,
+			@RequestParam(defaultValue = "30") int size,
+			@RequestParam String search) {
+		Page<AttributeGroupDTO> groupPage =
+				masterService.searchAttributeGroups(page, size, search);
+		if (groupPage.isEmpty()) {
+			return ResponseEntity.status(HttpStatus.NO_CONTENT)
+					.body("No data found");
+		}
+		return ResponseEntity.ok(groupPage);
 	}
 	@PostMapping("/addResourceAttribute")
 	public ResponseEntity<String> addResourceAttribute(@RequestBody ResourceAttributeDto resourceAttributeDto) {
@@ -432,11 +422,7 @@ public class MasterDataController {
 		return ResponseEntity.ok(response);
 	}
 	@GetMapping("/get-by-resource/{resourceId}")
-	public ResponseEntity<List<ResourceAttribute>> getByResourceId(@PathVariable String resourceId) {
+	public ResponseEntity<List<ResourceAttributeGroup>> getByResourceId(@PathVariable String resourceId) {
 		return ResponseEntity.ok(masterService.getByResourceId(resourceId));
-	}
-	@GetMapping("/get-by-group/{attributeGroupId}")
-	public ResponseEntity<List<Attribute>> getAttributesByGroup(@PathVariable String attributeGroupId) {
-		return ResponseEntity.ok(masterService.getAttributesByGroupId(attributeGroupId));
 	}
 }

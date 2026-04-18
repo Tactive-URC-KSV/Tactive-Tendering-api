@@ -1,17 +1,18 @@
 package com.ksv.tactive.service.implmn;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.sql.Date;
-import java.sql.SQLIntegrityConstraintViolationException;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import com.ksv.tactive.dataloader.LocationMemoryEngine;
 import com.ksv.tactive.dto.*;
 import com.ksv.tactive.exception.DuplicateEntryException;
 import com.ksv.tactive.project.dao.*;
@@ -19,23 +20,24 @@ import com.ksv.tactive.project.entity.*;
 import com.ksv.tactive.project.entity.Currency;
 import com.ksv.tactive.service.*;
 import com.ksv.tactive.user.entity.User;
-import com.ksv.tactive.util.OfferStatus;
-import com.ksv.tactive.util.OfferSubmissionMode;
-import com.ksv.tactive.util.QuantityType;
-import com.ksv.tactive.util.TenderStatus;
+import com.ksv.tactive.util.*;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.itextpdf.text.DocumentException;
 import com.ksv.tactive.exception.DataNotFoundException;
-import com.ksv.tactive.exception.DuplicateProjectCodeException;
 import com.ksv.tactive.exception.FileNotSaveException;
 import com.ksv.tactive.fileservice.ExcelFileService;
 import com.ksv.tactive.fileservice.PdfFileService;
@@ -87,8 +89,6 @@ public class ProjectServiceImpl implements ProjectService {
 	@Autowired
 	private TenderEstimationDao tenderEstDao;
 	@Autowired
-	private TenderEstCostDao costDetailsDao;
-	@Autowired
 	private TenderDao tenderDao;
 	@Autowired
 	private TenderAttachmentDao tenderAttachmentDao;
@@ -108,96 +108,231 @@ public class ProjectServiceImpl implements ProjectService {
 	private AttributeGroupDao attributeGroupDao;
 	@Autowired
 	private AttributeDao attributeDao;
+	@Autowired
+	private GlobalValueDao globalValueDao;
+	@Autowired
+	private LocationMemoryEngine locationMemoryEngine;
+	@Autowired
+	private InternalBoqDao internalBoqDao;
+	@Autowired
+	private InternalBoqItemDao internalBoqItemDao;
+
+	private UUID convertToUUID(String value) {
+		if (value == null || value.trim().isEmpty()) {
+			return null;
+		}
+		try {
+			return UUID.fromString(value);
+		} catch (IllegalArgumentException e) {
+			throw new RuntimeException("Invalid UUID format: " + value);
+		}
+	}
+
 	@Override
 	public List<ProjectInfoDto> getAllProjects() {
-		List<Projects> projects = projectDao.findAll();
-		List<ProjectInfoDto> filteredProjects = new ArrayList<>();
-		String companyId = userService.findLoggedInUser().getCompanyId();
-		if (projects.isEmpty()) {
-			throw new DataNotFoundException(messageSource.getMessage("project.not.found", null, Locale.ENGLISH));
+		User user = userService.findLoggedInUser();
+		List<Projects> projects;
+		if ("ADMIN".equalsIgnoreCase(user.getRole())) {
+			projects = projectDao.findByArchiveFalse();
 		} else {
-			for (Projects project : projects) {
-				if (project != null && !project.isArchive()) {
-					ProjectInfoDto projectInfo = new ProjectInfoDto();
-					projectInfo.setProjectId(project.getId());
-					projectInfo.setProjectName(project.getProjectName());
-					projectInfo.setProjectCode(project.getProjectCode());
-					projectInfo.setStartDate(project.getStartDate());
-					projectInfo.setEndDate(project.getEndDate());	
-					projectInfo.setEstimatedValue(project.getEstimatedValue());
-					projectInfo.setCreatedAt(project.getCreatedAt());
-					projectInfo.setArchieve(project.isArchive());
-					projectInfo.setStatus(project.getProjectStatus().getStatus());
-					projectInfo.setSectorName(project.getSector() != null ? project.getSector().getSectorName() : null);
-					if(project.getCompanyId()!=null && project.getCompanyId().equals(companyId)){
-						filteredProjects.add(projectInfo);
-					}
-					else if(project.getCompanyId() == null) {
-						filteredProjects.add(projectInfo);
-					}
-				}
-			}
+			projects = projectDao.findByCompanyIdAndArchiveFalse(user.getCompanyId());
 		}
-		return filteredProjects;
+		return projects.stream().map(project -> {
+			ProjectInfoDto dto = new ProjectInfoDto();
+			dto.setProjectId(project.getId().toString());
+			dto.setProjectName(project.getProjectName());
+			dto.setProjectCode(project.getProjectCode());
+			dto.setStartDate(project.getStartDate());
+			dto.setEndDate(project.getEndDate());
+			dto.setCreatedAt(project.getCreatedAt());
+			dto.setArchieve(project.isArchive());
+			BigDecimal total = project.getTotalEstimatedValue();
+			dto.setTotalEstimatedValue(
+					total != null ? total.doubleValue() : 0.0
+			);
+			dto.setRegionName(
+					project.getRegion() != null ? project.getRegion().getRegionName() : null
+			);
+			dto.setSectorName(
+					project.getSector() != null ? project.getSector().getSectorName() : null
+			);
+			dto.setStatus(
+					project.getProjectStatus() != null ? project.getProjectStatus().getStatus() : null
+			);
+			dto.setCompanyId(project.getCompanyId());
+			dto.setNeedFeasibility(project.isNeedFeasibility());
+			return dto;
+		}).collect(Collectors.toList());
 	}
 	@Override
 	public Projects findByProjectId(String projectId) {
-        return projectDao.findById(projectId).orElse(null);
+        return projectDao.findById(convertToUUID(projectId)).orElse(null);
 	}
 	@Override
-	public Projects saveProject(ProjectInputDTO projectInputDTO, HttpServletRequest request)
-			throws SQLIntegrityConstraintViolationException {
-		Projects project = projectInputDTO.getProject();
-		if (projectDao.findByProjectCode(project.getProjectCode()) != null) {
-			throw new DuplicateProjectCodeException(
-					messageSource.getMessage("project.code.duplicate", null, Locale.ENGLISH));
+	public List<ProjectInfoDto> getAllProjectsByCompanyId(String companyId) {
+		if (companyId == null || companyId.isBlank()) {
+			throw new DataNotFoundException("CompanyId is required");
 		}
-		project.setId(UUID.randomUUID().toString());
+
+		List<Projects> projects = projectDao.findByCompanyIdAndArchiveFalse(companyId);
+
+		if (projects == null || projects.isEmpty()) {
+			throw new DataNotFoundException(
+					messageSource.getMessage("project.not.found", null, Locale.ENGLISH));
+		}
+
+		return projects.stream().map(project -> {
+			ProjectInfoDto dto = new ProjectInfoDto();
+			dto.setProjectId(project.getId().toString());
+			dto.setProjectName(project.getProjectName());
+			dto.setProjectCode(project.getProjectCode());
+			dto.setStartDate(project.getStartDate());
+			dto.setEndDate(project.getEndDate());
+			dto.setCreatedAt(project.getCreatedAt());
+			dto.setArchieve(project.isArchive());
+			dto.setRegionName(
+					project.getRegion() != null ? project.getRegion().getRegionName() : null
+			);
+			dto.setSectorName(
+					project.getSector() != null ? project.getSector().getSectorName() : null
+			);
+			dto.setStatus(
+					project.getProjectStatus() != null ? project.getProjectStatus().getStatus() : null
+			);
+			dto.setCompanyId(project.getCompanyId());
+			return dto;
+		}).collect(Collectors.toList());
+	}
+
+	@Override
+	public Projects saveProject(ProjectInputDTO dto, HttpServletRequest request) {
+		if (dto.getProjectName() == null || dto.getProjectName().isBlank() ||
+				dto.getShortName() == null || dto.getShortName().isBlank()) {
+			throw new DataNotFoundException(
+					messageSource.getMessage("project.name.not.found", null, Locale.ENGLISH));
+		}
+
+		if (dto.getCompanyId() == null || dto.getCompanyId().isBlank()) {
+			throw new DataNotFoundException("Company is required");
+		}
+
+		Projects project = new Projects();
+		project.setProjectName(dto.getProjectName().trim());
+		project.setShortName(dto.getShortName().trim());
 		project.setProjectCode(generateProjectCode());
-		if (project.getProjectName() == null || project.getShortName() == null) {
-			throw new DataNotFoundException(messageSource.getMessage("project.name.not.found", null, Locale.ENGLISH));
+		project.setNeedFeasibility(dto.isNeedFeasibility());
+		project.setCompanyId(dto.getCompanyId());
+		if (dto.getStartDate() != null && !dto.getStartDate().isBlank()) {
+			project.setStartDate(Date.valueOf(dto.getStartDate()));
 		}
-		project.setEstimatedValue(project.getBuildingArea() * project.getRatePerUnit());
-		if (!projectInputDTO.getRegionId().isEmpty()) {
-			Region region = masterService.findRegionById(projectInputDTO.getRegionId());
-			if(region != null) {
-				project.setRegion(region);
-			}
+
+		if (dto.getEndDate() != null && !dto.getEndDate().isBlank()) {
+			project.setEndDate(Date.valueOf(dto.getEndDate()));
 		}
-		if (!projectInputDTO.getSectorId().isEmpty()) {
-			Sector sector = masterService.findSectorById(projectInputDTO.getSectorId());
-			if(sector != null) {
-				project.setSector(sector);
-			}
+
+		if (dto.getRegionId() != null && !dto.getRegionId().isBlank()) {
+			project.setRegion(masterService.findRegionById(dto.getRegionId()));
 		}
-		if (!projectInputDTO.getUomId().isEmpty()) {
-			Uom uom = masterService.findUomById(projectInputDTO.getUomId());
-			if(uom != null) {
-				project.setUom(uom);
-			}
+
+		if (dto.getSectorId() != null && !dto.getSectorId().isBlank()) {
+			project.setSector(masterService.findSectorById(dto.getSectorId()));
 		}
-		if (!projectInputDTO.getScopeOfPackageIds().isEmpty()) {
-			Set<ScopeOfPackage> scopePackages = projectInputDTO.getScopeOfPackageIds().stream()
-					.filter(id -> id != null && !id.trim().isEmpty())
-					.map(id -> masterService.findScopeOfPackageById(id))
-					.collect(Collectors.toSet());
-			project.setScopeOfPackage(scopePackages.stream()
-					.filter(Objects::nonNull)
-					.map(scope -> {
-						return scope;
-					})
-					.collect(Collectors.toSet()));
+
+		if (dto.getUomId() != null && !dto.getUomId().isBlank()) {
+			project.setUom(masterService.findUomById(dto.getUomId()));
 		}
-		project.setUpdateAt(Date.valueOf(LocalDate.now()));
+
+		if (dto.getScopeOfPackageIds() != null && !dto.getScopeOfPackageIds().isEmpty()) {
+			project.setScopeOfPackage(
+					dto.getScopeOfPackageIds().stream()
+							.filter(id -> id != null && !id.isBlank())
+							.map(masterService::findScopeOfPackageById)
+							.filter(Objects::nonNull)
+							.collect(Collectors.toSet())
+			);
+		}
+		project.setCompanyId(dto.getCompanyId());
+		User user = userService.findLoggedInUser();
+		project.setCreatedBy(user.getId().toString());
 		project.setCreatedAt(Date.valueOf(LocalDate.now()));
-		project.setCreatedBy(userService.findLoggedInUser().getId());
-		project.setCompanyId(userService.findLoggedInUser().getCompanyId());
+		project.setUpdateAt(Date.valueOf(LocalDate.now()));
 		ProjectStatus status = masterService.findStatusByProcessUrl(request.getRequestURI());
 		if (status != null) {
 			project.setProjectStatus(status);
 		}
-        return projectDao.save(project);
-    }
+
+		if (dto.getAddresses() != null && !dto.getAddresses().isEmpty()) {
+			List<ProjectAddress> addresses = new ArrayList<>();
+
+			for (ProjectAddressDto a : dto.getAddresses()) {
+				ProjectAddress pa = new ProjectAddress();
+
+				pa.setAddress(a.getAddress());
+				pa.setEmail(a.getEmail());
+				pa.setPhone(a.getPhone() != null && !a.getPhone().isBlank() ? Long.parseLong(a.getPhone()) : 0L);
+
+				if (a.getCountry() != null && !a.getCountry().isBlank()) {
+					Country country = locationMemoryEngine.findAllCountries().stream()
+							.filter(c -> c.getId().equals(a.getCountry()))
+							.findFirst()
+							.orElse(null);
+
+					if (country != null) {
+						pa.setCountry(country.getCountry());
+					}
+				}
+
+				if ((a.getCountry() != null) && (a.getState()!= null && !a.getState().isBlank())) {
+					States state = locationMemoryEngine
+							.findStatesByCountryId(a.getCountry())
+							.stream()
+							.filter(s -> s.getId().equals(a.getState()))
+							.findFirst()
+							.orElse(null);
+
+					if (state != null) {
+						pa.setState(state.getState());
+					}
+				}
+
+				if ((a.getState() != null) && (a.getCity()!=null)) {
+					Cities city = locationMemoryEngine
+							.findCitiesByStateId(a.getState())
+							.stream()
+							.filter(c -> c.getId().equals(a.getCity()))
+							.findFirst()
+							.orElse(null);
+
+					if (city != null) {
+						pa.setCity(city.getCity());
+					}
+				}
+
+				pa.setProject(project);
+				addresses.add(pa);
+			}
+
+			project.setProjectAddresses(addresses);
+		}
+
+		if (dto.getTechFields() != null && !dto.getTechFields().isEmpty()) {
+			List<ProjectTechFields> techFields = dto.getTechFields().stream().map(tf -> {
+				SectorFields masterField = masterService.findSectorFieldById(tf.getTechFieldId());
+				if (masterField == null) {
+					throw new DataNotFoundException("Invalid tech field id: " + tf.getTechFieldId());
+				}
+				ProjectTechFields entity = new ProjectTechFields();
+				entity.setTechField(masterField);
+				entity.setValue(tf.getValue());
+				entity.setProject(project);
+				return entity;
+			}).collect(Collectors.toList());
+
+			project.setTechFields(techFields);
+		}
+
+		return projectDao.save(project);
+	}
 	private String generateProjectCode() {
 		final String chars = "0123456789";
 		Random random = new Random();
@@ -206,23 +341,26 @@ public class ProjectServiceImpl implements ProjectService {
 			int index = random.nextInt(chars.length());
 			code.append(chars.charAt(index));
 		}
-		return "PRJ - " + code.toString();
+		return "PRJ - " + code;
 	}
 	@Override
 	public String saveProjectFiles(String projectId, List<MultipartFile> files) {
-		Projects project = projectDao.findById(projectId).orElse(null);
+		Projects project = projectDao.findById(convertToUUID(projectId)).orElse(null);
         assert project != null;
-        Path directory = Paths
-				.get(uploadDir,
-						project.getProjectName().trim().replaceAll("\\s+", "_").replaceAll("[^a-zA-Z0-9-_\\.]", ""))
-				.toAbsolutePath().normalize();
+		String sanitizedProjectName = project.getProjectName()
+				.trim()
+				.replaceAll("\\s+", "_")
+				.replaceAll("[^a-zA-Z0-9-_.]", "");
+
+		Path directory = Paths.get(uploadDir, sanitizedProjectName)
+				.toAbsolutePath()
+				.normalize();
 		try {
 			Files.createDirectories(directory);
 			for (MultipartFile file : files) {
 				Path targetLocation = directory.resolve(StringUtils.cleanPath(Objects.requireNonNull(file.getOriginalFilename())));
 				Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
 				ProjectDocumentDetails projectDocuments = new ProjectDocumentDetails();
-				projectDocuments.setId(UUID.randomUUID().toString());
 				projectDocuments.setDocumentPath(targetLocation.toString());
 				projectDocuments.setDocumentName(StringUtils.cleanPath(file.getOriginalFilename()));
 				projectDocuments.setDocumentType(file.getContentType());
@@ -235,73 +373,148 @@ public class ProjectServiceImpl implements ProjectService {
 		}
 	}
 	@Override
-	public void editProject(ProjectInputDTO projectInputDTO, String projectId) {
-		Projects existingProject = projectDao.findById(projectId).orElse(null);
-		if (existingProject == null) {
-			throw new DataNotFoundException(messageSource.getMessage("project.not.found", null, Locale.ENGLISH));
+	public void editProject(ProjectInputDTO dto, String projectId) {
+		Projects project = projectDao.findById(convertToUUID(projectId))
+				.orElseThrow(() -> new DataNotFoundException(
+						messageSource.getMessage("project.not.found", null, Locale.ENGLISH)));
+		project.setNeedFeasibility(dto.isNeedFeasibility());
+		if (dto.getProjectName() != null && !dto.getProjectName().isBlank()) {
+			project.setProjectName(dto.getProjectName().trim());
 		}
-		Projects project = projectInputDTO.getProject();
-		project.setId(existingProject.getId());
-		project.setCreatedAt(existingProject.getCreatedAt());
-		project.setCreatedBy(existingProject.getCreatedBy());
-		project.setCompanyId(existingProject.getCompanyId());
-		project.setProjectStatus(existingProject.getProjectStatus());
-		project.setArchive(existingProject.isArchive());
-		project.setProjectCode(existingProject.getProjectCode());
-		project.setEstimatedValue(project.getBuildingArea() * project.getRatePerUnit());
-		if (!projectInputDTO.getRegionId().isEmpty()) {
-			Region region = masterService.findRegionById(projectInputDTO.getRegionId());
-			if(region != null) {
-				project.setRegion(region);
+
+		if (dto.getShortName() != null && !dto.getShortName().isBlank()) {
+			project.setShortName(dto.getShortName().trim());
+		}
+
+		if (dto.getStartDate() != null && !dto.getStartDate().isBlank()) {
+			project.setStartDate(Date.valueOf(dto.getStartDate()));
+		}
+
+		if (dto.getEndDate() != null && !dto.getEndDate().isBlank()) {
+			project.setEndDate(Date.valueOf(dto.getEndDate()));
+		}
+
+		if (dto.getRegionId() != null && !dto.getRegionId().isBlank()) {
+			project.setRegion(masterService.findRegionById(dto.getRegionId()));
+		}
+
+		if (dto.getSectorId() != null && !dto.getSectorId().isBlank()) {
+			project.setSector(masterService.findSectorById(dto.getSectorId()));
+		}
+
+		if (dto.getUomId() != null && !dto.getUomId().isBlank()) {
+			project.setUom(masterService.findUomById(dto.getUomId()));
+		}
+
+		if (dto.getScopeOfPackageIds() != null && !dto.getScopeOfPackageIds().isEmpty()) {
+			project.setScopeOfPackage(
+					dto.getScopeOfPackageIds().stream()
+							.filter(id -> id != null && !id.isBlank())
+							.map(masterService::findScopeOfPackageById)
+							.filter(Objects::nonNull)
+							.collect(Collectors.toSet())
+			);
+		}
+
+		if (dto.getCompanyId() != null && !dto.getCompanyId().isBlank()) {
+			project.setCompanyId(dto.getCompanyId());
+		}
+
+		if (dto.getAddresses() != null) {
+			project.getProjectAddresses().clear();
+
+			List<ProjectAddress> addresses = new ArrayList<>();
+
+			for (ProjectAddressDto a : dto.getAddresses()) {
+
+				ProjectAddress pa = new ProjectAddress();
+
+				pa.setAddress(a.getAddress());
+				pa.setEmail(a.getEmail());
+				pa.setPhone(a.getPhone() != null && !a.getPhone().isBlank() ? Long.parseLong(a.getPhone()) : 0L);
+
+				if (a.getCountry() != null && !a.getCountry().isBlank()) {
+					Country country = locationMemoryEngine.findAllCountries().stream()
+							.filter(c -> c.getId().equals(a.getCountry()))
+							.findFirst()
+							.orElse(null);
+
+					if (country != null) {
+						pa.setCountry(country.getCountry());
+					}
+				}
+
+				if (a.getCountry() != null && a.getState() != null && !a.getState().isBlank()) {
+					States state = locationMemoryEngine
+							.findStatesByCountryId(a.getCountry())
+							.stream()
+							.filter(s -> s.getId().equals(a.getState()))
+							.findFirst()
+							.orElse(null);
+
+					if (state != null) {
+						pa.setState(state.getState());
+					}
+				}
+
+				if (a.getState() != null && a.getCity() != null && !a.getCity().isBlank()) {
+					Cities city = locationMemoryEngine
+							.findCitiesByStateId(a.getState())
+							.stream()
+							.filter(c -> c.getId().equals(a.getCity()))
+							.findFirst()
+							.orElse(null);
+
+					if (city != null) {
+						pa.setCity(city.getCity());
+					}
+				}
+
+				pa.setProject(project);
+				addresses.add(pa);
 			}
+
+			project.getProjectAddresses().addAll(addresses);
 		}
-		if (!projectInputDTO.getSectorId().isEmpty()) {
-			Sector sector = masterService.findSectorById(projectInputDTO.getSectorId());
-			if(sector != null) {
-				project.setSector(sector);
-			}
-		}
-		if (!projectInputDTO.getUomId().isEmpty()) {
-			Uom uom = masterService.findUomById(projectInputDTO.getUomId());
-			if(uom != null) {
-				project.setUom(uom);
-			}
-		}
-		if (!projectInputDTO.getScopeOfPackageIds().isEmpty()) {
-			Set<ScopeOfPackage> scopePackages = projectInputDTO.getScopeOfPackageIds().stream()
-					.filter(id -> id != null && !id.trim().isEmpty())
-					.map(id -> masterService.findScopeOfPackageById(id))
-					.collect(Collectors.toSet());
-			project.setScopeOfPackage(scopePackages.stream()
-					.filter(scope -> scope != null)
-					.map(scope -> {
-						return scope;
-					})
-					.collect(Collectors.toSet()));
+
+		if (dto.getTechFields() != null) {
+			project.getTechFields().clear();
+
+			List<ProjectTechFields> techFields = dto.getTechFields().stream().map(tf -> {
+				SectorFields masterField = masterService.findSectorFieldById(tf.getTechFieldId());
+				if (masterField == null) {
+					throw new DataNotFoundException("Invalid tech field id: " + tf.getTechFieldId());
+				}
+				ProjectTechFields entity = new ProjectTechFields();
+				entity.setTechField(masterField);
+				entity.setValue(tf.getValue());
+				entity.setProject(project);
+				return entity;
+			}).toList();
+
+			project.getTechFields().addAll(techFields);
 		}
 		project.setUpdateAt(Date.valueOf(LocalDate.now()));
 		projectDao.save(project);
 	}
 	@Override
 	public String deleteProject(String projectId) {
-		Projects project = projectDao.findById(projectId).orElse(null);
-		project.setArchive(true);
+		Projects project = projectDao.findById(convertToUUID(projectId)).orElse(null);
 		if (project != null) {
+			project.setArchive(true);
 			projectDao.save(project);
 		}
 		return messageSource.getMessage("project.delete.success", null, Locale.ENGLISH);
 	}
 	@Override
 	public String saveTechFeasibility(TechnicalFeasibility techFeasibility) {
-		techFeasibility.setId(UUID.randomUUID().toString());
 		TechnicalFeasibility saved = techFeaDao.save(techFeasibility);
-		return saved.getId();
+		return saved.getId().toString();
 	}
 	@Override
 	public String saveFinancialFeasibility(FinancialFeasibility financialFeasibility) {
-		financialFeasibility.setId(UUID.randomUUID().toString());
 		FinancialFeasibility saved = finFeasibilityDao.save(financialFeasibility);
-		return saved.getId();
+		return saved.getId().toString();
 	}
 	@Override
 	public String saveApprovalDoc(Map<String, MultipartFile> approvalDoc,
@@ -324,7 +537,6 @@ public class ProjectServiceImpl implements ProjectService {
 							messageSource.getMessage("file.upload.failure", null, Locale.ENGLISH));
 				}
 				ApprovalDocuments approvalDocuments = new ApprovalDocuments();
-				approvalDocuments.setId(UUID.randomUUID().toString());
 				for (FeasibilityApprovalDocuDTO dto : approvalDocuDTO) {
 					if (dto.getDocumentName().equalsIgnoreCase(doc)) {
 						approvalDocuments.setDocumentName(dto.getDocumentName());
@@ -335,24 +547,27 @@ public class ProjectServiceImpl implements ProjectService {
 				}
 				approvalDocuments.setFilePath(filePath);
 				approvalDocuments.setTechnicalFeasibility(
-						techFeaDao.findById(techFeasibilityId).orElseThrow(() -> new DataNotFoundException(
+						techFeaDao.findById(convertToUUID(techFeasibilityId)).orElseThrow(() -> new DataNotFoundException(
 								messageSource.getMessage("data.not.found", null, Locale.ENGLISH))));
-				lastSavedId = approvalsDao.save(approvalDocuments).getId();
+				lastSavedId = approvalsDao.save(approvalDocuments).getId().toString();
 			}
 			return lastSavedId;
 		}
 		return null;
 	}
 	private String saveApprovalDocFile(MultipartFile file, String projectId) {
-		Projects project = projectDao.findById(projectId).orElse(null);
+		Projects project = projectDao.findById(convertToUUID(projectId))
+				.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("project.not.found", null, Locale.ENGLISH)));
 		String projectName = project.getProjectName();
 		Path directory = Paths
-				.get(uploadDir, projectName.trim().replaceAll("\\s+", "_").replaceAll("[^a-zA-Z0-9-_\\.]", ""))
+				.get(uploadDir, projectName.trim()
+						.replaceAll("\\s+", "_")
+						.replaceAll("[^a-zA-Z0-9-_.]", ""))
 				.toAbsolutePath().normalize();
 		Path targetDir = directory.resolve("approvals");
 		try {
 			Files.createDirectories(targetDir);
-			Path targetLocation = targetDir.resolve(StringUtils.cleanPath(file.getOriginalFilename()));
+			Path targetLocation = targetDir.resolve(StringUtils.cleanPath(Objects.requireNonNull(file.getOriginalFilename())));
 			Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
 			return targetLocation.toString();
 		} catch (IOException e) {
@@ -362,13 +577,12 @@ public class ProjectServiceImpl implements ProjectService {
 	@Override
 	public String saveFeasibilityStudy(String techFeasibilityId, String finFeasibilityId, String projectId) {
 		FeasibilityStudy feaStudy = new FeasibilityStudy();
-		Projects project = projectDao.findById(projectId).orElse(null);
-		TechnicalFeasibility techFeasibility = techFeaDao.findById(techFeasibilityId).orElseThrow(
+		Projects project = projectDao.findById(convertToUUID(projectId)).orElse(null);
+		TechnicalFeasibility techFeasibility = techFeaDao.findById(convertToUUID(techFeasibilityId)).orElseThrow(
 				() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
-		FinancialFeasibility finFeasibility = finFeasibilityDao.findById(finFeasibilityId).orElseThrow(
+		FinancialFeasibility finFeasibility = finFeasibilityDao.findById(convertToUUID(finFeasibilityId)).orElseThrow(
 				() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
-		if (project != null && techFeasibility != null && finFeasibility != null) {
-			feaStudy.setId(UUID.randomUUID().toString());
+		if (project != null ) {
 			feaStudy.setProject(project);
 			feaStudy.setTechnFeasibility(techFeasibility);
 			feaStudy.setFinancialFeasibility(finFeasibility);
@@ -380,11 +594,11 @@ public class ProjectServiceImpl implements ProjectService {
 	@Override
 	public String updateFeasibilityStudyStatus(String projectId, boolean status, String comments,
 			HttpServletRequest request) {
-		FeasibilityStudy feasibilityStudy = feaStudyDao.findByProjectId(projectId).orElseThrow(
+		FeasibilityStudy feasibilityStudy = feaStudyDao.findByProjectId(UUID.fromString(projectId)).orElseThrow(
 				() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
 		feasibilityStudy.setFeasibilityApproved(status);
 		feasibilityStudy.setComments(comments);
-		feasibilityStudy.setReviewedBy(userService.findLoggedInUser().getId());
+		feasibilityStudy.setReviewedBy(userService.findLoggedInUser().getId().toString());
 		Projects project = feasibilityStudy.getProject();
 		String requestUrl = request.getRequestURI();
 		ProjectStatus projectStatus = masterService.findStatusByProcessUrl(requestUrl.substring(0, requestUrl.lastIndexOf("/")));
@@ -401,29 +615,30 @@ public class ProjectServiceImpl implements ProjectService {
 	}
 	@Override
 	public FeasibilityStudy findFeasibilityStudy(String projectId) {
-		return feaStudyDao.findByProjectId(projectId).orElseThrow(
+		return feaStudyDao.findByProjectId(UUID.fromString(projectId)).orElseThrow(
 				() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
 	}
 	@Override
 	public List<ApprovalDocuments> getApprovalDocData(String techId) {
-		List<ApprovalDocuments> approvalDoc = approvalsDao.findAllByTechnicalFeasibilityId(techId);
-		return approvalDoc;
+        return approvalsDao.findAllByTechnicalFeasibilityId(UUID.fromString(techId));
 	}
 	@Override
 	public void saveProjectDrawings(String projectId, List<MultipartFile> drawings) {
-		Projects project = projectDao.findById(projectId).orElse(null);
+		Projects project = projectDao.findById(convertToUUID(projectId))
+				.orElseThrow(() -> new  DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
 		Path directory = Paths
 				.get(uploadDir,
-						project.getProjectName().trim().replaceAll("\\s+", "_").replaceAll("[^a-zA-Z0-9-_\\.]", ""))
+						project.getProjectName().trim()
+								.replaceAll("\\s+", "_")
+								.replaceAll("[^a-zA-Z0-9-_.]", ""))
 				.toAbsolutePath().normalize();
 		Path targetDir = directory.resolve("drawings");
 		try {
 			Files.createDirectories(targetDir);
 			for (MultipartFile file : drawings) {
-				Path targetLocation = targetDir.resolve(StringUtils.cleanPath(file.getOriginalFilename()));
+				Path targetLocation = targetDir.resolve(StringUtils.cleanPath(Objects.requireNonNull(file.getOriginalFilename())));
 				Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
 				ProjectDocumentDetails projectDocuments = new ProjectDocumentDetails();
-				projectDocuments.setId(UUID.randomUUID().toString());
 				projectDocuments.setDocumentPath(targetLocation.toString());
 				projectDocuments.setDocumentName(StringUtils.cleanPath(file.getOriginalFilename()));
 				projectDocuments.setDocumentType(file.getContentType());
@@ -436,7 +651,7 @@ public class ProjectServiceImpl implements ProjectService {
 	}
 	@Override
 	public Resource getApprovalDocs(String docId) throws MalformedURLException {
-		ApprovalDocuments doc = approvalsDao.findById(docId).orElseThrow(() -> new DataNotFoundException(
+		ApprovalDocuments doc = approvalsDao.findById(convertToUUID(docId)).orElseThrow(() -> new DataNotFoundException(
 				messageSource.getMessage("approval.document.not.found", null, Locale.ENGLISH)));
 		Path filePath = Paths.get(doc.getFilePath());
 		Resource resource = new UrlResource(filePath.toUri());
@@ -449,11 +664,14 @@ public class ProjectServiceImpl implements ProjectService {
 	}
 	@Override
 	public List<ProjectInfoDto> getAllApprovedProjects() {
-		List<String> projectId = feaStudyDao.findAll().stream().filter(id -> id.isFeasibilityApproved())
-				.map(project -> project.getProject().getId()).collect(Collectors.toList());
-		List<ProjectInfoDto> approvedProjects = getAllProjects().stream()
-				.filter(project -> projectId.contains(project.getProjectId())).collect(Collectors.toList());
-		return approvedProjects;
+		Set<String> projectIds = feaStudyDao.findAll().stream()
+				.filter(FeasibilityStudy::isFeasibilityApproved)
+				.map(project -> project.getProject().getId().toString())
+				.collect(Collectors.toSet());
+		return getAllProjects().stream()
+				.filter(project -> projectIds.contains(project.getProjectId())
+						|| !project.isNeedFeasibility())
+				.collect(Collectors.toList());
 	}
 	@Override
 	public List<String> getExcelSheets(MultipartFile boqFile) throws IOException {
@@ -466,7 +684,7 @@ public class ProjectServiceImpl implements ProjectService {
 	@Override
 	public List<String> getExcelColumns(MultipartFile boqFile, String sheetName) throws IOException {
 		String fileName = boqFile.getOriginalFilename();
-		if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
+		if (fileName!=null && (fileName.endsWith(".xlsx") || fileName.endsWith(".xls"))) {
 			return excelService.getColumns(boqFile, sheetName);
 		}
 		return null;
@@ -483,9 +701,9 @@ public class ProjectServiceImpl implements ProjectService {
 	        String search
 	) throws IOException {
 		
-	    List<ExcelExtractBOQ> allRows = null;
+	    List<ExcelExtractBOQ> allRows ;
 	    String fileName = boqFile.getOriginalFilename();
-		if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
+		if (fileName != null && (fileName.endsWith(".xlsx") || fileName.endsWith(".xls"))) {
 			allRows = excelService.getExtractedData(boqFile, sheetName, columnMapping, startRow, endRow);
 		}
 		else {
@@ -506,26 +724,29 @@ public class ProjectServiceImpl implements ProjectService {
 	    int toIndex = Math.min(fromIndex + size, totalElements);
 	    List<ExcelExtractBOQ> content =
 	            (fromIndex >= totalElements) ? List.of() : allRows.subList(fromIndex, toIndex);
-	    return new PaginatedResponse<ExcelExtractBOQ>(
-	            content,        
-	            page,           
-	            size,          
-	            totalElements,  
-	            totalPages      
-	    );
+	    return new PaginatedResponse<>(
+                content,
+                page,
+                size,
+                totalElements,
+                totalPages
+        );
 	}
 	@Override
 	public String saveBoqFile(MultipartFile boqFile, String projectId) {
-		Projects project = projectDao.findById(projectId).orElse(null);
+		Projects project = projectDao.findById(convertToUUID(projectId))
+				.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("project.not.found", null, Locale.ENGLISH)));
 		String projectName = project.getProjectName();
 		Path directory = Paths
-				.get(uploadDir, projectName.trim().replaceAll("\\s+", "_").replaceAll("[^a-zA-Z0-9-_\\.]", ""))
+				.get(uploadDir, projectName.trim()
+						.replaceAll("\\s+", "_")
+						.replaceAll("[^a-zA-Z0-9-_.]", ""))
 				.toAbsolutePath().normalize().resolve("BOQ");
 		try {
 			if (boqFile == null || boqFile.isEmpty()) {
 				throw new FileNotSaveException("Uploaded file is empty");
 			}
-			String fileName = StringUtils.cleanPath(boqFile.getOriginalFilename());
+			String fileName = StringUtils.cleanPath(Objects.requireNonNull(boqFile.getOriginalFilename()));
 			if (fileName.isBlank() || fileName.contains("..")) {
 				throw new FileNotSaveException("Invalid file name: " + fileName);
 			}
@@ -533,13 +754,12 @@ public class ProjectServiceImpl implements ProjectService {
 			Path targetLocation = directory.resolve(fileName);
 			Files.copy(boqFile.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
 			String filePath = targetLocation.toString();
-			List<BOQFile> boqFiles = boqFileDao.findByProjectId(projectId);
+			List<BOQFile> boqFiles = boqFileDao.findByProjectId(UUID.fromString(projectId));
 			if (boqFiles.stream().noneMatch(b -> b.getFilename().equals(fileName))) {
 				BOQFile boqFileEntity = new BOQFile();
-				boqFileEntity.setId(UUID.randomUUID().toString());
 				boqFileEntity.setFilename(fileName);
 				boqFileEntity.setFileUrl(filePath);
-				boqFileEntity.setProject(projectDao.findById(projectId).orElse(null));
+				boqFileEntity.setProject(projectDao.findById(convertToUUID(projectId)).orElse(null));
 				boqFileDao.save(boqFileEntity);
 			}
 			return filePath;
@@ -547,133 +767,86 @@ public class ProjectServiceImpl implements ProjectService {
 			throw new FileNotSaveException(messageSource.getMessage("file.upload.failure", null, Locale.ENGLISH), e);
 		}
 	}
-//	@Override
-//	public String mapBOQ(String projectId, String sheetName, Map<String, String> columnMapping, String filePath)
-//			throws IOException, DataNotFoundException {
-//		Projects project = findByProjectId(projectId);
-//		Resource resource = new UrlResource(Paths.get(filePath).toUri());
-//		List<BOQ> boqList = null;
-//		if (resource.exists() || resource.isReadable()) {
-//			String fileName = resource.getFilename();
-//			InputStream inputStream = resource.getInputStream();
-//			if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
-//				boqList = excelService.mapBOQData(sheetName, columnMapping, inputStream);
-//			} else if (fileName.endsWith(".pdf")) {
-//				boqList = pdfService.mapBOQData(columnMapping, inputStream);
-//			} else {
-//				throw new FileNotSaveException(
-//						messageSource.getMessage("file.type.not.supported", null, Locale.ENGLISH));
-//			}
-//			if (!boqList.isEmpty()) {
-//				BOQ parentBoq = null;
-//				BOQ subBoq = null;
-//				for (BOQ boq : boqList) {
-//					boq.setId(UUID.randomUUID().toString());
-//					boq.setProject(project);
-//					if ((!isValidText(boq.getBoqCode()) && !isValidText(boq.getBoqName()))
-//				            && boq.getQuantity() == 0 && boq.getUom() == null) {
-//				        continue;
-//				    }
-//					if((!isNotEmpty(boq.getBoqCode()) || !isNotEmpty(boq.getBoqName()))
-//							&& boq.getQuantity() == 0 && boq.getUom() == null) {
-//						boq.setParentBOQ(null);
-//						boq.setLevel(1);
-//						parentBoq=boqDao.save(boq);
-//						subBoq = null;
-//					}
-//					else if(boq.getQuantity() == 0 && boq.getUom() == null && (boq.getBoqCode() != null && boq.getBoqName() != null)){
-//						boq.setParentBOQ(parentBoq);
-//						boq.setLevel(2);
-//						boq.setLastLevel(false);
-//						subBoq = boqDao.save(boq);
-//					}
-//					else if(boq.getQuantity() != 0 || boq.getUom() != null){
-//						if(subBoq != null) {
-//							boq.setParentBOQ(subBoq);
-//						} else {
-//							boq.setParentBOQ(parentBoq);
-//						}
-//						boq.setLevel(3);
-//						boqDao.save(boq);
-//					}
-//				}
-//			}
-//			return "BOQ data mapped successfully";
-//		}
-//		return null;
-//	}
 	@Override
 	public String mapBOQData(String projectId,
-	                         String sheetName,
-	                         Map<String, String> columnMapping,
-	                         Map<Long, Long> parentChildMapping,
-	                         Map<Long, Boolean> lastLevelMapping,
-	                         Map<Long, Long> levelMapping,
-	                         MultipartFile boqFile) throws IOException {
-
-	    Projects project = projectDao.findById(projectId).orElse(null);
-	    saveBoqFile(boqFile, projectId);
-	    int startRow = 0;
-	    int endRow = 10000;
-	    List<ExcelExtractBOQ> extractedRows;
-	    String fileName = boqFile.getOriginalFilename();
-	    if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
-	        extractedRows = excelService.getExtractedData(boqFile, sheetName, columnMapping, startRow, endRow);
-	    } else {
-	        extractedRows = pdfService.getExtractedData(boqFile, columnMapping, startRow, endRow);
-	    }
-	    if (extractedRows == null || extractedRows.isEmpty()) {
-	        throw new DataNotFoundException("No BOQ data extracted from file!");
-	    }
-	    Map<Long, BOQ> boqEntityMap = new HashMap<>();
-	    extractedRows.forEach(row -> {
-	        BOQ boq = new BOQ();
-	        boq.setId(UUID.randomUUID().toString());
-	        boq.setBoqCode(row.getBoqCode());
-	        boq.setBoqName(row.getBoqName());
-	        boq.setQuantity(row.getQuantity());
-	        boq.setProject(project);
-	        if (row.getUom() != null) {
-	            Uom uom = findUOM(row.getUom());
-	            boq.setUom(uom);
-	        }
-	        if (!isValidText(row.getBoqCode()) && !isNotEmpty(row.getBoqCode())) {
-	            return;
-	        }
-	        Long level = levelMapping.getOrDefault(row.getSno(), 0L);
-	        boq.setLevel(level.intValue());
-	        if (!row.isLastLevel()) {
-	            boq.setLastLevel(lastLevelMapping.getOrDefault(row.getSno(), false));
-	        } else {
-	            boq.setLastLevel(row.isLastLevel());
-	        }
-
-	        boqEntityMap.put(row.getSno(), boq);
-	    });
-	    parentChildMapping.forEach((childSno, parentSno) -> {
-	        BOQ child = boqEntityMap.get(childSno);
-	        BOQ parent = boqEntityMap.get(parentSno);
-
-	        if (child != null && parent != null) {
-	            child.setParentBOQ(parent);
-	            parent.getChildren().add(child);
-	        }
-	    });
-	    for (ExcelExtractBOQ row : extractedRows) {
-	        Long childSno = row.getSno();
-	        Long parentSno = row.getParentSno();
-	        if (parentSno == null || parentSno == 0) continue;
-	        if (parentChildMapping.containsKey(childSno)) continue;
-	        BOQ child = boqEntityMap.get(childSno);
-	        BOQ parent = boqEntityMap.get(parentSno);
-	        if (child != null && parent != null) {
-	            child.setParentBOQ(parent);
-	            parent.getChildren().add(child);
-	        }
-	    }
-	    List<BOQ> boqList = new ArrayList<>(boqEntityMap.values());
-	    boqDao.saveAll(boqList);
-	    return "BOQ Mapping Successfully Stored for Project " + projectId;
+							 String sheetName,
+							 Map<String, String> columnMapping,
+							 Map<Long, Long> parentChildMapping,
+							 Map<Long, Boolean> lastLevelMapping,
+							 Map<Long, Long> levelMapping,
+							 MultipartFile boqFile) throws IOException {
+		Projects project = projectDao.findById(convertToUUID(projectId)).orElse(null);
+		saveBoqFile(boqFile, projectId);
+		int startRow = 0;
+		int endRow = 100000;
+		List<ExcelExtractBOQ> extractedRows;
+		String fileName = boqFile.getOriginalFilename();
+		if (fileName != null && (fileName.endsWith(".xlsx") || fileName.endsWith(".xls"))) {
+			extractedRows = excelService.getExtractedData(boqFile, sheetName, columnMapping, startRow, endRow);
+		} else {
+			extractedRows = pdfService.getExtractedData(boqFile, columnMapping, startRow, endRow);
+		}
+		if (extractedRows == null || extractedRows.isEmpty()) {
+			throw new DataNotFoundException("No BOQ data extracted from file!");
+		}
+		Map<String, BOQ> boqUniqueMap = new HashMap<>();
+		Map<Long, BOQ> rowToBoqMap = new HashMap<>();
+		for (ExcelExtractBOQ row : extractedRows) {
+			if (!isValidText(row.getBoqCode()) && !isNotEmpty(row.getBoqCode())) {
+				continue;
+			}
+			String key = (row.getBoqCode() + "_" + row.getBoqName()).toLowerCase();
+			BOQ boq = boqUniqueMap.get(key);
+			if (boq == null) {
+				boq = boqDao
+						.findByProject_IdAndBoqCodeIgnoreCaseAndBoqNameIgnoreCase(
+								project.getId(),
+								row.getBoqCode(),
+								row.getBoqName()
+						)
+						.orElseGet(BOQ::new);
+				if (boq.getId() == null) {
+					boq.setProject(project);
+				}
+				boq.setBoqCode(row.getBoqCode());
+				boq.setBoqName(row.getBoqName());
+				if (row.getUom() != null) {
+					boq.setUom(findUOM(row.getUom()));
+				}
+				boqUniqueMap.put(key, boq);
+			}
+			boq.setQuantity(row.getQuantity());
+			Long level = levelMapping.getOrDefault(row.getSno(), 0L);
+			boq.setLevel(level.intValue());
+			if (!row.isLastLevel()) {
+				boq.setLastLevel(lastLevelMapping.getOrDefault(row.getSno(), false));
+			} else {
+				boq.setLastLevel(row.isLastLevel());
+			}
+			rowToBoqMap.put(row.getSno(), boq);
+		}
+		parentChildMapping.forEach((childSno, parentSno) -> {
+			BOQ child = rowToBoqMap.get(childSno);
+			BOQ parent = rowToBoqMap.get(parentSno);
+			if (child != null && parent != null && child != parent) {
+				child.setParentBOQ(parent);
+				parent.getChildren().add(child);
+			}
+		});
+		for (ExcelExtractBOQ row : extractedRows) {
+			Long childSno = row.getSno();
+			Long parentSno = row.getParentSno();
+			if (parentSno == null || parentSno == 0) continue;
+			if (parentChildMapping.containsKey(childSno)) continue;
+			BOQ child = rowToBoqMap.get(childSno);
+			BOQ parent = rowToBoqMap.get(parentSno);
+			if (child != null && parent != null && child != parent) {
+				child.setParentBOQ(parent);
+				parent.getChildren().add(child);
+			}
+		}
+		boqDao.saveAll(new ArrayList<>(boqUniqueMap.values()));
+		return "BOQ Mapping Successfully Stored for Project " + projectId;
 	}
 
 	protected Uom findUOM(String value) {
@@ -702,7 +875,36 @@ public class ProjectServiceImpl implements ProjectService {
 	private boolean isNotEmpty(String value) {
 	    return value != null && !value.trim().isEmpty();
 	}
-//	private List<BOQ> validateBOQData(List<BOQ> boqList, String projectId) {
+
+	@Override
+	public String updateBOQHierarchy(String projectId, Map<String, String> parentChildUpdateMap) {
+		UUID projId = convertToUUID(projectId);
+		List<BOQ> boqList = boqDao.findByProjectId(projId);
+		if (boqList == null || boqList.isEmpty()) {
+			throw new DataNotFoundException("No BOQs found for project");
+		}
+		Map<UUID, BOQ> boqMap = boqList.stream()
+				.collect(Collectors.toMap(BOQ::getId, boq -> boq));
+		for (Map.Entry<String, String> entry : parentChildUpdateMap.entrySet()) {
+			UUID childId = convertToUUID(entry.getKey());
+			UUID parentId = convertToUUID(entry.getValue());
+			if (childId.equals(parentId)) {
+				throw new RuntimeException("BOQ cannot be parent of itself: " + childId);
+			}
+			BOQ child = boqMap.get(childId);
+			BOQ newParent = boqMap.get(parentId);
+			if (child == null || newParent == null) {
+				throw new RuntimeException("Invalid BOQ mapping: " + childId + " -> " + parentId);
+			}
+			child.setParentBOQ(newParent);
+			if (!newParent.getChildren().contains(child)) {
+				newParent.getChildren().add(child);
+			}
+		}
+		boqDao.saveAll(boqList);
+		return "BOQ hierarchy updated successfully for project: " + projectId;
+	}
+	//	private List<BOQ> validateBOQData(List<BOQ> boqList, String projectId) {
 //		Projects project = findByProjectId(projectId);
 //		Iterator<BOQ> iterator = boqList.iterator();
 //		while (iterator.hasNext()) {
@@ -720,18 +922,26 @@ public class ProjectServiceImpl implements ProjectService {
 //	}
 	@Override
 	public List<BOQ> getParentBOQ(String projectId) {
-		List<BOQ> boqList = boqDao.findByProjectId(projectId);
+		List<BOQ> boqList = boqDao.findByProjectId(UUID.fromString(projectId));
 		if (boqList.isEmpty()) {
 			return null;
 		}
-		List<BOQ> parentBoqList = boqList.stream()
-				.filter(boq -> boq.getLevel() == 1)
-				.collect(Collectors.toList());
-		return parentBoqList;
+        return boqList.stream()
+                .filter(boq -> boq.getLevel() == 1)
+                .collect(Collectors.toList());
+	}
+	@Override
+	public Page<BOQ> getParentBOQs(String projectId, int page, int size) {
+		Pageable pageable = PageRequest.of(page, size, Sort.by("boqCode").ascending());
+		Page<BOQ> boqPage = boqDao.findByProjectIdAndParentBOQIsNull(convertToUUID(projectId), pageable);
+		if (boqPage.isEmpty()) {
+			throw new DataNotFoundException("No BOQ data found");
+		}
+		return boqPage;
 	}
 	@Override
 	public List<BOQ> getChildBOQ(String projectId, String parentBoqId) {
-		List<BOQ> boqList = boqDao.findByProjectIdAndParentBOQId(projectId, parentBoqId);
+		List<BOQ> boqList = boqDao.findByProjectIdAndParentBOQId(UUID.fromString(projectId), UUID.fromString(parentBoqId));
 		if (boqList.isEmpty()) {
 			return null;
 		}
@@ -739,10 +949,12 @@ public class ProjectServiceImpl implements ProjectService {
 	}
 	@Override
 	public Map<String, Integer> getBOQCount(String projectId) {
-		List<BOQ> boqList = boqDao.findByProjectId(projectId);
+		List<BOQ> boqList = boqDao.findByProjectId(UUID.fromString(projectId));
 		Map<String, Integer> boqCountMap = new HashMap<>();
 		int boqcount = boqList.size();
-		int lastLevelCount = (int) boqList.stream().filter(boq -> boq.isLastLevel()).count();
+		int lastLevelCount = (int) boqList.stream()
+				.filter(BOQ::isLastLevel)
+				.count();
 		boqCountMap.put("totalBOQCount", boqcount);
 		boqCountMap.put("lastLevelBOQCount", lastLevelCount);
 		return boqCountMap;
@@ -757,16 +969,14 @@ public class ProjectServiceImpl implements ProjectService {
 	@Override
 	public void deleteBOQ(List<String> boqCode, String projectId) throws DataIntegrityViolationException {
 		for (String code : boqCode) {
-			BOQ boq = boqDao.findById(code).orElseThrow(() -> new DataNotFoundException(
+			BOQ boq = boqDao.findById(convertToUUID(code)).orElseThrow(() -> new DataNotFoundException(
 					messageSource.getMessage("boq.not.found", null, Locale.ENGLISH)));
-			if (boq != null) {
-				boqDao.delete(boq);
-			}
-		}
+            boqDao.delete(boq);
+        }
 	}
 	@Override
 	public BOQ getBoqById(String boqId) {
-		return boqDao.findById(boqId)
+		return boqDao.findById(convertToUUID(boqId))
 				.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("boq.not.found", null, Locale.ENGLISH)));
 	}
 	@Override
@@ -777,8 +987,7 @@ public class ProjectServiceImpl implements ProjectService {
 		excelService.generateBoqFile(boqList, response);
 	}
 	private List<BOQ> getAllBOQ(String projectId) {
-		List<BOQ> boqList = boqDao.findByProjectId(projectId);
-		return boqList;
+        return boqDao.findByProjectId(UUID.fromString(projectId));
 	}
 	@Override
 	public void generateBoqPdf(String projectId, HttpServletResponse response)
@@ -796,7 +1005,7 @@ public class ProjectServiceImpl implements ProjectService {
 	}
 	@Override
 	public Map<String, Double> getParentBoqTotalMap(String projectId) {
-		List<BOQ> boqList = boqDao.findByProjectId(projectId);
+		List<BOQ> boqList = boqDao.findByProjectId(UUID.fromString(projectId));
 		if (boqList == null || boqList.isEmpty()) {
 			throw new DataNotFoundException("No BOQ found for project");
 		}
@@ -805,7 +1014,7 @@ public class ProjectServiceImpl implements ProjectService {
 		for (BOQ boq : boqList) {
 			if (boq.getParentBOQ() == null) {
 				double total = calculateTotalRecursively(boq, childMap);
-				result.put(boq.getId(), total);
+				result.put(boq.getId().toString(), total);
 			}
 		}
 		return result;
@@ -814,7 +1023,7 @@ public class ProjectServiceImpl implements ProjectService {
 		Map<String, List<BOQ>> childMap = new HashMap<>();
 		for (BOQ boq : boqList) {
 			if (boq.getParentBOQ() != null) {
-				String parentId = boq.getParentBOQ().getId();
+				String parentId = boq.getParentBOQ().getId().toString();
 				childMap
 						.computeIfAbsent(parentId, k -> new ArrayList<>())
 						.add(boq);
@@ -824,11 +1033,12 @@ public class ProjectServiceImpl implements ProjectService {
 	}
 	private double calculateTotalRecursively(BOQ boq,
 											 Map<String, List<BOQ>> childMap) {
-		if (!childMap.containsKey(boq.getId())) {
-			return boq.getTotalAmount();
+		String boqId = boq.getId().toString();
+		if (!childMap.containsKey(boqId)) {
+			return boq.getTotalAmount() != 0.0 ? boq.getTotalAmount() : 0.0;
 		}
 		double total = 0.0;
-		for (BOQ child : childMap.get(boq.getId())) {
+		for (BOQ child : childMap.get(boqId)) {
 			total += calculateTotalRecursively(child, childMap);
 		}
 		return total;
@@ -836,7 +1046,6 @@ public class ProjectServiceImpl implements ProjectService {
 	@Override
 	public String saveTemplate(Template template, Map<String, String> mapping) {
 		if (templateDao.findByTemplateName(template.getTemplateName()) == null) {
-			template.setId(UUID.randomUUID().toString());
 			Template savedTemplate = templateDao.save(template);
 			saveTemplateMapping(mapping, savedTemplate);
 			return messageSource.getMessage("template.save.success", null, Locale.ENGLISH);
@@ -854,16 +1063,15 @@ public class ProjectServiceImpl implements ProjectService {
 	}
 	@Override
 	public List<Template> getAllTemplate() {
-		List<Template> templates = templateDao.findAll();
-		return templates;
+        return templateDao.findAll();
 	}
 	@Override
 	public TemplateDto getTemplateById(String templateId) {
 		TemplateDto templateDto = new TemplateDto();
-		Template template = templateDao.findById(templateId).orElseThrow(
+		Template template = templateDao.findById(convertToUUID(templateId)).orElseThrow(
 				() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
 		templateDto.setTemplate(template);
-		List<TemplateMapping> mappings = templateMappingDao.findByTemplateId(templateId);
+		List<TemplateMapping> mappings = templateMappingDao.findByTemplateId(UUID.fromString(templateId));
 		Map<String, String> mapping = new HashMap<>();
 		for (TemplateMapping map : mappings) {
 			mapping.put(map.getInternalFields(), map.getExcelFields());
@@ -875,7 +1083,7 @@ public class ProjectServiceImpl implements ProjectService {
 	public List<ProjectInfoDto> getAllBoqUploadedProject() {
 		List<ProjectInfoDto> projects = getAllProjects();
 		Set<String> projectIds = boqDao.findAll().stream()
-				.map(boq -> boq.getProject().getId())
+				.map(boq -> boq.getProject().getId().toString())
 				.collect(Collectors.toSet());
 		projects = projects.stream()
 				.filter(project -> projectIds.contains(project.getProjectId()))
@@ -891,12 +1099,11 @@ public class ProjectServiceImpl implements ProjectService {
 							messageSource.getMessage("data.duplicate", null, Locale.ENGLISH)
 					);
 				});
-		CostCodeType costCodeType = costCodeTypeDao.findById(activityGroupDto.getCostCodeTypeId())
+		CostCodeType costCodeType = costCodeTypeDao.findById(convertToUUID(activityGroupDto.getCostCodeTypeId()))
 				.orElseThrow(() -> new DataNotFoundException(
 						messageSource.getMessage("data.not.found", null, Locale.ENGLISH)
 				));
 		ActivityGroup activityGroup = new ActivityGroup();
-		activityGroup.setId(UUID.randomUUID().toString());
 		activityGroup.setActivityCode(activityGroupDto.getActivityCode());
 		activityGroup.setActivityName(activityGroupDto.getActivityName());
 		activityGroup.setCostCodeType(costCodeType);
@@ -906,7 +1113,7 @@ public class ProjectServiceImpl implements ProjectService {
 	}
 	@Override
 	public void editActivityGroup(ActivityGroupDto activityGroupDto) {
-		ActivityGroup existingActivityGroup = activityGroupsDao.findById(activityGroupDto.getId())
+		ActivityGroup existingActivityGroup = activityGroupsDao.findById(convertToUUID(activityGroupDto.getId()))
 				.orElseThrow(() -> new DataNotFoundException(
 						messageSource.getMessage("data.not.found", null, Locale.ENGLISH)
 				));
@@ -927,7 +1134,7 @@ public class ProjectServiceImpl implements ProjectService {
 						);
 					});
 		}
-		CostCodeType costCodeType = costCodeTypeDao.findById(activityGroupDto.getCostCodeTypeId())
+		CostCodeType costCodeType = costCodeTypeDao.findById(convertToUUID(activityGroupDto.getCostCodeTypeId()))
 				.orElseThrow(() -> new DataNotFoundException(
 						messageSource.getMessage("data.not.found", null, Locale.ENGLISH)
 				));
@@ -946,7 +1153,7 @@ public class ProjectServiceImpl implements ProjectService {
 		if (dtos == null || dtos.isEmpty()) {
 			throw new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH));
 		}
-		Projects project = projectDao.findById(dtos.get(0).getProjectId()).orElse(null);
+		Projects project = projectDao.findById(convertToUUID(dtos.getFirst().getProjectId())).orElse(null);
 		for (CostCodeDto dto : dtos) {
 			CostCodeActivity act = mapCommonFields(dto, project);
 			act.setBoq(findBoqs(dto.getBoqId()));
@@ -962,7 +1169,7 @@ public class ProjectServiceImpl implements ProjectService {
 		if (dtos == null || dtos.isEmpty()) {
 			throw new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH));
 		}
-		Projects project = projectDao.findById(dtos.get(0).getProjectId()).orElse(null);
+		Projects project = projectDao.findById(convertToUUID(dtos.getFirst().getProjectId())).orElse(null);
 		for (CostCodeDto dto : dtos) {
 			CostCodeActivity act = mapCommonFields(dto, project);
 			Set<BOQ> boqSet = findBoqs(dto.getBoqId());
@@ -1012,21 +1219,21 @@ public class ProjectServiceImpl implements ProjectService {
 		if (dtos == null || dtos.isEmpty()) {
 			throw new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH));
 		}
-		Projects project = projectDao.findById(dtos.get(0).getProjectId()).orElse(null);
+		Projects project = projectDao.findById(convertToUUID(dtos.getFirst().getProjectId())).orElse(null);
 		List<BOQ> allBoqs = dtos.stream().flatMap(d -> d.getBoqId().stream()).filter(id -> id != null)
-				.map(id -> boqDao.findById(id)
+				.map(id -> boqDao.findById(convertToUUID(id))
 						.orElseThrow(() -> new DataNotFoundException(
 								messageSource.getMessage("data.not.found", null, Locale.ENGLISH))))
-				.collect(Collectors.toList());
+				.toList();
 		if (allBoqs.isEmpty())
 			throw new DataNotFoundException("No BOQs found for mapping");
 		Set<Uom> uoms = allBoqs.stream()
-				.map(b -> b.getUom())
+				.map(BOQ::getUom)
 				.collect(Collectors.toSet());
 		double qty = allBoqs.stream().mapToDouble(BOQ::getQuantity).sum();
 		double rate = allBoqs.stream().mapToDouble(BOQ::getTotalRate).average().orElse(0.0);
 		double amount = qty * rate;
-		CostCodeDto first = dtos.get(0);
+		CostCodeDto first = dtos.getFirst();
 		CostCodeActivity act = mapCommonFields(first, project);
 		if (uoms.size() > 1) {
 			List<Uom> uomList = masterService.getAllUOMs();
@@ -1037,7 +1244,7 @@ public class ProjectServiceImpl implements ProjectService {
 				}
 			}
 		} else {
-			act.setUom(allBoqs.get(0).getUom());
+			act.setUom(allBoqs.getFirst().getUom());
 		}
 		act.setBoq(new HashSet<>(allBoqs));
 		act.setQuantity(qty);
@@ -1047,21 +1254,22 @@ public class ProjectServiceImpl implements ProjectService {
 		return messageSource.getMessage("cost.code.save.success", null, Locale.ENGLISH);
 	}
 	private Set<BOQ> findBoqs(List<String> boqIds) {
-		return boqIds.stream().filter(id -> id != null).map(id -> boqDao.findById(id).orElseThrow(
-				() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH))))
+		return boqIds.stream()
+				.filter(Objects::nonNull)
+				.map(id -> boqDao.findById(convertToUUID(id))
+						.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH))))
 				.collect(Collectors.toSet());
 	}
 	private CostCodeActivity mapCommonFields(CostCodeDto dto, Projects project) {
 		CostCodeActivity costCodeAct = new CostCodeActivity();
-		costCodeAct.setId(UUID.randomUUID().toString());
 		costCodeAct.setProject(project);
 		if (dto.getActivityGroupId() != null && !dto.getActivityGroupId().isEmpty()) {
-			ActivityGroup activityGroup = activityGroupsDao.findById(dto.getActivityGroupId()).orElseThrow(
+			ActivityGroup activityGroup = activityGroupsDao.findById(convertToUUID(dto.getActivityGroupId())).orElseThrow(
 					() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
 			costCodeAct.setActivityGroup(activityGroup);
 		}
 		if (dto.getCostCodeTypeId() != null && !dto.getCostCodeTypeId().isEmpty()) {
-			CostCodeType costCodeType = costCodeTypeDao.findById(dto.getCostCodeTypeId()).orElseThrow(
+			CostCodeType costCodeType = costCodeTypeDao.findById(convertToUUID(dto.getCostCodeTypeId())).orElseThrow(
 					() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
 			costCodeAct.setCostCodeType(costCodeType);
 		}
@@ -1076,7 +1284,7 @@ public class ProjectServiceImpl implements ProjectService {
 	}
 	@Override
 	public String deleteCostCode(String costCodeId) {
-		CostCodeActivity costCode = costCodeActivityDao.findById(costCodeId).orElseThrow(
+		CostCodeActivity costCode = costCodeActivityDao.findById(convertToUUID(costCodeId)).orElseThrow(
 				() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
 		costCodeActivityDao.delete(costCode);
 		return messageSource.getMessage("cost.code.delete.success", null, Locale.ENGLISH);
@@ -1084,7 +1292,7 @@ public class ProjectServiceImpl implements ProjectService {
 	@Override
 	public List<ProjectInfoDto> getAllCostCodeUpdatedProject() {
 		List<ProjectInfoDto> projects = getAllProjects();
-		Set<String> projectIds = costCodeActivityDao.findAll().stream().map(costCode -> costCode.getProject().getId())
+		Set<String> projectIds = costCodeActivityDao.findAll().stream().map(costCode -> costCode.getProject().getId().toString())
 				.collect(Collectors.toSet());
 		projects = projects.stream()
 				.filter(project -> projectIds.contains(project.getProjectId()))
@@ -1093,344 +1301,641 @@ public class ProjectServiceImpl implements ProjectService {
 	}
 	@Override
 	public List<CostCodeActivity> getCostCodeActivityByProject(String projectId) {
-		return costCodeActivityDao.findByProjectId(projectId);
+		return costCodeActivityDao.findByProjectId(UUID.fromString(projectId));
 	}
 	@Override
 	public CostCodeActivity getCostCodeActivityById(String costCodeId) {
-		return costCodeActivityDao.findById(costCodeId).orElseThrow(
+		return costCodeActivityDao.findById(convertToUUID(costCodeId)).orElseThrow(
 				() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
 	}
 	@Override
 	public double getTotalAmountByCostCodeType(String costCodeTypeId, String projectId) {
-		List<CostCodeActivity> activities = costCodeActivityDao.findByProjectIdAndCostCodeTypeId(projectId,
-				costCodeTypeId);
+		List<CostCodeActivity> activities = costCodeActivityDao.findByProjectIdAndCostCodeTypeId(UUID.fromString(projectId),
+				UUID.fromString(costCodeTypeId));
 		if (activities != null && !activities.isEmpty()) {
 			return activities.stream().mapToDouble(CostCodeActivity::getAmount).sum();
 		}
 		return 0;
 	}
 	@Override
+	@Transactional
 	public String addResourcesToTender(TenderResourceDto dto) {
+
+		// 🔥 STEP 1: VALIDATE INPUT
+		if (dto.getProjectId() == null) {
+			throw new RuntimeException("ProjectId is missing in request");
+		}
+
+		if (dto.getBoqId() == null) {
+			throw new RuntimeException("BOQ Id is missing in request");
+		}
+
+		// 🔥 STEP 2: FETCH PROJECT (MANDATORY FIRST)
+		Projects project = projectDao.findById(convertToUUID(dto.getProjectId()))
+				.orElseThrow(() -> new RuntimeException("Project not found"));
+
+		// 🔥 STEP 3: FETCH BOQ
+		BOQ boq = boqDao.findById(convertToUUID(dto.getBoqId()))
+				.orElseThrow(() -> new RuntimeException("BOQ not found"));
+
+		// 🔥 STEP 4: CREATE / LOAD TENDER
 		TenderEstimation tenderEst;
+		UUID tenderId = convertToUUID(dto.getId());
 
-		if (dto.getId() != null && !dto.getId().isEmpty()) {
-			tenderEst = tenderEstDao.findById(dto.getId()).orElseThrow(() ->
-					new RuntimeException("TenderEstimation not found with ID: " + dto.getId()));
-
-			BOQ targetBoq = boqDao.findById(dto.getBoqId()).orElseThrow(() ->
-					new RuntimeException("BOQ not found with ID: " + dto.getBoqId()));
-
-			if (tenderEst.getBoq().contains(targetBoq)) {
-				updateCostDetailsOnly(tenderEst, targetBoq, dto);
-				syncTenderAttributes(tenderEst, dto.getAttributes());
-				return messageSource.getMessage("tender.resource.update.success", null, Locale.ENGLISH);
-			}
+		if (tenderId != null) {
+			tenderEst = tenderEstDao.findById(tenderId)
+					.orElseThrow(() -> new RuntimeException("Tender not found"));
 		} else {
 			tenderEst = new TenderEstimation();
-			tenderEst.setId(UUID.randomUUID().toString());
-			tenderEst.setEstimationAttributes(new ArrayList<>());
 		}
 
+		// 🔥 STEP 5: ALWAYS SET PROJECT + BOQ FIRST
+		tenderEst.setProject(project);
+		tenderEst.setBoq(boq);
+
+		// 🔥 STEP 6: REF CODE LOGIC
+		if (dto.getRefCode() == 0) {
+			List<TenderEstimation> list =
+					tenderEstDao.findByProject_Id(project.getId());
+
+			int maxRefCode = list.stream()
+					.map(TenderEstimation::getRefCode)
+					.max(Integer::compareTo)
+					.orElse(0);
+
+			dto.setRefCode(maxRefCode + 1);
+		}
+
+		// 🔥 STEP 7: PARENT HANDLING
+		UUID parentId = convertToUUID(dto.getParentId());
+		if (parentId != null) {
+			TenderEstimation parent = tenderEstDao.findById(parentId)
+					.orElseThrow(() -> new RuntimeException("Parent not found"));
+
+			if (parent.getResourceNature() != ResourceNature.COMPLEX) {
+				throw new RuntimeException("Parent must be COMPLEX");
+			}
+
+			tenderEst.setParent(parent);
+		}
+
+		// 🔥 STEP 8: SET FIELDS
 		updateTenderEstimationFields(tenderEst, dto);
-		syncTenderAttributes(tenderEst, dto.getAttributes());
+		saveFormulaElements(tenderEst, dto);
+		calculateValues(tenderEst, dto);
 
-		BOQ boq = boqDao.findById(dto.getBoqId()).orElseThrow(() ->
-				new RuntimeException("BOQ not found with ID: " + dto.getBoqId()));
-
-		if (tenderEst.getBoq() == null) {
-			tenderEst.setBoq(new HashSet<>());
-		}
-		tenderEst.getBoq().add(boq);
-
+		// 🔥 STEP 9: SAVE FIRST (CRITICAL)
 		tenderEst = tenderEstDao.save(tenderEst);
 
-		createOrUpdateCostDetails(tenderEst, boq, dto);
-		updateBoqTotals(boq, dto.getTotalCostCompanyCurrency());
+		// 🔥 STEP 10: COMPLEX HANDLING
+		if (tenderEst.getResourceNature() == ResourceNature.COMPLEX) {
 
-		return messageSource.getMessage("tender.resource.save.success", null, Locale.ENGLISH);
+			InternalBoq internalBoq = findOrCreateInternalBoq(tenderEst, project);
+
+			removeExistingBoqItem(tenderEst);
+			linkInternalBoq(tenderEst, internalBoq);
+
+			tenderEst.setTotalCostCompanyCurrency(0);
+			tenderEst.setResourceTotalCost(0);
+		}
+
+		tenderEstDao.save(tenderEst);
+
+		// 🔥 STEP 11: UPDATE PARENT
+		if (parentId != null) {
+			updateParentCost(parentId);
+		}
+
+		// 🔥 STEP 12: FINAL TOTALS
+		updateBoqTotals(boq);
+		updateProjectTotal(project.getId().toString());
+
+		return "Saved Successfully";
 	}
+	private void linkInternalBoq(TenderEstimation tenderEst, InternalBoq internalBoq) {
 
-	private void syncTenderAttributes(TenderEstimation tenderEst, List<AttributeSelectionDto> incomingAttributes) {
-		if (incomingAttributes == null) return;
+		InternalBoqItem item = internalBoqItemDao
+				.findByInternalBoqAndTenderEstimation(internalBoq, tenderEst)
+				.orElse(new InternalBoqItem());
 
-		Set<String> incomingGroupIds = incomingAttributes.stream()
-				.map(AttributeSelectionDto::getAttributeGroupId)
+		item.setInternalBoq(internalBoq);
+		item.setTenderEstimation(tenderEst);
+		item.setQuantity(tenderEst.getNetQuantity());
+
+		internalBoqItemDao.save(item);
+
+		// 🔥 UPDATE TOTAL QUANTITY
+		double totalQty = internalBoqItemDao
+				.findByInternalBoq(internalBoq)
+				.stream()
+				.mapToDouble(InternalBoqItem::getQuantity)
+				.sum();
+
+		internalBoq.setTotalQuantity(totalQty);
+
+		internalBoqDao.save(internalBoq);
+	}
+	private void removeExistingBoqItem(TenderEstimation tenderEst) {
+
+		if (tenderEst.getId() == null) return;
+
+		List<InternalBoqItem> items =
+				internalBoqItemDao.findByTenderEstimation(tenderEst);
+
+		if (items != null && !items.isEmpty()) {
+
+			Set<InternalBoq> affectedBoqs = items.stream()
+					.map(InternalBoqItem::getInternalBoq)
+					.collect(Collectors.toSet());
+
+			internalBoqItemDao.deleteAll(items);
+
+			// 🔥 RECALCULATE for each BOQ
+			for (InternalBoq boq : affectedBoqs) {
+
+				double totalQty = internalBoqItemDao
+						.findByInternalBoq(boq)
+						.stream()
+						.mapToDouble(InternalBoqItem::getQuantity)
+						.sum();
+
+				boq.setTotalQuantity(totalQty);
+				internalBoqDao.save(boq);
+			}
+		}
+	}
+	private InternalBoq findOrCreateInternalBoq(TenderEstimation tenderEst, Projects project) {
+
+//		if (tenderEst.getProject() == null) {
+//			throw new RuntimeException("Project is not set in TenderEstimation");
+//		}
+
+		List<InternalBoq> candidates =
+				internalBoqDao.findByProjectAndResourceAndUom(
+						project,
+						tenderEst.getResources(),
+						tenderEst.getUom()
+				);
+
+		for (InternalBoq boq : candidates) {
+
+			if (!Objects.equals(
+					boq.getAttributeGroup(),
+					tenderEst.getEstimationAttributes().isEmpty()
+							? null
+							: tenderEst.getEstimationAttributes().get(0).getAttributeGroup()
+			)) continue;
+
+			if (isSameAttributes(boq, tenderEst.getEstimationAttributes())) {
+				return boq;
+			}
+		}
+
+		InternalBoq newBoq = new InternalBoq();
+
+		newBoq.setProject(project);
+		newBoq.setResource(tenderEst.getResources());
+		newBoq.setUom(tenderEst.getUom());
+
+		if (!tenderEst.getEstimationAttributes().isEmpty()) {
+
+			newBoq.setAttributeGroup(
+					tenderEst.getEstimationAttributes().get(0).getAttributeGroup()
+			);
+
+			List<InternalBoqAttribute> attrs = new ArrayList<>();
+
+			for (TenderEstimationAttribute attr : tenderEst.getEstimationAttributes()) {
+				InternalBoqAttribute a = new InternalBoqAttribute();
+				a.setInternalBoq(newBoq);
+				a.setAttribute(attr.getAttribute());
+				attrs.add(a);
+			}
+
+			newBoq.setAttributes(attrs);
+		}
+		return internalBoqDao.save(newBoq);
+	}
+	private boolean isSameAttributes(
+			InternalBoq boq,
+			List<TenderEstimationAttribute> attrs
+	) {
+
+		if (boq.getAttributes().size() != attrs.size()) return false;
+
+		Set<UUID> boqAttrIds = boq.getAttributes().stream()
+				.map(a -> a.getAttribute().getId())
 				.collect(Collectors.toSet());
 
-		tenderEst.getEstimationAttributes().removeIf(existingAttr ->
-				!incomingGroupIds.contains(existingAttr.getAttributeGroup().getId()));
+		Set<UUID> incomingAttrIds = attrs.stream()
+				.map(a -> a.getAttribute().getId())
+				.collect(Collectors.toSet());
 
-		for (AttributeSelectionDto attrDto : incomingAttributes) {
-			Attribute newAttributeValue = attributeDao.findById(attrDto.getAttributeId())
-					.orElseThrow(() -> new RuntimeException("Attribute not found: " + attrDto.getAttributeId()));
-
-			Optional<TenderEstimationAttribute> existing = tenderEst.getEstimationAttributes().stream()
-					.filter(e -> e.getAttributeGroup().getId().equals(attrDto.getAttributeGroupId()))
-					.findFirst();
-
-			if (existing.isPresent()) {
-				existing.get().setAttribute(newAttributeValue);
-			} else {
-				AttributeGroup group = attributeGroupDao.findById(attrDto.getAttributeGroupId())
-						.orElseThrow(() -> new RuntimeException("Group not found: " + attrDto.getAttributeGroupId()));
-
-				TenderEstimationAttribute newLink = new TenderEstimationAttribute();
-				newLink.setTenderEstimation(tenderEst);
-				newLink.setAttributeGroup(group);
-				newLink.setAttribute(newAttributeValue);
-
-				tenderEst.getEstimationAttributes().add(newLink);
-			}
+		return boqAttrIds.equals(incomingAttrIds);
+	}
+	@Transactional
+	public void updateParentCost(UUID parentId) {
+		TenderEstimation parent = tenderEstDao.findById(parentId)
+				.orElseThrow(() -> new RuntimeException("Parent not found"));
+		List<TenderEstimation> children =
+				tenderEstDao.findByParent_Id(parentId);
+		double totalCost = children.stream()
+				.mapToDouble(TenderEstimation::getTotalCostCompanyCurrency)
+				.sum();
+		parent.setTotalCostCompanyCurrency(totalCost);
+		double netQty = parent.getNetQuantity();
+		if (netQty > 0) {
+			double rate = totalCost / netQty;
+			parent.setCostUnitRate(rate);
+			parent.setRate(rate);
+		} else {
+			parent.setCostUnitRate(0);
+			parent.setRate(0);
+		}
+		parent.setResourceTotalCost(totalCost * parent.getExchangeRate());
+		tenderEstDao.save(parent);
+		if (parent.getParent() != null) {
+			updateParentCost(parent.getParent().getId());
 		}
 	}
-	private void updateCostDetailsOnly(TenderEstimation tenderEst, BOQ boq, TenderResourceDto dto) {
-	    TenderEstimationCostDetails costDetails = costDetailsDao
-	        .findByTenderEstimationIdAndBoqId(tenderEst.getId(), boq.getId())
-	        .orElse(new TenderEstimationCostDetails());
-	    if (costDetails.getId() == null) {
-	        costDetails.setId(UUID.randomUUID().toString());
-	    }
-	    costDetails.setTenderEstimation(tenderEst);
-	    costDetails.setBoq(boq);
-	    costDetails.setCalculatedQuantity(dto.getCalculatedQuantity());
-	    costDetails.setWastePercentage(dto.getWastePercentage());
-	    costDetails.setWasteQuantity(dto.getWasteQuantity());
-	    costDetails.setNetQuantity(dto.getNetQuantity());
-	    costDetails.setRate(dto.getRate());
-	    costDetails.setAdditionalRate(dto.getAdditionalRate());
-	    costDetails.setShippingPrice(dto.getShippingPrice());
-	    costDetails.setCostUnitRate(dto.getCostUnitRate());
-	    costDetails.setExchangeRate(dto.getExchangeRate());
-	    costDetails.setTotalCostCompanyCurrency(dto.getTotalCostCompanyCurrency());
-	    costDetails.setResourceTotalCost(dto.getResourceTotalCost());
-	    costDetails.setCoEffSnapshot(dto.getCoEfficient());
-	    costDetails.setRateLock(dto.isRateLock());
-	    costDetailsDao.save(costDetails);
-	    updateBoqTotals(boq, dto.getTotalCostCompanyCurrency());
+	private void updateProjectTotal(String projectId) {
+		List<BOQ> boqList = boqDao.findByProjectId(convertToUUID(projectId));
+		BigDecimal total = boqList.stream()
+				.map(boq -> BigDecimal.valueOf(boq.getTotalAmount() != 0.0 ? boq.getTotalAmount() : 0.0))
+				.reduce(BigDecimal.ZERO, BigDecimal::add);
+		Projects project = projectDao.findById(convertToUUID(projectId))
+				.orElseThrow(() -> new RuntimeException("Not found"));
+		project.setTotalEstimatedValue(total);
+		projectDao.save(project);
 	}
-	private void createOrUpdateCostDetails(TenderEstimation tenderEst, BOQ boq, TenderResourceDto dto) {
-	    TenderEstimationCostDetails costDetails = costDetailsDao
-	        .findByTenderEstimationIdAndBoqId(tenderEst.getId(), boq.getId())
-	        .orElse(new TenderEstimationCostDetails());
-	    if (costDetails.getId() == null) {
-	        costDetails.setId(UUID.randomUUID().toString());
-	    }
-	    costDetails.setTenderEstimation(tenderEst);
-	    costDetails.setBoq(boq);
-	    costDetails.setCalculatedQuantity(dto.getCalculatedQuantity());
-	    costDetails.setWastePercentage(dto.getWastePercentage());
-	    costDetails.setWasteQuantity(dto.getWasteQuantity());
-	    costDetails.setNetQuantity(dto.getNetQuantity());
-	    costDetails.setRate(dto.getRate());
-	    costDetails.setAdditionalRate(dto.getAdditionalRate());
-	    costDetails.setShippingPrice(dto.getShippingPrice());
-	    costDetails.setCostUnitRate(dto.getCostUnitRate());
-	    costDetails.setExchangeRate(dto.getExchangeRate());
-	    costDetails.setTotalCostCompanyCurrency(dto.getTotalCostCompanyCurrency());
-	    costDetails.setResourceTotalCost(dto.getResourceTotalCost());
-	    costDetails.setCoEffSnapshot(dto.getCoEfficient());
-	    costDetails.setRateLock(dto.isRateLock());
-	    costDetailsDao.save(costDetails);
+	private void calculateValues(TenderEstimation t, TenderResourceDto dto) {
+		double calculatedQty;
+		if (t.getQuantityType() == QuantityType.FORMULA) {
+			calculatedQty = evaluateFormula(t.getFormulaElements());
+		} else if (t.getQuantityType() == QuantityType.DIRECT) {
+			calculatedQty = t.getBoq().getQuantity();
+		} else {
+			calculatedQty = t.getBoq().getQuantity() * t.getCoEfficient();
+		}
+		double wasteQty = (dto.getWastePercentage() / 100) * calculatedQty;
+		double netQty = calculatedQty + wasteQty;
+		double totalCost = netQty * dto.getCostUnitRate();
+		double resourceCost = totalCost * dto.getExchangeRate();
+		t.setCalculatedQuantity(calculatedQty);
+		t.setWasteQuantity(wasteQty);
+		t.setNetQuantity(netQty);
+		t.setTotalCostCompanyCurrency(totalCost);
+		t.setResourceTotalCost(resourceCost);
+	}
+	private double evaluateFormula(List<TenderFormulaElement> elements) {
+		if (elements == null || elements.isEmpty()) return 0;
+		elements.sort(Comparator.comparingInt(TenderFormulaElement::getSequence));
+		List<Double> values = new ArrayList<>();
+		List<String> operators = new ArrayList<>();
+		for (TenderFormulaElement el : elements) {
+			switch (el.getType()) {
+				case SOURCE:
+					double value = 0;
+					if (el.getSourceType() == FormulaSourceType.BOQ && el.getBoq() != null) {
+						value = el.getBoq().getQuantity();
+					} else if (el.getSourceType() == FormulaSourceType.RESOURCE && el.getResource() != null) {
+						value = el.getResource().getCalculatedQuantity();
+					} else if (el.getSourceType() == FormulaSourceType.GLOBAL && el.getGlobalValue() != null) {
+						value = el.getGlobalValue().getValue();
+					}
+					values.add(value);
+					break;
+				case NUMBER:
+					values.add(el.getValue());
+					break;
+				case OPERATOR:
+					operators.add(el.getOperator());
+					break;
+			}
+		}
+		double result = values.get(0);
+		for (int i = 0; i < operators.size(); i++) {
+			String op = operators.get(i);
+			double next = values.get(i + 1);
+			switch (op) {
+				case "+": result += next; break;
+				case "-": result -= next; break;
+				case "*": result *= next; break;
+				case "/": result = next != 0 ? result / next : 0; break;
+			}
+		}
+		return result;
+	}
+	private void saveFormulaElements(TenderEstimation tenderEst, TenderResourceDto dto) {
+		tenderEst.getFormulaElements().clear();
+		if (dto.getFormula() == null || dto.getFormula().isEmpty()) {
+			return;
+		}
+		for (FormulaElementDto f : dto.getFormula()) {
+			TenderFormulaElement el = new TenderFormulaElement();
+			el.setTenderEstimation(tenderEst);
+			el.setSequence(f.getSequence());
+			el.setType(FormulaElementType.valueOf(f.getType()));
+			el.setSourceType(
+					f.getSourceType() != null
+							? FormulaSourceType.valueOf(f.getSourceType())
+							: null
+			);
+			if ("BOQ".equalsIgnoreCase(f.getSourceType())) {
+				el.setBoq(boqDao.findById(convertToUUID(f.getRefId()))
+						.orElseThrow(() -> new RuntimeException("BOQ not found")));
+			}
+			else if ("RESOURCE".equalsIgnoreCase(f.getSourceType())) {
+				el.setResource(tenderEstDao.findById(convertToUUID(f.getRefId()))
+						.orElseThrow(() -> new RuntimeException("Resource not found")));
+			}
+			else if ("GLOBAL".equalsIgnoreCase(f.getSourceType())) {
+				el.setGlobalValue(globalValueDao.findById(convertToUUID(f.getRefId()))
+						.orElseThrow(() -> new RuntimeException("Global value not found")));
+			}
+			if ("OPERATOR".equalsIgnoreCase(f.getType())) {
+				el.setOperator(f.getOperator());
+			} else {
+				el.setValue(f.getValue());
+			}
+			tenderEst.getFormulaElements().add(el);
+		}
 	}
 	private void updateTenderEstimationFields(TenderEstimation tenderEst, TenderResourceDto dto) {
-	    tenderEst.setDocNumber(dto.getDocNumber());
-	    tenderEst.setCoEfficient(dto.getCoEfficient());
-	    tenderEst.setWastePercentage(dto.getWastePercentage());
-	    tenderEst.setRate(dto.getRate());
-	    tenderEst.setAdditionalRate(dto.getAdditionalRate());
-	    tenderEst.setShippingPrice(dto.getShippingPrice());
-	    tenderEst.setCostUnitRate(dto.getCostUnitRate());
-	    tenderEst.setRateLock(dto.isRateLock());
-	    tenderEst.setExchangeRate(dto.getExchangeRate());
-	    ResourceType resourceType = dto.getResourceTypeId() != null
-	        ? masterService.findResourceTypeById(dto.getResourceTypeId()) : null;
-	    tenderEst.setResourceType(resourceType != null ? resourceType : null);
-	    Resources resource = dto.getResourceId() != null
-	        ? masterService.findResourceById(dto.getResourceId()) : null;
-	    tenderEst.setResources(resource != null ? resource : null);
-	    Uom uom = dto.getUomId() != null
-	        ? masterService.findUomById(dto.getUomId()) : null;
-	    tenderEst.setUom(uom != null ? uom : null);
-	    ResourceNature resourceNature = dto.getResourceNatureId() != null
-	        ? masterService.findResourceNatureById(dto.getResourceNatureId()) : null;
-	    tenderEst.setResourceNature(resourceNature != null ? resourceNature : null);
+		tenderEst.setDocNumber(dto.getDocNumber());
+		tenderEst.setCoEfficient(dto.getCoEfficient());
+		tenderEst.setRefCode(dto.getRefCode());
+		tenderEst.setWastePercentage(dto.getWastePercentage());
+		tenderEst.setRate(dto.getRate());
+		tenderEst.setAdditionalRate(dto.getAdditionalRate());
+		tenderEst.setShippingPrice(dto.getShippingPrice());
+		tenderEst.setCostUnitRate(dto.getCostUnitRate());
+		tenderEst.setRateLock(dto.isRateLock());
+		tenderEst.setExchangeRate(dto.getExchangeRate());
+		ResourceType resourceType = (dto.getResourceTypeId() != null && !dto.getResourceTypeId().isEmpty())
+				? ResourceType.valueOf(dto.getResourceTypeId())
+				: null;
+		tenderEst.setResourceType(resourceType);
+		Projects project = (dto.getProjectId() != null && dto.getProjectId().trim().isEmpty() )
+				? findByProjectId(dto.getProjectId())
+				: null;
+		tenderEst.setProject(project);
+		Resources resource = (dto.getResourceId() != null && !dto.getResourceId().trim().isEmpty())
+				? masterService.findResourceById(dto.getResourceId())
+				: null;
+		tenderEst.setResources(resource);
+		Uom uom = (dto.getUomId() != null && !dto.getUomId().trim().isEmpty())
+				? masterService.findUomById(dto.getUomId())
+				: null;
+		tenderEst.setUom(uom);
+		ResourceNature resourceNature = (dto.getResourceNatureId() != null && !dto.getResourceNatureId().isEmpty())
+				? ResourceNature.valueOf(dto.getResourceNatureId().toUpperCase())
+				: null;
+		tenderEst.setResourceNature(resourceNature);
 		QuantityType quantityType = null;
-		if (dto.getQuantityTypeId() != null) {
-			try {
-				quantityType = QuantityType.valueOf(dto.getQuantityTypeId().toUpperCase());
-			} catch (IllegalArgumentException e) {
-				throw new IllegalArgumentException("Invalid quantity type: " + dto.getQuantityTypeId());
-			}
+		if (dto.getQuantityTypeId() != null && !dto.getQuantityTypeId().trim().isEmpty()) {
+			quantityType = QuantityType.valueOf(dto.getQuantityTypeId().toUpperCase());
 		}
 		tenderEst.setQuantityType(quantityType);
-	    Currency currency = dto.getCurrencyId() != null
-	        ? masterService.findCurrencyById(dto.getCurrencyId()) : null;
-	    tenderEst.setCurrency(currency != null ? currency : null);
+		Currency currency = (dto.getCurrencyId() != null && !dto.getCurrencyId().trim().isEmpty())
+				? masterService.findCurrencyById(dto.getCurrencyId())
+				: null;
+		tenderEst.setCurrency(currency);
+		if (dto.getAttributes() != null && !dto.getAttributes().isEmpty()) {
+			tenderEst.getEstimationAttributes().clear();
+			List<TenderEstimationAttribute> attributes = new ArrayList<>();
+			for (AttributeSelectionDto d : dto.getAttributes()) {
+				TenderEstimationAttribute attribute = new TenderEstimationAttribute();
+				attribute.setTenderEstimation(tenderEst);
+				attribute.setAttributeGroup(
+						attributeGroupDao.findById(convertToUUID(d.getAttributeGroupId()))
+								.orElseThrow(() -> new RuntimeException("Attribute Group not found"))
+				);
+				attribute.setAttribute(
+						attributeDao.findById(convertToUUID(d.getAttributeId()))
+								.orElseThrow(() -> new RuntimeException("Attribute not found"))
+				);
+				attributes.add(attribute);
+			}
+			tenderEst.setEstimationAttributes(attributes);
+		}
 	}
-	private void updateBoqTotals(BOQ boq, double totalCostCompanyCurrency) {
-	    boq.setTotalAmount(boq.getTotalAmount() + totalCostCompanyCurrency);
-	    boq.setTotalRate(boq.getTotalAmount() / boq.getQuantity());
-	    boqDao.save(boq);
+	private void updateBoqTotals(BOQ boq) {
+		List<TenderEstimation> list = tenderEstDao.findByBoqId(boq.getId());
+		double total = list.stream()
+				.filter(t -> t.getParent() == null)
+				.mapToDouble(TenderEstimation::getTotalCostCompanyCurrency)
+				.sum();
+		boq.setTotalAmount(total);
+		if (boq.getQuantity() > 0) {
+			boq.setTotalRate(total / boq.getQuantity());
+		} else {
+			boq.setTotalRate(0);
+		}
+		boqDao.save(boq);
 	}
-	
-	public String pasteResourceToBOQ(String boqId, List<String> tenderEstimationIds) {
-	    BOQ boq = boqDao.findById(boqId).orElseThrow(() -> 
-	        new RuntimeException("BOQ not found with ID: " + boqId));
-	    List<String> messages = new ArrayList<>();
-	    int successCount = 0;
-	    for (String existingTenderEstId : tenderEstimationIds) {
-	        TenderEstimation existingTenderEst = tenderEstDao.findById(existingTenderEstId).orElse(null);
-	        if (existingTenderEst == null) {
-	            messages.add("Failed to find existing TenderEstimation with ID: " + existingTenderEstId);
-	            continue;
-	        }
-	        boolean alreadyAssociated = existingTenderEst.getBoq().stream()
-	            .anyMatch(b -> b.getId().equals(boqId));
-	            
-	        if (alreadyAssociated) {
-	            messages.add("TenderEstimation " + existingTenderEstId + " already associated with BOQ " + boqId);
-	            continue;
-	        }
-	        TenderResourceDto dto = createTenderResourceDto(existingTenderEst, boq);
-	        String result = addResourcesToTender(dto);
-	        if (result.contains("success")) {
-	            successCount++;
-	        }
-	        messages.add(result);
-	    }
-	    if (successCount == tenderEstimationIds.size()) {
-	        return messageSource.getMessage("tender.resource.paste.success", null, Locale.ENGLISH);
-	    }
-	    return String.format(messageSource.getMessage("tender.resource.partial.success", null, Locale.ENGLISH), 
-	                        successCount, tenderEstimationIds.size());
+	@Override
+	public List<?> getComplexResourcesByProject(String projectId) {
+		UUID projectUUID = convertToUUID(projectId);
+//		List<BOQ> boqList = boqDao.findByProjectId(projectUUID);
+//		if (boqList == null || boqList.isEmpty()) {
+//			return new ArrayList<>();
+//		}
+//		List<TenderEstimation> complexEstimations =
+//				tenderEstDao.findByBoqInAndResourceNature(boqList, ResourceNature.COMPLEX);
+//		return complexEstimations.stream()
+//				.map(this::mapToTreeDto)
+//				.collect(Collectors.toList());
+		return getInternalBoqByProject(projectUUID);
 	}
-	private TenderResourceDto createTenderResourceDto(TenderEstimation existingTenderEst, BOQ boq) {
-	    TenderResourceDto dto = new TenderResourceDto();
-	    dto.setResourceTypeId(existingTenderEst.getResourceType() != null ? existingTenderEst.getResourceType().getId() : null);
-	    dto.setResourceId(existingTenderEst.getResources() != null ? existingTenderEst.getResources().getId() : null);
-	    dto.setUomId(existingTenderEst.getUom() != null ? existingTenderEst.getUom().getId() : null);
-	    dto.setResourceNatureId(existingTenderEst.getResourceNature() != null ? existingTenderEst.getResourceNature().getId() : null);
-	    dto.setQuantityTypeId(existingTenderEst.getQuantityType() != null ? existingTenderEst.getQuantityType().name() : null);
-	    dto.setCurrencyId(existingTenderEst.getCurrency() != null ? existingTenderEst.getCurrency().getId() : null);
-	    dto.setBoqId(boq.getId());
-	    dto.setId(existingTenderEst.getId());
-	    dto.setDocNumber(existingTenderEst.getDocNumber());
-	    dto.setCoEfficient(existingTenderEst.getCoEfficient());
-	    dto.setWastePercentage(existingTenderEst.getWastePercentage());
-	    dto.setRate(existingTenderEst.getRate());
-	    dto.setAdditionalRate(existingTenderEst.getAdditionalRate());
-	    dto.setShippingPrice(existingTenderEst.getShippingPrice());
-	    dto.setCostUnitRate(existingTenderEst.getCostUnitRate());
-	    dto.setRateLock(existingTenderEst.isRateLock());
-	    dto.setExchangeRate(existingTenderEst.getExchangeRate());
-	    TenderEstimationCostDetails existingCostDetails = costDetailsDao
-	        .findByTenderEstimationIdAndBoqId(existingTenderEst.getId(), 
-	            existingTenderEst.getBoq().iterator().next().getId())
-	        .orElse(null);
-	    if (existingCostDetails != null) {
-	        dto.setCalculatedQuantity(boq.getQuantity() * existingCostDetails.getCoEffSnapshot());
-	        dto.setWasteQuantity((existingCostDetails.getWastePercentage() / 100) * boq.getQuantity());
-	        dto.setNetQuantity(dto.getCalculatedQuantity() + dto.getWasteQuantity());
-	        dto.setTotalCostCompanyCurrency(dto.getNetQuantity() * existingCostDetails.getCostUnitRate());
-	        dto.setResourceTotalCost(dto.getTotalCostCompanyCurrency() * dto.getExchangeRate());
-	        dto.setCoEfficient(existingCostDetails.getCoEffSnapshot());
-	    }
-	    return dto;
+	@Override
+	public List<Map<String, Object>> getInternalBoqByTender(String tenderEstimationId) {
+
+		UUID tenderId = UUID.fromString(tenderEstimationId);
+
+		TenderEstimation parent = tenderEstDao.findById(tenderId)
+				.orElseThrow(() -> new RuntimeException("TenderEstimation not found"));
+
+		List<InternalBoq> boqs =
+				internalBoqDao.findByProject(parent.getProject());
+
+		List<Map<String, Object>> result = new ArrayList<>();
+
+		for (InternalBoq boq : boqs) {
+
+			List<InternalBoqItem> items =
+					internalBoqItemDao.findByInternalBoq(boq);
+
+			if (items == null || items.isEmpty()) continue;
+
+			// 🔥 FILTER ONLY CHILD TREE OF THIS COMPLEX
+			List<InternalBoqItem> filteredItems = items.stream()
+					.filter(item -> isChildOf(item.getTenderEstimation(), parent))
+					.toList();
+
+			if (filteredItems.isEmpty()) continue;
+
+			// 🔥 CALCULATE TOTAL
+			double totalQty = filteredItems.stream()
+					.mapToDouble(InternalBoqItem::getQuantity)
+					.sum();
+
+			// 🔥 BUILD ITEM LIST
+			List<Map<String, Object>> itemList = filteredItems.stream()
+					.map(item -> {
+						Map<String, Object> map = new HashMap<>();
+						map.put("tenderEstimationId", item.getTenderEstimation().getId());
+						map.put("quantity", item.getQuantity());
+						return map;
+					})
+					.toList();
+
+			// 🔥 BUILD BOQ OBJECT
+			Map<String, Object> boqMap = new HashMap<>();
+			boqMap.put("internalBoqId", boq.getId());
+			boqMap.put("resourceId", boq.getResource().getId());
+			boqMap.put("resourceName", boq.getResource().getResourceName());
+			boqMap.put("uomCode", boq.getUom().getUomCode());
+			boqMap.put("totalQuantity", totalQty);
+			boqMap.put("items", itemList);
+
+			result.add(boqMap);
+		}
+
+		return result;
+	}
+	private boolean isChildOf(TenderEstimation child, TenderEstimation parent) {
+
+		TenderEstimation current = child;
+
+		while (current != null) {
+			if (current.getId().equals(parent.getId())) {
+				return true;
+			}
+			current = current.getParent();
+		}
+
+		return false;
+	}
+	public List<InternalBoqProjectDto> getInternalBoqByProject(UUID projectId) {
+
+		List<InternalBoq> boqs = internalBoqDao.findByProject_Id(projectId);
+
+		List<InternalBoqProjectDto> result = new ArrayList<>();
+
+		for (InternalBoq boq : boqs) {
+
+			List<InternalBoqItem> items =
+					internalBoqItemDao.findByInternalBoq(boq);
+
+			double totalQty = items.stream()
+					.mapToDouble(InternalBoqItem::getQuantity)
+					.sum();
+
+			List<InternalBoqItemDto> itemDtos = items.stream()
+					.map(item -> {
+						InternalBoqItemDto dto = new InternalBoqItemDto();
+						dto.setTenderEstimationId(item.getTenderEstimation().getId().toString());
+						dto.setQuantity(item.getQuantity());
+						return dto;
+					})
+					.toList();
+
+			InternalBoqProjectDto dto = new InternalBoqProjectDto();
+			dto.setInternalBoqId(boq.getId().toString());
+			dto.setResourceId(boq.getResource().getId().toString());
+			dto.setResourceName(boq.getResource().getResourceName());
+			dto.setUomCode(boq.getUom().getUomCode());
+			dto.setTotalQuantity(totalQty);
+			dto.setItems(itemDtos);
+			result.add(dto);
+		}
+
+		return result;
 	}
 	@Override
 	public ActivityGroup getActivityGroupById(String activityGroupId) {
-		return activityGroupsDao.findById(activityGroupId).orElseThrow(
+		return activityGroupsDao.findById(convertToUUID(activityGroupId)).orElseThrow(
 				() -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
 	}
 	@Override
 	public List<TenderEstResourceDto> getEstimatedResourcesByBoq(String boqId) {
-		List<TenderEstimation> estimations = tenderEstDao.findByBoqId(boqId);
+		UUID boqUUID = convertToUUID(boqId);
+		List<TenderEstimation> estimations = tenderEstDao.findByBoqId(boqUUID);
 		List<TenderEstResourceDto> dtoList = new ArrayList<>();
 		for (TenderEstimation est : estimations) {
-			TenderEstimationCostDetails costDetails = costDetailsDao
-					.findByTenderEstimationIdAndBoqId(est.getId(), boqId)
-					.orElse(null);
 			TenderEstResourceDto dto = new TenderEstResourceDto();
 			dto.setTenderEstimation(est);
-			dto.setCostDetails(costDetails);
+			dto.setCalculatedQuantity(est.getCalculatedQuantity());
+			dto.setWasteQuantity(est.getWasteQuantity());
+			dto.setNetQuantity(est.getNetQuantity());
+			dto.setTotalCostCompanyCurrency(est.getTotalCostCompanyCurrency());
+			dto.setResourceTotalCost(est.getResourceTotalCost());
+			dto.setCoEfficient(est.getCoEfficient());
 			dtoList.add(dto);
 		}
 		return dtoList;
 	}
 	@Override
 	public String deleteTenderEstimationForBoq(String tenderEstimationId, String boqId) {
-	    TenderEstimation tenderEstimation = tenderEstDao.findById(tenderEstimationId)
-	       .orElseThrow(() -> new RuntimeException("TenderEstimation not found with ID: " + tenderEstimationId));
-	    BOQ boq = boqDao.findById(boqId)
-	        .orElseThrow(() -> new RuntimeException("BOQ not found with ID: " + boqId));
-	    if (!tenderEstimation.getBoq().contains(boq)) {
-	        return messageSource.getMessage("tender.resource.not.associated", null, Locale.ENGLISH);
-	    }
-	    Optional<TenderEstimationCostDetails> costDetailsOpt = costDetailsDao
-	        .findByTenderEstimationIdAndBoqId(tenderEstimationId, boqId);
-	    double costToSubtract = 0.0;
-	    if (costDetailsOpt.isPresent()) {
-	        costToSubtract = costDetailsOpt.get().getTotalCostCompanyCurrency();
-	    }
-	    boolean wasRemoved = tenderEstimation.getBoq().remove(boq);
-	    if (wasRemoved) {
-	        if (tenderEstimation.getBoq().isEmpty()) {
-	            deleteTenderEstimationCompletely(tenderEstimation, boqId);
-	        } else {
-	            tenderEstimation.setBoq(tenderEstimation.getBoq());
-	            tenderEstDao.save(tenderEstimation);
-	            costDetailsOpt.ifPresent(costDetailsDao::delete);
-	        }
-	        updateBoqTotalsAfterDeletion(boq, costToSubtract);
-	        
-	        return messageSource.getMessage("tender.resource.delete.success", null, Locale.ENGLISH);
-	    }
-	    return messageSource.getMessage("tender.resource.delete.failed", null, Locale.ENGLISH);
-	}
+		UUID tenderId = convertToUUID(tenderEstimationId);
+		UUID boqUUID = convertToUUID(boqId);
+		TenderEstimation tenderEstimation = tenderEstDao.findById(tenderId)
+				.orElseThrow(() -> new RuntimeException(
+						"TenderEstimation not found with ID: " + tenderEstimationId));
 
-	private void deleteTenderEstimationCompletely(TenderEstimation tenderEstimation, String boqId) {
-	    List<TenderEstimationCostDetails> allCostDetails = costDetailsDao
-	        .findByTenderEstimationId(tenderEstimation.getId());
-	    costDetailsDao.deleteAll(allCostDetails);
-	    tenderEstDao.delete(tenderEstimation);
+		if (tenderEstimation.getBoq() == null ||
+				!tenderEstimation.getBoq().getId().equals(boqUUID)) {
+
+			return messageSource.getMessage("tender.resource.not.associated", null, Locale.ENGLISH);
+		}
+		BOQ boq = tenderEstimation.getBoq();
+		TenderEstimation parent = tenderEstimation.getParent();
+		tenderEstDao.delete(tenderEstimation);
+		if (parent != null) {
+			updateParentCost(parent.getId());
+		}
+		updateBoqTotals(boq);
+		updateProjectTotal(boq.getProject().getId().toString());
+		return messageSource.getMessage("tender.resource.delete.success", null, Locale.ENGLISH);
 	}
-	private void updateBoqTotalsAfterDeletion(BOQ boq, double costToSubtract) {
-	    boq.setTotalAmount(Math.max(0, boq.getTotalAmount() - costToSubtract));
-	    if (boq.getQuantity() > 0) {
-	        boq.setTotalRate(boq.getTotalAmount() / boq.getQuantity());
-	    } else {
-	        boq.setTotalRate(0.0);
-	    }
-	    boqDao.save(boq);
-	}
+	@Override
 	public TenderEstResourceDto getEstimatedResourceById(String tenderEstimationId) {
-	    TenderEstimation tenderEstimation = tenderEstDao.findById(tenderEstimationId)
-	        .orElseThrow(() -> new RuntimeException("TenderEstimation not found with ID: " + tenderEstimationId));
-	    List<TenderEstimationCostDetails> costDetailsList = costDetailsDao
-	        .findByTenderEstimationId(tenderEstimationId);
-	    TenderEstResourceDto dto = new TenderEstResourceDto();
-	    dto.setTenderEstimation(tenderEstimation);
-	    dto.setCostDetailsList(costDetailsList); 
-	    if (!costDetailsList.isEmpty()) {
-	        dto.setCostDetails(costDetailsList.get(0)); 
-	    }
-	    return dto;
+		UUID tenderId = convertToUUID(tenderEstimationId);
+		TenderEstimation tenderEstimation = tenderEstDao.findById(tenderId)
+				.orElseThrow(() -> new RuntimeException(
+						"TenderEstimation not found with ID: " + tenderEstimationId));
+		TenderEstResourceDto dto = new TenderEstResourceDto();
+		dto.setTenderEstimation(tenderEstimation);
+		dto.setCalculatedQuantity(tenderEstimation.getCalculatedQuantity());
+		dto.setWasteQuantity(tenderEstimation.getWasteQuantity());
+		dto.setNetQuantity(tenderEstimation.getNetQuantity());
+		dto.setTotalCostCompanyCurrency(tenderEstimation.getTotalCostCompanyCurrency());
+		dto.setResourceTotalCost(tenderEstimation.getResourceTotalCost());
+		dto.setCoEfficient(tenderEstimation.getCoEfficient());
+		return dto;
 	}
 	@Override
 	public TenderEstResourceDto getEstimatedResourceByIdAndBoqId(String tenderEstimationId, String boqId) {
-	    TenderEstimation tenderEstimation = tenderEstDao.findById(tenderEstimationId)
-	        .orElseThrow(() -> new RuntimeException("TenderEstimation not found with ID: " + tenderEstimationId));
-	    
-	    TenderEstimationCostDetails costDetails = costDetailsDao
-	        .findByTenderEstimationIdAndBoqId(tenderEstimationId, boqId)
-	        .orElseThrow(() -> new RuntimeException(
-	            "Cost details not found for TenderEstimation: " + tenderEstimationId + 
-	            " and BOQ: " + boqId));
-	    
-	    TenderEstResourceDto dto = new TenderEstResourceDto();
-	    dto.setTenderEstimation(tenderEstimation);
-	    dto.setCostDetails(costDetails);
-	    return dto;
+		UUID tenderId = convertToUUID(tenderEstimationId);
+		UUID boqUUID = convertToUUID(boqId);
+		TenderEstimation tenderEstimation = tenderEstDao.findById(tenderId)
+				.orElseThrow(() -> new RuntimeException(
+						"TenderEstimation not found with ID: " + tenderEstimationId));
+		if (tenderEstimation.getBoq() == null ||
+				!tenderEstimation.getBoq().getId().equals(boqUUID)) {
+			throw new RuntimeException(
+					"TenderEstimation does not belong to BOQ: " + boqId);
+		}
+		TenderEstResourceDto dto = new TenderEstResourceDto();
+		dto.setTenderEstimation(tenderEstimation);
+		dto.setCalculatedQuantity(tenderEstimation.getCalculatedQuantity());
+		dto.setWasteQuantity(tenderEstimation.getWasteQuantity());
+		dto.setNetQuantity(tenderEstimation.getNetQuantity());
+		dto.setTotalCostCompanyCurrency(tenderEstimation.getTotalCostCompanyCurrency());
+		dto.setResourceTotalCost(tenderEstimation.getResourceTotalCost());
+		dto.setCoEfficient(tenderEstimation.getCoEfficient());
+		return dto;
 	}
 	@Override
 	public void addTender(TenderInputDto tenderInputDto, String technicalNotes,
@@ -1443,21 +1948,19 @@ public class ProjectServiceImpl implements ProjectService {
 		boolean isEdit = false;
 
 		if (tenderInputDto.getId() != null && !tenderInputDto.getId().isEmpty()) {
-			Optional<Tender> existingOpt = tenderDao.findById(tenderInputDto.getId());
+			Optional<Tender> existingOpt = tenderDao.findById(convertToUUID(tenderInputDto.getId()));
 			if (existingOpt.isPresent()) {
 				User user = userService.findLoggedInUser();
 				tender = existingOpt.get();
 				isEdit = true;
-				trackTenderHistory(tender, tenderInputDto, user.getId(), tenderInputDto.getFloatedBy());
+				trackTenderHistory(tender, tenderInputDto, user.getId().toString(), tenderInputDto.getFloatedBy());
 			} else {
 				tender = new Tender();
-				tender.setId(tenderInputDto.getId());
+				tender.setId(UUID.fromString(tenderInputDto.getId()));
 			}
 		} else {
 			tender = new Tender();
-			tender.setId(UUID.randomUUID().toString());
 		}
-
 		tender.setTenderNumber(tenderInputDto.getTenderFloatingNo());
 		tender.setTenderName(tenderInputDto.getTenderName());
 		tender.setBidOpeningdate(tenderInputDto.getBidOpeningDate());
@@ -1482,7 +1985,7 @@ public class ProjectServiceImpl implements ProjectService {
 
 		Projects project = null;
 		if (tenderInputDto.getProjectId() != null) {
-			project = projectDao.findById(tenderInputDto.getProjectId()).orElse(null);
+			project = projectDao.findById(convertToUUID(tenderInputDto.getProjectId())).orElse(null);
 			tender.setProjects(project);
 		}
 
@@ -1496,11 +1999,15 @@ public class ProjectServiceImpl implements ProjectService {
 		}
 
 		if (tenderInputDto.getBoqId() != null) {
-			tender.setBoq(new HashSet<>(boqDao.findAllById(tenderInputDto.getBoqId())));
+
+			Set<UUID> boqIds = tenderInputDto.getBoqId()
+					.stream()
+					.map(UUID::fromString)
+					.collect(Collectors.toSet());
+
+			tender.setBoq(new HashSet<>(boqDao.findAllById(boqIds)));
 		}
-
 		List<Contractor> contractorsToEmail = new ArrayList<>();
-
 		if (tenderInputDto.getContractorId() != null) {
 			Set<Contractor> currentContractors = tender.getContractor();
 			if (currentContractors == null) currentContractors = new HashSet<>();
@@ -1604,7 +2111,11 @@ public class ProjectServiceImpl implements ProjectService {
 
 		String newBoqs = "";
 		if (newDetails.getBoqId() != null && !newDetails.getBoqId().isEmpty()) {
-			List<BOQ> newBoqEntities = boqDao.findAllById(newDetails.getBoqId());
+			List<UUID> boqIds = newDetails.getBoqId()
+					.stream()
+					.map(UUID::fromString)
+					.toList();
+			List<BOQ> newBoqEntities = boqDao.findAllById(boqIds);
 			newBoqs = newBoqEntities.stream().map(BOQ::getBoqCode).collect(Collectors.joining(", "));
 		}
 		compareAndLog(historyList, existingTender, "BOQs", oldBoqs, newBoqs, userId, userName);
@@ -1637,7 +2148,6 @@ public class ProjectServiceImpl implements ProjectService {
 
 	private void createHistoryEntry(List<TenderEditHistory> list, Tender tender, String field, String oldVal, String newVal, String userId, String userName) {
 		TenderEditHistory history = new TenderEditHistory();
-		history.setId(UUID.randomUUID().toString());
 		history.setTender(tender);
 		history.setField(field);
 		history.setOldValue(oldVal);
@@ -1662,7 +2172,6 @@ public class ProjectServiceImpl implements ProjectService {
 
 		if (attachments == null) {
 			attachments = new TenderAttachments();
-			attachments.setId(UUID.randomUUID().toString());
 			attachments.setTender(tender);
 		}
 
@@ -1698,7 +2207,6 @@ public class ProjectServiceImpl implements ProjectService {
 
 			if (!inviteExists) {
 				TenderInvites invite = new TenderInvites();
-				invite.setId(UUID.randomUUID().toString());
 				invite.setTender(tender);
 				invite.setContractor(contractor);
 				invite.setSubmitted(false);
@@ -1740,7 +2248,7 @@ public class ProjectServiceImpl implements ProjectService {
 	public List<ProjectInfoDto> getTenderFloatedProject() {
 		List<ProjectInfoDto> projects = getAllProjects();
 		Set<String> projectIds = tenderDao.findAll().stream()
-				.map(tender -> tender.getProjects().getId())
+				.map(tender -> tender.getProjects().getId().toString())
 				.collect(Collectors.toSet());
 		projects = projects.stream()
 				.filter(project -> projectIds.contains(project.getProjectId()))
@@ -1750,22 +2258,22 @@ public class ProjectServiceImpl implements ProjectService {
 
 	@Override
 	public List<Tender> getAllTenderByProject(String projectId) {
-		List<Tender> tender = tenderDao.findByProjectsId(projectId);
+		List<Tender> tender = tenderDao.findByProjectsId(UUID.fromString(projectId));
 		return tender;
 	}
 
     @Override
     public TenderAttachments getAllAttachementsByTenderId(String tenderId) {
-        return tenderAttachmentDao.findByTenderId(tenderId)
+        return tenderAttachmentDao.findByTenderId(UUID.fromString(tenderId))
 				.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("tender.attachment.not.found", null, Locale.ENGLISH)));
     }
 
 	@Override
 	public TenderRespDto getTenderByTenderId(String tenderId) {
-		Tender tender = tenderDao.findById(tenderId)
+		Tender tender = tenderDao.findById(convertToUUID(tenderId))
 				.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("tender.not.found", null, Locale.ENGLISH)));
 		TenderRespDto tenderResponse = new TenderRespDto();
-		tenderResponse.setId(tender.getId());
+		tenderResponse.setId(tender.getId().toString());
 		tenderResponse.setTenderName(tender.getTenderName());
 		tenderResponse.setTenderNumber(tender.getTenderNumber());
 		tenderResponse.setContactName(tender.getContactName());
@@ -1792,7 +2300,7 @@ public class ProjectServiceImpl implements ProjectService {
 		if (tender.getBoq() != null) {
 			Set<BOQDto> boqDtos = tender.getBoq().stream().map(b -> {
 				BOQDto dto = new BOQDto();
-				dto.setBoqId(b.getId());
+				dto.setBoqId(b.getId().toString());
 				dto.setBoqCode(b.getBoqCode());
 				dto.setBoqName(b.getBoqName());
 				dto.setQuantity(b.getQuantity());
@@ -1809,17 +2317,16 @@ public class ProjectServiceImpl implements ProjectService {
 		int currentVersion = 1;
 
 		if (offerDTO.getId() != null && !offerDTO.getId().isEmpty()) {
-			offers = tenderOffersDao.findById(offerDTO.getId())
+			offers = tenderOffersDao.findById(convertToUUID(offerDTO.getId()))
 					.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("offer.not.found", null, Locale.ENGLISH)));
-			List<OfferQuotation> offerQuotations = offerQuotationDao.findByTenderOffersId(offerDTO.getId());
+			List<OfferQuotation> offerQuotations = offerQuotationDao.findByTenderOffersId(UUID.fromString(offerDTO.getId()));
 			int maxExistingVersion = offerQuotations.size();
 			currentVersion = maxExistingVersion + 1;
 			offers.setSubmittedOn(new Date(System.currentTimeMillis()));
 			offers.setOfferStatus(OfferStatus.SUBMITTED);
 		} else {
 			offers = new TenderOffers();
-			offers.setId(UUID.randomUUID().toString());
-			Tender tender = tenderDao.findById(offerDTO.getTenderId())
+			Tender tender = tenderDao.findById(convertToUUID(offerDTO.getTenderId()))
 					.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("tender.not.found", null, Locale.ENGLISH)));
 			offers.setTender(tender);
 			if (tender.getProjects() != null) {
@@ -1838,11 +2345,10 @@ public class ProjectServiceImpl implements ProjectService {
 		if (offerDTO.getBoqRate() != null) {
 			for (Map<String, Double> rateMap : offerDTO.getBoqRate()) {
 				for (Map.Entry<String, Double> entry : rateMap.entrySet()) {
-					BOQ boq = boqDao.findById(entry.getKey())
+					BOQ boq = boqDao.findById(convertToUUID(entry.getKey()))
 							.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("boq.not.found", null, Locale.ENGLISH)));
 
 					OfferQuotation quotation = new OfferQuotation();
-					quotation.setId(UUID.randomUUID().toString());
 					quotation.setTenderOffers(offers);
 					quotation.setBoq(boq);
 					quotation.setRate(entry.getValue());
@@ -1865,30 +2371,29 @@ public class ProjectServiceImpl implements ProjectService {
 	}
 	@Override
 	public Tender getTenderDetailsByTenderId(String tenderId) {
-		return tenderDao.findById(tenderId).orElseThrow(()-> new DataNotFoundException(
+		return tenderDao.findById(convertToUUID(tenderId)).orElseThrow(()-> new DataNotFoundException(
 				messageSource.getMessage("tender.not.found",null,Locale.ENGLISH)
 		));
 	}
 	@Override
 	public List<TenderEditHistory> getEditHistoriesByTenderId(String tenderId) {
-		return tenderEditHistoryDao.findByTenderId(tenderId);
+		return tenderEditHistoryDao.findByTenderId(UUID.fromString(tenderId));
 	}
 
 	@Override
 	public List<TenderOffers> getAllOfferByTenderId(String tenderId) {
-		return tenderOffersDao.findByTenderId(tenderId);
+		return tenderOffersDao.findByTenderId(UUID.fromString(tenderId));
 	}
 
 	@Override
 	public String negotiateTender(NegotiateDTO negotiateDTO) {
 		OfferNegotiation negotiation = new OfferNegotiation();
-		negotiation.setId(UUID.randomUUID().toString());
-		TenderOffers offer = tenderOffersDao.findById(negotiateDTO.getOfferId())
+		TenderOffers offer = tenderOffersDao.findById(convertToUUID(negotiateDTO.getOfferId()))
 				.orElseThrow(()-> new DataNotFoundException(messageSource.getMessage("offer.not.found",null,Locale.ENGLISH)));
 		negotiation.setTenderOffer(offer);
 		negotiation.setComments(negotiateDTO.getComments());
 		negotiation.setOfferVersion(negotiateDTO.getOfferVersion());
-		TenderInvites invite = tenderInviteDao.findByContractor_IdAndTender_Id(negotiateDTO.getContractorId(),negotiateDTO.getTenderId())
+		TenderInvites invite = tenderInviteDao.findByContractor_IdAndTender_Id(UUID.fromString(negotiateDTO.getContractorId()),UUID.fromString(negotiateDTO.getTenderId()))
 				.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("tender.invite.not.found",null,Locale.ENGLISH)));
 		invite.setSubmitted(false);
 		invite.setTokenExpiry(new Timestamp(System.currentTimeMillis() + (7L * 24 * 60 * 60 * 1000)));
@@ -1906,14 +2411,14 @@ public class ProjectServiceImpl implements ProjectService {
 
 	@Override
 	public TenderRespDto findOfferByOfferVersion(String tenderId, String contractorId, int offerVersion) {
-		TenderOffers offers = tenderOffersDao.findByTenderIdAndContractorId(tenderId,contractorId).
+		TenderOffers offers = tenderOffersDao.findByTenderIdAndContractorId(UUID.fromString(tenderId),UUID.fromString(contractorId)).
 				orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("tender.offer.not.found",null,Locale.ENGLISH)));
 		List<OfferQuotation> quote = offers.getOfferQuotations().stream()
 				.filter(offer -> offer.getOfferVersion() == offerVersion)
 				.toList();
 		Tender tender = offers.getTender();
 		TenderRespDto tenderResponse = new TenderRespDto();
-		tenderResponse.setId(tender.getId());
+		tenderResponse.setId(tender.getId().toString());
 		tenderResponse.setTenderName(tender.getTenderName());
 		tenderResponse.setTenderNumber(tender.getTenderNumber());
 		tenderResponse.setContactName(tender.getContactName());
@@ -1941,7 +2446,7 @@ public class ProjectServiceImpl implements ProjectService {
 			Set<BOQDto> boqDtos = quote.stream()
 					.map(offer -> {
 						BOQDto dto= new BOQDto();
-						dto.setBoqId(offer.getBoq().getId());
+						dto.setBoqId(offer.getBoq().getId().toString());
 						dto.setBoqCode(offer.getBoq().getBoqCode());
 						dto.setBoqName(offer.getBoq().getBoqName());
 						dto.setQuantity(offer.getQuantity());
@@ -1957,18 +2462,18 @@ public class ProjectServiceImpl implements ProjectService {
 
 	@Override
 	public int findOfferNegotiation(String negotiationId) {
-		OfferNegotiation offerNegotiation = offerNegotiateDao.findById(negotiationId)
+		OfferNegotiation offerNegotiation = offerNegotiateDao.findById(convertToUUID(negotiationId))
 				.orElseThrow(()-> new DataNotFoundException(messageSource.getMessage("tender.offer.not.found",null,Locale.ENGLISH)));
 		return offerNegotiation.getOfferVersion();
 	}
 
 	@Override
 	public String awardTender(String tenderId, String tenderOfferId, String offerQuotationId) {
-		Tender tender = tenderDao.findById(tenderId)
+		Tender tender = tenderDao.findById(convertToUUID(tenderId))
 				.orElseThrow(()-> new DataNotFoundException(messageSource.getMessage("tender.not.found",null,Locale.ENGLISH)));
-		TenderOffers tenderOffers = tenderOffersDao.findById(tenderOfferId)
+		TenderOffers tenderOffers = tenderOffersDao.findById(convertToUUID(tenderOfferId))
 				.orElseThrow(()-> new DataNotFoundException(messageSource.getMessage("tender.offer.not.found",null,Locale.ENGLISH)));
-		OfferQuotation quotation = offerQuotationDao.findById(offerQuotationId)
+		OfferQuotation quotation = offerQuotationDao.findById(convertToUUID(offerQuotationId))
 				.orElse(null);
 		tender.setOfferQuotation(quotation);
 		tender.setTenderOffers(tenderOffers);
@@ -1979,6 +2484,56 @@ public class ProjectServiceImpl implements ProjectService {
 	}
 	@Override
 	public List<BOQ> searchBoq(String projectId, String searchQuery) {
-		return boqDao.findByProjectIdAndBoqNameContainingIgnoreCase(projectId, searchQuery);
+		UUID uuid = UUID.fromString(projectId);
+		List<BOQ> boqList = boqDao.findByProjectId(uuid);
+		if (searchQuery == null || searchQuery.trim().isEmpty()) {
+			return boqList;
+		}
+		String search = searchQuery.toLowerCase();
+		return boqList.stream()
+				.filter(boq ->
+						(boq.getBoqName() != null && boq.getBoqName().toLowerCase().contains(search)) ||
+								(boq.getBoqCode() != null && boq.getBoqCode().toLowerCase().contains(search))
+				)
+				.toList();
+	}
+
+	@Override
+	public List<GlobalValue> viewAllGlobalValueByProjectId(String projectId) {
+		return globalValueDao.findByProject_Id(convertToUUID(projectId));
+	}
+
+	@Override
+	public String addGlobalValue(String projectId, GlobalValue globalValue) {
+		UUID projId = convertToUUID(projectId);
+		if (globalValueDao.existsByProject_IdAndNameIgnoreCase(projId, globalValue.getName())) {
+			throw new RuntimeException("Global Value name already exists for this project");
+		}
+		if (globalValueDao.existsByProject_IdAndCodeIgnoreCase(projId, globalValue.getCode())) {
+			throw new RuntimeException("Global Value code already exists for this project");
+		}
+		Projects project = findByProjectId(projectId);
+		globalValue.setProject(project);
+		globalValueDao.save(globalValue);
+		return "Global Value added successfully";
+	}
+	@Override
+	public String editGlobalValue(String projectId, GlobalValue globalValue) {
+		UUID projId = convertToUUID(projectId);
+		GlobalValue existing = globalValueDao.findById(globalValue.getId())
+				.orElseThrow(() -> new RuntimeException("Global Value not found"));
+		if (globalValueDao.existsByProject_IdAndNameIgnoreCaseAndIdNot(
+				projId, globalValue.getName(), globalValue.getId())) {
+			throw new RuntimeException("Global Value name already exists for this project");
+		}
+		if (globalValueDao.existsByProject_IdAndCodeIgnoreCaseAndIdNot(
+				projId, globalValue.getCode(), globalValue.getId())) {
+			throw new RuntimeException("Global Value code already exists for this project");
+		}
+		existing.setName(globalValue.getName());
+		existing.setCode(globalValue.getCode());
+		existing.setValue(globalValue.getValue());
+		globalValueDao.save(existing);
+		return "Global Value updated successfully";
 	}
 }

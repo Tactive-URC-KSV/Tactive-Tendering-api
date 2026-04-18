@@ -1,7 +1,10 @@
 package com.ksv.tactive.project.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
+
+import java.util.UUID;
 
 @Data
 @Entity
@@ -12,8 +15,10 @@ import lombok.Data;
 public class TenderEstimationAttribute {
 
     @Id
-    private String id;
-
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(length = 36)
+    private UUID id;
+    @JsonIgnore
     @ManyToOne
     @JoinColumn(name = "tender_estimation_id", nullable = false)
     private TenderEstimation tenderEstimation;

@@ -5,7 +5,9 @@ import org.springframework.stereotype.Repository;
 
 import com.ksv.tactive.project.entity.ContractorBankDetails;
 
+import java.util.UUID;
+
 @Repository
-public interface ContractorBankDetailsDao extends JpaRepository<ContractorBankDetails, String>{
-    ContractorBankDetails findByContractorId(String id);
+public interface ContractorBankDetailsDao extends JpaRepository<ContractorBankDetails, UUID>{
+    ContractorBankDetails findByContractorId(UUID id);
 }

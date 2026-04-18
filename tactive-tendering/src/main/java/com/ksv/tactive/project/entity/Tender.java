@@ -10,13 +10,16 @@ import lombok.Data;
 import java.sql.Date;
 import java.sql.Time;
 import java.util.Set;
+import java.util.UUID;
 
 @Data
 @Entity
 public class Tender {
 
     @Id
-    private String id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(length = 36)
+    private UUID id;
     private String tenderNumber;
     private String tenderName;
     private Date bidOpeningdate;

@@ -2,6 +2,7 @@ package com.ksv.tactive.util;
 
 public enum QuantityType {
     DIRECT("Direct"),
+    FORMULA("Formula"),
     COEFFICIENT("Co-Efficient");
     private final String label;
     QuantityType(String label) {

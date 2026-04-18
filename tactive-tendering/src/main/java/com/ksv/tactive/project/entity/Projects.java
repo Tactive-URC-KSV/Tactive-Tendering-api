@@ -1,8 +1,7 @@
 package com.ksv.tactive.project.entity;
+import java.math.BigDecimal;
 import java.sql.Date;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import jakarta.persistence.*;
 import lombok.Data;
@@ -11,33 +10,21 @@ import lombok.Data;
 @Table(name = "project_info")
 public class Projects {
 	@Id
-	@Column(name = "id", nullable = false, length = 36)
-	private String id;
+	@GeneratedValue(strategy = GenerationType.UUID)
+	@Column(length = 36)
+	private UUID id;
 	@Column(name = "project_name", nullable = false, length = 255)
 	private String projectName;
 	@Column(name = "project_code", length = 50, nullable = false, unique = true)
 	private String projectCode;
 	@Column(name = "short_name", length = 50, nullable = false)
 	private String shortName;
-	private String agreementNumber;
-	private Date agreementDate;
-	private double estimatedValue;
 	private Date startDate;
 	private Date endDate;
-	private double buildingArea;
-	private int numberOfFloors;
-	private int numberOfAboveGround;
-	private int numberOfBelowGround;
-	private int carParkingFloors;
-	private double ratePerUnit;
-	@Column(nullable = true)
-	private long phoneNo;
-	private String email;
-	private String city;
-	private String address;
+	@Column(name = "total_estimated_value", precision = 15, scale = 2)
+	private BigDecimal totalEstimatedValue = BigDecimal.ZERO;
 	@Column(nullable = true)
 	private boolean archive;
-	private List<String> otherAmenities;
 	private Date createdAt;
 	private Date updateAt;
 	@Column(length = 36)
@@ -63,4 +50,12 @@ public class Projects {
 	private Uom uom;
 	@Column(length = 36)
 	private String companyId;
+	private boolean needFeasibility;
+
+	@OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
+	private List<ProjectAddress> projectAddresses = new ArrayList<>();
+
+	@OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
+	private List<ProjectTechFields> techFields = new ArrayList<>();
+
 }

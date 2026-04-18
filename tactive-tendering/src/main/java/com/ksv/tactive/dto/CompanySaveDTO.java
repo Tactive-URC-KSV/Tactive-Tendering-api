@@ -19,17 +19,13 @@ public class CompanySaveDTO {
     private String businessNatureId;
     private String companyConstitutionId;
     private String statusId;
-
+    private String finStartMonth;
     private String languageId;
     private String currencyId;
     private String bank;
 
-    /* ===== ONE–TO–ONE ===== */
-    private AddressDTO address;
-
-    private CompanyProfileDTO profile;
-
-    /* ===== ONE–TO–MANY ===== */
+    private List<AddressDTO> address;
+    private List<CompanyProfileDTO> profile;
     private List<ContactDTO> contacts;
     private List<TaxDTO> taxDetails;
     private List<DirectorDTO> directors;

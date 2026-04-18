@@ -1,32 +1,27 @@
 package com.ksv.tactive.project.entity;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Index;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Data;
 @Data
 @Entity
 @Table(name = "boq", indexes = { @Index(name = "idx_project_id", columnList = "project_id"),
 		@Index(name = "idx_parent_boq_id", columnList = "parent_boq_id") })
 public class BOQ {
-	
+
 	@Id
-	private String id;
+	@GeneratedValue(strategy = GenerationType.UUID)
+	@Column(length = 36)
+	private UUID id;
 	private String boqCode;
 	@Column(name = "boq_name", length = 3000)
 	private String boqName;
-	@ManyToOne
+	@ManyToOne(cascade = CascadeType.DETACH)
 	@JoinColumn(name = "uom")
 	private Uom uom;
 	private int level;
@@ -35,10 +30,11 @@ public class BOQ {
 	private double totalAmount;
 	private boolean lastLevel;
 	@JsonBackReference
-	@ManyToOne
+	@ManyToOne(cascade = CascadeType.DETACH)
 	@JoinColumn(name = "project_id")
 	private Projects project;
-	@ManyToOne
+	@JsonIgnore
+	@ManyToOne(cascade = CascadeType.DETACH)
 	@JoinColumn(name = "parent_boq_id")
 	private BOQ parentBOQ;
 	@JsonBackReference

@@ -7,13 +7,16 @@ import lombok.Data;
 import java.sql.Date;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Data
 @Entity
 public class TenderOffers {
 
     @Id
-    private String id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(length = 36)
+    private UUID id;
     @ManyToOne
     @JoinColumn(name = "tender_id")
     private Tender tender;

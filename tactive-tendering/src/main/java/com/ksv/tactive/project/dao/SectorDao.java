@@ -5,9 +5,10 @@ import org.springframework.stereotype.Repository;
 import com.ksv.tactive.project.entity.Sector;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface SectorDao extends JpaRepository<Sector, String>{
+public interface SectorDao extends JpaRepository<Sector, UUID>{
 	Sector findBySectorNameIgnoreCase(String sectorName);
     Optional<Sector> findBySectorNameIgnoreCaseAndActiveTrue(String sectorName);
 }

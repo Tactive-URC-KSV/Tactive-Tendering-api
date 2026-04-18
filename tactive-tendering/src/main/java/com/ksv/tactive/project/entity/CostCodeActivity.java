@@ -1,15 +1,9 @@
 package com.ksv.tactive.project.entity;
 import java.util.Set;
+import java.util.UUID;
+
 import com.fasterxml.jackson.annotation.JsonBackReference;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Index;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.JoinTable;
-import jakarta.persistence.ManyToMany;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Data;
 @Data
 @Entity
@@ -19,7 +13,9 @@ import lombok.Data;
 	)
 public class CostCodeActivity {
 	@Id
-	private String id;
+	@GeneratedValue(strategy = GenerationType.UUID)
+	@Column(length = 36)
+	private UUID id;
 	@Column(length = 1000)
 	private String activityCode;
 	@Column(length = 3000)

@@ -5,12 +5,15 @@ import jakarta.persistence.*;
 import lombok.Data;
 
 import java.util.List;
+import java.util.UUID;
 
 @Data
 @Entity
 public class TenderAttachments {
     @Id
-    private String id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(length = 36)
+    private UUID id;
     private List<String> technicalTermsUrl;
     private String technicalTerms;
     private String commercialTerms;

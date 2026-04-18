@@ -16,6 +16,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import java.sql.Timestamp;
+import java.util.UUID;
 
 public class CustomUserDetailsService implements UserDetailsService {
 

@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.annotation.Order;
 import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Component;
 
@@ -38,9 +39,13 @@ public class LanguageDataLoader implements MasterDataLoader<Language> {
     private void saveLanguage(Language languageInput) {
         Language existingLanguage = languageDao.findByLanguageCode(languageInput.getLanguageCode());
         if (existingLanguage == null) {
-            languageInput.setId(UUID.randomUUID().toString());
             languageInput.setActive(true);
             languageDao.save(languageInput);
         }
+    }
+
+    @Override
+    public int getOrder() {
+        return 3;
     }
 }

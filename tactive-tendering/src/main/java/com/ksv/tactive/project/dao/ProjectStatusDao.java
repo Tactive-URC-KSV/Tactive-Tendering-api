@@ -3,9 +3,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import com.ksv.tactive.project.entity.ProjectStatus;
 
+import java.util.UUID;
+
 @Repository
-public interface ProjectStatusDao extends JpaRepository<ProjectStatus, String> {
+public interface ProjectStatusDao extends JpaRepository<ProjectStatus, UUID> {
 	ProjectStatus findByProcessUrl(String url);
-	ProjectStatus findByStatus(String status);
 	ProjectStatus findByStatusIgnoreCase(String status);
 }
