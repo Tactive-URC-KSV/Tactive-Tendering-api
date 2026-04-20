@@ -1320,189 +1320,89 @@ public class ProjectServiceImpl implements ProjectService {
 	@Transactional
 	@Override
 	public String addResourcesToTender(TenderResourceDto dto) {
-
-		if (dto.getProjectId() == null) throw new RuntimeException("ProjectId missing");
-
-		Projects project = projectDao.findById(convertToUUID(dto.getProjectId()))
-				.orElseThrow(() -> new RuntimeException("Project not found"));
-
-		// 🔥 INTERNAL FLOW
-		if (dto.isInternal()) {
-
-			if (dto.getInternalBoqId() == null) {
-				throw new RuntimeException("InternalBoqId required for internal flow");
-			}
-
-			InternalBoq internalBoq = internalBoqDao.findById(convertToUUID(dto.getInternalBoqId()))
-					.orElseThrow(() -> new RuntimeException("Internal BOQ not found"));
-
-			List<TenderEstimation> parents = internalBoq.getParentResource();
-
-			if (parents == null || parents.isEmpty()) {
-				throw new RuntimeException("No parent resources found for Internal BOQ");
-			}
-
-			UUID resourceId = convertToUUID(dto.getResourceId());
-			UUID uomId = convertToUUID(dto.getUomId());
-
-			List<UUID> attributeIds = dto.getAttributes() != null
-					? dto.getAttributes().stream().map(a -> convertToUUID(a.getAttributeId())).toList()
-					: new ArrayList<>();
-
-			for (TenderEstimation parent : parents) {
-
-				Optional<TenderEstimation> duplicateOpt =
-						findDuplicateResource(
-								parent.getId(),
-								parent.getBoq().getId(),
-								resourceId,
-								uomId,
-								attributeIds
-						);
-
-				TenderEstimation tenderEst;
-
-				if (duplicateOpt.isPresent()) {
-
-					tenderEst = duplicateOpt.get();
-
-					double additionalQty = calculateQuantityPerParent(parent, tenderEst.getCoEfficient());
-					double newQty = tenderEst.getNetQuantity() + additionalQty;
-
-					tenderEst.setNetQuantity(newQty);
-
-				} else {
-
-					tenderEst = new TenderEstimation();
-
-					tenderEst.setProject(project);
-					tenderEst.setBoq(parent.getBoq());
-					tenderEst.setParent(parent);
-
-					updateTenderEstimationFields(tenderEst, dto);
-
-					int maxRefCode = tenderEstDao.findByParent_Id(parent.getId()).stream()
-							.mapToInt(TenderEstimation::getRefCode)
-							.max().orElse(0);
-
-					tenderEst.setRefCode(maxRefCode + 1);
-
-					saveFormulaElements(tenderEst, dto);
-
-					double qty = calculateQuantityPerParent(parent, tenderEst.getCoEfficient());
-
-					tenderEst.setCalculatedQuantity(qty);
-					tenderEst.setNetQuantity(qty);
-				}
-
-				// 🔥 COST CALCULATION
-				double totalCost = tenderEst.getNetQuantity() * tenderEst.getCostUnitRate();
-
-				tenderEst.setTotalCostCompanyCurrency(totalCost);
-				tenderEst.setResourceTotalCost(totalCost * tenderEst.getExchangeRate());
-
-				tenderEst = tenderEstDao.save(tenderEst);
-
-				// 🔁 Sync Internal BOQ aggregation
-				syncInternalBoqFromEstimation(tenderEst);
-
-				// 🔁 Propagate cost upward
-				propagateCost(parent);
-			}
-
-			return "Saved to all parents based on their quantities";
-		}
-
-		// 🔥 NORMAL FLOW (unchanged)
-		return addNormalResource(dto);
-	}
-
-	@Transactional
-	private String addNormalResource(TenderResourceDto dto) {
-
 		if (dto.getProjectId() == null) throw new RuntimeException("ProjectId missing");
 		if (dto.getBoqId() == null) throw new RuntimeException("BOQ Id missing");
-
 		Projects project = projectDao.findById(convertToUUID(dto.getProjectId()))
 				.orElseThrow(() -> new RuntimeException("Project not found"));
-
-		BOQ boq = boqDao.findById(convertToUUID(dto.getBoqId()))
-				.orElseThrow(() -> new RuntimeException("BOQ not found"));
-
+		TenderEstimation parent = null;
+		BOQ boq;
+		if (dto.isInternal()) {
+			InternalBoq internalBoq = internalBoqDao.findById(convertToUUID(dto.getBoqId()))
+					.orElseThrow(() -> new RuntimeException("Internal BOQ not found"));
+			if (internalBoq.getParentResource() == null || internalBoq.getParentResource().isEmpty()) {
+				throw new RuntimeException("Internal BOQ has no parent resource");
+			}
+			parent = internalBoq.getParentResource().get(0);
+			boq = parent.getBoq();
+		} else {
+			boq = boqDao.findById(convertToUUID(dto.getBoqId()))
+					.orElseThrow(() -> new RuntimeException("BOQ not found"));
+		}
 		UUID resourceId = convertToUUID(dto.getResourceId());
 		UUID uomId = convertToUUID(dto.getUomId());
-
 		List<UUID> attributeIds = dto.getAttributes() != null
 				? dto.getAttributes().stream().map(a -> convertToUUID(a.getAttributeId())).toList()
 				: new ArrayList<>();
-
 		Optional<TenderEstimation> duplicateOpt =
 				findDuplicateResource(
-						null,
+						parent != null ? parent.getId() : null,
 						boq.getId(),
 						resourceId,
 						uomId,
 						attributeIds
 				);
-
 		TenderEstimation tenderEst;
-
 		if (duplicateOpt.isPresent()) {
-
 			tenderEst = duplicateOpt.get();
-
 			if (tenderEst.getResourceNature() == ResourceNature.SIMPLE) {
-				throw new RuntimeException("This simple resource already exists in this BOQ.");
+				throw new DuplicateEntryException("This simple resource already exists in this BOQ.");
 			}
-
 			double newQty = tenderEst.getNetQuantity() + dto.getNetQuantity();
 			tenderEst.setNetQuantity(newQty);
-
+			double totalCost = newQty * tenderEst.getCostUnitRate();
+			tenderEst.setTotalCostCompanyCurrency(totalCost);
+			tenderEst.setResourceTotalCost(totalCost * tenderEst.getExchangeRate());
 		} else {
-
 			tenderEst = new TenderEstimation();
-
 			tenderEst.setProject(project);
 			tenderEst.setBoq(boq);
-			tenderEst.setParent(null); // 🔥 IMPORTANT
-
+			tenderEst.setParent(parent);
 			updateTenderEstimationFields(tenderEst, dto);
-
-			int maxRefCode = tenderEstDao.findByBoqId(boq.getId()).stream()
-					.filter(e -> e.getParent() == null)
-					.mapToInt(TenderEstimation::getRefCode)
-					.max().orElse(0);
-
+			int maxRefCode;
+			if (parent == null) {
+				maxRefCode = tenderEstDao.findByBoqId(boq.getId()).stream()
+						.filter(e -> e.getParent() == null)
+						.mapToInt(TenderEstimation::getRefCode)
+						.max().orElse(0);
+			} else {
+				maxRefCode = tenderEstDao.findByParent_Id(parent.getId()).stream()
+						.mapToInt(TenderEstimation::getRefCode)
+						.max().orElse(0);
+			}
 			tenderEst.setRefCode(maxRefCode + 1);
-
 			saveFormulaElements(tenderEst, dto);
-
-			calculateValues(tenderEst, dto);
+			if (tenderEst.getResourceNature() == ResourceNature.COMPLEX) {
+				double qty;
+				if (tenderEst.getParent() == null) {
+					qty = boq.getQuantity() * tenderEst.getCoEfficient();
+				} else {
+					qty = tenderEst.getCoEfficient();
+				}
+				tenderEst.setCalculatedQuantity(qty);
+				tenderEst.setNetQuantity(qty);
+				double totalCost = qty * tenderEst.getCostUnitRate();
+				tenderEst.setTotalCostCompanyCurrency(totalCost);
+				tenderEst.setResourceTotalCost(totalCost * tenderEst.getExchangeRate());
+			} else {
+				calculateValues(tenderEst, dto);
+			}
 		}
-
-		double totalCost = tenderEst.getNetQuantity() * tenderEst.getCostUnitRate();
-
-		tenderEst.setTotalCostCompanyCurrency(totalCost);
-		tenderEst.setResourceTotalCost(totalCost * tenderEst.getExchangeRate());
-
 		tenderEst = tenderEstDao.save(tenderEst);
-
 		if (tenderEst.getResourceNature() == ResourceNature.COMPLEX) {
 			syncInternalBoqFromEstimation(tenderEst);
 		}
-
 		propagateCost(tenderEst);
-
 		return "Saved Successfully";
-	}
-
-	private double calculateQuantityPerParent(TenderEstimation parent, double coefficient) {
-
-		if (parent.getParent() == null) {
-			return parent.getBoq().getQuantity() * coefficient;
-		} else {
-			return coefficient;
-		}
 	}
 	private Optional<TenderEstimation> findDuplicateResource(
 			UUID parentId,
@@ -1530,27 +1430,26 @@ public class ProjectServiceImpl implements ProjectService {
 		return Optional.empty();
 	}
 	private void syncInternalBoqFromEstimation(TenderEstimation est) {
-
 		if (est.getResourceNature() != ResourceNature.COMPLEX) return;
-
 		InternalBoq boq = findOrCreateInternalBoq(est);
-
 		if (!boq.getParentResource().contains(est)) {
 			boq.getParentResource().add(est);
 		}
-
-		double totalQty = boq.getParentResource().stream()
-				.mapToDouble(TenderEstimation::getNetQuantity)
+		double totalQty = boq.getParentResource()
+				.stream()
+				.mapToDouble(e -> e.getNetQuantity() != 0 ? e.getNetQuantity() : 0)
 				.sum();
-
-		double totalAmount = boq.getParentResource().stream()
+		double totalAmount = boq.getParentResource()
+				.stream()
 				.mapToDouble(TenderEstimation::getTotalCostCompanyCurrency)
 				.sum();
-
 		boq.setTotalQuantity(totalQty);
 		boq.setAmount(totalAmount);
-		boq.setRate(totalQty > 0 ? totalAmount / totalQty : 0);
-
+		if (totalQty > 0) {
+			boq.setRate(totalAmount / totalQty);
+		} else {
+			boq.setRate(0.0);
+		}
 		internalBoqDao.save(boq);
 	}
 	private boolean isSameTenderAttributes(TenderEstimation est, List<UUID> attributeIds){
