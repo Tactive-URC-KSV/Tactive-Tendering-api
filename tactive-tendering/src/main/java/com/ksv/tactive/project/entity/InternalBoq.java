@@ -33,8 +33,11 @@ public class InternalBoq {
     private List<InternalBoqAttribute> attributes = new ArrayList<>();
 
     private double totalQuantity;
+    private Double amount;
+    private Double rate;
 
-    @OneToMany(mappedBy = "internalBoq", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<InternalBoqItem> items = new ArrayList<>();
+    @OneToMany
+    @JoinColumn(name = "internal_boq_id")
+    private List<TenderEstimation> parentResource;
 
 }

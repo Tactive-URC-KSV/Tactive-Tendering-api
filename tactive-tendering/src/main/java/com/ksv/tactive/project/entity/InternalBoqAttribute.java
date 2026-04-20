@@ -13,6 +13,7 @@ public class InternalBoqAttribute {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @ManyToOne
     private InternalBoq internalBoq;
 
