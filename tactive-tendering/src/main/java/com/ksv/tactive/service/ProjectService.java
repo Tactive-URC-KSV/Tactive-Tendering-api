@@ -4,13 +4,14 @@ import java.net.MalformedURLException;
 import java.sql.SQLIntegrityConstraintViolationException;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import com.ksv.tactive.dto.*;
 import com.ksv.tactive.project.entity.*;
+import jakarta.transaction.Transactional;
 import org.springframework.core.io.Resource;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -100,9 +101,9 @@ public interface ProjectService {
     List<ProjectInfoDto> getAllProjectsByCompanyId(String companyId);
 	String updateBOQHierarchy(String projectId, Map<String, String> parentChildUpdateMap);
 	Page<BOQ> getParentBOQs(String projectId, int page, int size);
-	List<?> getComplexResourcesByProject(String projectId);
     String addGlobalValue(String projectId, GlobalValue globalValue);
 	List<GlobalValue> viewAllGlobalValueByProjectId(String projectId);
 	String editGlobalValue(String id, GlobalValue globalValue);
-    Object getInternalBoqByTender(String tenderEstimationId);
+	List<InternalBoq> getInternalBoqByProject(UUID projectId);
+	InternalBoq getInternalBoqById(String internalBoqId);
 }

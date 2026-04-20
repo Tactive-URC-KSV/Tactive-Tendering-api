@@ -15,6 +15,7 @@ import lombok.Data;
 
 @Entity
 @Data
+@Table(uniqueConstraints = @UniqueConstraint(columnNames = {"parent_id", "resources_id", "uom_id"}))
 public class TenderEstimation {
 
 	@Id
@@ -52,15 +53,14 @@ public class TenderEstimation {
 	private boolean rateLock;
 	@OneToMany(mappedBy = "tenderEstimation", cascade = CascadeType.ALL, orphanRemoval = true)
 	private List<TenderEstimationAttribute> estimationAttributes = new ArrayList<>();
+	@JsonIgnore
 	@ManyToOne
 	@JoinColumn(name = "parent_id")
 	private TenderEstimation parent;
+	@JsonIgnore
 	@ManyToOne
 	@JoinColumn(name = "project_id")
 	private Projects project;
 	@OneToMany(mappedBy = "tenderEstimation", cascade = CascadeType.ALL, orphanRemoval = true)
 	private List<TenderFormulaElement> formulaElements = new ArrayList<>();
-	@JsonIgnore
-	@OneToMany(mappedBy = "tenderEstimation", cascade = CascadeType.ALL, orphanRemoval = true)
-	private List<InternalBoqItem> internalBoqItems = new ArrayList<>();
 }

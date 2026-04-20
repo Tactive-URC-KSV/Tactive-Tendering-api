@@ -22,6 +22,7 @@ import com.ksv.tactive.service.*;
 import com.ksv.tactive.user.entity.User;
 import com.ksv.tactive.util.*;
 import jakarta.transaction.Transactional;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
@@ -44,6 +45,7 @@ import com.ksv.tactive.fileservice.PdfFileService;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+@Slf4j
 @Service
 public class ProjectServiceImpl implements ProjectService {
 	@Value("${file.upload.path}")
@@ -114,8 +116,6 @@ public class ProjectServiceImpl implements ProjectService {
 	private LocationMemoryEngine locationMemoryEngine;
 	@Autowired
 	private InternalBoqDao internalBoqDao;
-	@Autowired
-	private InternalBoqItemDao internalBoqItemDao;
 
 	private UUID convertToUUID(String value) {
 		if (value == null || value.trim().isEmpty()) {
@@ -1317,210 +1317,311 @@ public class ProjectServiceImpl implements ProjectService {
 		}
 		return 0;
 	}
-	@Override
 	@Transactional
+	@Override
 	public String addResourcesToTender(TenderResourceDto dto) {
 
-		// 🔥 STEP 1: VALIDATE INPUT
-		if (dto.getProjectId() == null) {
-			throw new RuntimeException("ProjectId is missing in request");
-		}
+		if (dto.getProjectId() == null) throw new RuntimeException("ProjectId missing");
 
-		if (dto.getBoqId() == null) {
-			throw new RuntimeException("BOQ Id is missing in request");
-		}
-
-		// 🔥 STEP 2: FETCH PROJECT (MANDATORY FIRST)
 		Projects project = projectDao.findById(convertToUUID(dto.getProjectId()))
 				.orElseThrow(() -> new RuntimeException("Project not found"));
 
-		// 🔥 STEP 3: FETCH BOQ
+		// 🔥 INTERNAL FLOW
+		if (dto.isInternal()) {
+
+			if (dto.getInternalBoqId() == null) {
+				throw new RuntimeException("InternalBoqId required for internal flow");
+			}
+
+			InternalBoq internalBoq = internalBoqDao.findById(convertToUUID(dto.getInternalBoqId()))
+					.orElseThrow(() -> new RuntimeException("Internal BOQ not found"));
+
+			List<TenderEstimation> parents = internalBoq.getParentResource();
+
+			if (parents == null || parents.isEmpty()) {
+				throw new RuntimeException("No parent resources found for Internal BOQ");
+			}
+
+			UUID resourceId = convertToUUID(dto.getResourceId());
+			UUID uomId = convertToUUID(dto.getUomId());
+
+			List<UUID> attributeIds = dto.getAttributes() != null
+					? dto.getAttributes().stream().map(a -> convertToUUID(a.getAttributeId())).toList()
+					: new ArrayList<>();
+
+			for (TenderEstimation parent : parents) {
+
+				Optional<TenderEstimation> duplicateOpt =
+						findDuplicateResource(
+								parent.getId(),
+								parent.getBoq().getId(),
+								resourceId,
+								uomId,
+								attributeIds
+						);
+
+				TenderEstimation tenderEst;
+
+				if (duplicateOpt.isPresent()) {
+
+					tenderEst = duplicateOpt.get();
+
+					double additionalQty = calculateQuantityPerParent(parent, tenderEst.getCoEfficient());
+					double newQty = tenderEst.getNetQuantity() + additionalQty;
+
+					tenderEst.setNetQuantity(newQty);
+
+				} else {
+
+					tenderEst = new TenderEstimation();
+
+					tenderEst.setProject(project);
+					tenderEst.setBoq(parent.getBoq());
+					tenderEst.setParent(parent);
+
+					updateTenderEstimationFields(tenderEst, dto);
+
+					int maxRefCode = tenderEstDao.findByParent_Id(parent.getId()).stream()
+							.mapToInt(TenderEstimation::getRefCode)
+							.max().orElse(0);
+
+					tenderEst.setRefCode(maxRefCode + 1);
+
+					saveFormulaElements(tenderEst, dto);
+
+					double qty = calculateQuantityPerParent(parent, tenderEst.getCoEfficient());
+
+					tenderEst.setCalculatedQuantity(qty);
+					tenderEst.setNetQuantity(qty);
+				}
+
+				// 🔥 COST CALCULATION
+				double totalCost = tenderEst.getNetQuantity() * tenderEst.getCostUnitRate();
+
+				tenderEst.setTotalCostCompanyCurrency(totalCost);
+				tenderEst.setResourceTotalCost(totalCost * tenderEst.getExchangeRate());
+
+				tenderEst = tenderEstDao.save(tenderEst);
+
+				// 🔁 Sync Internal BOQ aggregation
+				syncInternalBoqFromEstimation(tenderEst);
+
+				// 🔁 Propagate cost upward
+				propagateCost(parent);
+			}
+
+			return "Saved to all parents based on their quantities";
+		}
+
+		// 🔥 NORMAL FLOW (unchanged)
+		return addNormalResource(dto);
+	}
+
+	@Transactional
+	private String addNormalResource(TenderResourceDto dto) {
+
+		if (dto.getProjectId() == null) throw new RuntimeException("ProjectId missing");
+		if (dto.getBoqId() == null) throw new RuntimeException("BOQ Id missing");
+
+		Projects project = projectDao.findById(convertToUUID(dto.getProjectId()))
+				.orElseThrow(() -> new RuntimeException("Project not found"));
+
 		BOQ boq = boqDao.findById(convertToUUID(dto.getBoqId()))
 				.orElseThrow(() -> new RuntimeException("BOQ not found"));
 
-		// 🔥 STEP 4: CREATE / LOAD TENDER
+		UUID resourceId = convertToUUID(dto.getResourceId());
+		UUID uomId = convertToUUID(dto.getUomId());
+
+		List<UUID> attributeIds = dto.getAttributes() != null
+				? dto.getAttributes().stream().map(a -> convertToUUID(a.getAttributeId())).toList()
+				: new ArrayList<>();
+
+		Optional<TenderEstimation> duplicateOpt =
+				findDuplicateResource(
+						null,
+						boq.getId(),
+						resourceId,
+						uomId,
+						attributeIds
+				);
+
 		TenderEstimation tenderEst;
-		UUID tenderId = convertToUUID(dto.getId());
 
-		if (tenderId != null) {
-			tenderEst = tenderEstDao.findById(tenderId)
-					.orElseThrow(() -> new RuntimeException("Tender not found"));
-		} else {
-			tenderEst = new TenderEstimation();
-		}
+		if (duplicateOpt.isPresent()) {
 
-		// 🔥 STEP 5: ALWAYS SET PROJECT + BOQ FIRST
-		tenderEst.setProject(project);
-		tenderEst.setBoq(boq);
+			tenderEst = duplicateOpt.get();
 
-		// 🔥 STEP 6: REF CODE LOGIC
-		if (dto.getRefCode() == 0) {
-			List<TenderEstimation> list =
-					tenderEstDao.findByProject_Id(project.getId());
-
-			int maxRefCode = list.stream()
-					.map(TenderEstimation::getRefCode)
-					.max(Integer::compareTo)
-					.orElse(0);
-
-			dto.setRefCode(maxRefCode + 1);
-		}
-
-		// 🔥 STEP 7: PARENT HANDLING
-		UUID parentId = convertToUUID(dto.getParentId());
-		if (parentId != null) {
-			TenderEstimation parent = tenderEstDao.findById(parentId)
-					.orElseThrow(() -> new RuntimeException("Parent not found"));
-
-			if (parent.getResourceNature() != ResourceNature.COMPLEX) {
-				throw new RuntimeException("Parent must be COMPLEX");
+			if (tenderEst.getResourceNature() == ResourceNature.SIMPLE) {
+				throw new RuntimeException("This simple resource already exists in this BOQ.");
 			}
 
-			tenderEst.setParent(parent);
+			double newQty = tenderEst.getNetQuantity() + dto.getNetQuantity();
+			tenderEst.setNetQuantity(newQty);
+
+		} else {
+
+			tenderEst = new TenderEstimation();
+
+			tenderEst.setProject(project);
+			tenderEst.setBoq(boq);
+			tenderEst.setParent(null); // 🔥 IMPORTANT
+
+			updateTenderEstimationFields(tenderEst, dto);
+
+			int maxRefCode = tenderEstDao.findByBoqId(boq.getId()).stream()
+					.filter(e -> e.getParent() == null)
+					.mapToInt(TenderEstimation::getRefCode)
+					.max().orElse(0);
+
+			tenderEst.setRefCode(maxRefCode + 1);
+
+			saveFormulaElements(tenderEst, dto);
+
+			calculateValues(tenderEst, dto);
 		}
 
-		// 🔥 STEP 8: SET FIELDS
-		updateTenderEstimationFields(tenderEst, dto);
-		saveFormulaElements(tenderEst, dto);
-		calculateValues(tenderEst, dto);
+		double totalCost = tenderEst.getNetQuantity() * tenderEst.getCostUnitRate();
 
-		// 🔥 STEP 9: SAVE FIRST (CRITICAL)
+		tenderEst.setTotalCostCompanyCurrency(totalCost);
+		tenderEst.setResourceTotalCost(totalCost * tenderEst.getExchangeRate());
+
 		tenderEst = tenderEstDao.save(tenderEst);
 
-		// 🔥 STEP 10: COMPLEX HANDLING
 		if (tenderEst.getResourceNature() == ResourceNature.COMPLEX) {
-
-			InternalBoq internalBoq = findOrCreateInternalBoq(tenderEst, project);
-
-			removeExistingBoqItem(tenderEst);
-			linkInternalBoq(tenderEst, internalBoq);
-
-			tenderEst.setTotalCostCompanyCurrency(0);
-			tenderEst.setResourceTotalCost(0);
+			syncInternalBoqFromEstimation(tenderEst);
 		}
 
-		tenderEstDao.save(tenderEst);
-
-		// 🔥 STEP 11: UPDATE PARENT
-		if (parentId != null) {
-			updateParentCost(parentId);
-		}
-
-		// 🔥 STEP 12: FINAL TOTALS
-		updateBoqTotals(boq);
-		updateProjectTotal(project.getId().toString());
+		propagateCost(tenderEst);
 
 		return "Saved Successfully";
 	}
-	private void linkInternalBoq(TenderEstimation tenderEst, InternalBoq internalBoq) {
 
-		InternalBoqItem item = internalBoqItemDao
-				.findByInternalBoqAndTenderEstimation(internalBoq, tenderEst)
-				.orElse(new InternalBoqItem());
+	private double calculateQuantityPerParent(TenderEstimation parent, double coefficient) {
 
-		item.setInternalBoq(internalBoq);
-		item.setTenderEstimation(tenderEst);
-		item.setQuantity(tenderEst.getNetQuantity());
-
-		internalBoqItemDao.save(item);
-
-		// 🔥 UPDATE TOTAL QUANTITY
-		double totalQty = internalBoqItemDao
-				.findByInternalBoq(internalBoq)
-				.stream()
-				.mapToDouble(InternalBoqItem::getQuantity)
-				.sum();
-
-		internalBoq.setTotalQuantity(totalQty);
-
-		internalBoqDao.save(internalBoq);
-	}
-	private void removeExistingBoqItem(TenderEstimation tenderEst) {
-
-		if (tenderEst.getId() == null) return;
-
-		List<InternalBoqItem> items =
-				internalBoqItemDao.findByTenderEstimation(tenderEst);
-
-		if (items != null && !items.isEmpty()) {
-
-			Set<InternalBoq> affectedBoqs = items.stream()
-					.map(InternalBoqItem::getInternalBoq)
-					.collect(Collectors.toSet());
-
-			internalBoqItemDao.deleteAll(items);
-
-			// 🔥 RECALCULATE for each BOQ
-			for (InternalBoq boq : affectedBoqs) {
-
-				double totalQty = internalBoqItemDao
-						.findByInternalBoq(boq)
-						.stream()
-						.mapToDouble(InternalBoqItem::getQuantity)
-						.sum();
-
-				boq.setTotalQuantity(totalQty);
-				internalBoqDao.save(boq);
-			}
+		if (parent.getParent() == null) {
+			return parent.getBoq().getQuantity() * coefficient;
+		} else {
+			return coefficient;
 		}
 	}
-	private InternalBoq findOrCreateInternalBoq(TenderEstimation tenderEst, Projects project) {
+	private Optional<TenderEstimation> findDuplicateResource(
+			UUID parentId,
+			UUID boqId,
+			UUID resourceId,
+			UUID uomId,
+			List<UUID> attributeIds
+	) {
+		List<TenderEstimation> candidates;
+		if (parentId != null) {
+			candidates = tenderEstDao.findByParent_IdAndResources_IdAndUom_Id(
+					parentId, resourceId, uomId
+			);
+		} else {
+			candidates = tenderEstDao.findByBoq_IdAndParentIsNullAndResources_IdAndUom_Id(
+					boqId, resourceId, uomId
+			);
+		}
+		for (TenderEstimation est : candidates) {
+			if (isSameTenderAttributes(est, attributeIds)) {
+				return Optional.of(est);
+			}
+		}
 
-//		if (tenderEst.getProject() == null) {
-//			throw new RuntimeException("Project is not set in TenderEstimation");
-//		}
+		return Optional.empty();
+	}
+	private void syncInternalBoqFromEstimation(TenderEstimation est) {
 
-		List<InternalBoq> candidates =
-				internalBoqDao.findByProjectAndResourceAndUom(
-						project,
-						tenderEst.getResources(),
-						tenderEst.getUom()
+		if (est.getResourceNature() != ResourceNature.COMPLEX) return;
+
+		InternalBoq boq = findOrCreateInternalBoq(est);
+
+		if (!boq.getParentResource().contains(est)) {
+			boq.getParentResource().add(est);
+		}
+
+		double totalQty = boq.getParentResource().stream()
+				.mapToDouble(TenderEstimation::getNetQuantity)
+				.sum();
+
+		double totalAmount = boq.getParentResource().stream()
+				.mapToDouble(TenderEstimation::getTotalCostCompanyCurrency)
+				.sum();
+
+		boq.setTotalQuantity(totalQty);
+		boq.setAmount(totalAmount);
+		boq.setRate(totalQty > 0 ? totalAmount / totalQty : 0);
+
+		internalBoqDao.save(boq);
+	}
+	private boolean isSameTenderAttributes(TenderEstimation est, List<UUID> attributeIds){
+		List<TenderEstimationAttribute> existingAttrs = est.getEstimationAttributes();
+		if (existingAttrs.size() != attributeIds.size()) return false;
+		Set<UUID> existingIds = existingAttrs.stream()
+				.map(a -> a.getAttribute().getId())
+				.collect(Collectors.toSet());
+		Set<UUID> incomingIds = new HashSet<>(attributeIds);
+		return existingIds.equals(incomingIds);
+	}
+	private InternalBoq findOrCreateInternalBoq(TenderEstimation est) {
+		List<InternalBoq> existingList = internalBoqDao
+				.findByProject_IdAndResource_IdAndUom_Id(
+						est.getProject().getId(),
+						est.getResources().getId(),
+						est.getUom().getId()
 				);
-
-		for (InternalBoq boq : candidates) {
-
-			if (!Objects.equals(
-					boq.getAttributeGroup(),
-					tenderEst.getEstimationAttributes().isEmpty()
-							? null
-							: tenderEst.getEstimationAttributes().get(0).getAttributeGroup()
-			)) continue;
-
-			if (isSameAttributes(boq, tenderEst.getEstimationAttributes())) {
+		for (InternalBoq boq : existingList) {
+			if (isSameInternalAttributes(boq, est.getEstimationAttributes())) {
+				if (boq.getParentResource() == null) {
+					boq.setParentResource(new ArrayList<>());
+				}
+				if (!boq.getParentResource().contains(est)) {
+					boq.getParentResource().add(est);
+				}
 				return boq;
 			}
 		}
-
 		InternalBoq newBoq = new InternalBoq();
-
-		newBoq.setProject(project);
-		newBoq.setResource(tenderEst.getResources());
-		newBoq.setUom(tenderEst.getUom());
-
-		if (!tenderEst.getEstimationAttributes().isEmpty()) {
-
-			newBoq.setAttributeGroup(
-					tenderEst.getEstimationAttributes().get(0).getAttributeGroup()
-			);
-
-			List<InternalBoqAttribute> attrs = new ArrayList<>();
-
-			for (TenderEstimationAttribute attr : tenderEst.getEstimationAttributes()) {
-				InternalBoqAttribute a = new InternalBoqAttribute();
-				a.setInternalBoq(newBoq);
-				a.setAttribute(attr.getAttribute());
-				attrs.add(a);
-			}
-
-			newBoq.setAttributes(attrs);
+		newBoq.setProject(est.getProject());
+		newBoq.setResource(est.getResources());
+		newBoq.setUom(est.getUom());
+		newBoq.setAttributeGroup(resolveAttributeGroup(est));
+		List<InternalBoqAttribute> attrs = mapAttributes(est);
+		for (InternalBoqAttribute attr : attrs) {
+			attr.setInternalBoq(newBoq);
+		}
+		newBoq.setAttributes(attrs);
+		List<TenderEstimation> parentList = new ArrayList<>();
+		parentList.add(est);
+		newBoq.setParentResource(parentList);
+		newBoq.setTotalQuantity(est.getNetQuantity());
+		newBoq.setAmount(est.getTotalCostCompanyCurrency());
+		if (est.getNetQuantity() > 0) {
+			newBoq.setRate(est.getTotalCostCompanyCurrency() / est.getNetQuantity());
+		} else {
+			newBoq.setRate(0.0);
 		}
 		return internalBoqDao.save(newBoq);
 	}
-	private boolean isSameAttributes(
+	private AttributeGroup resolveAttributeGroup(TenderEstimation est) {
+		if (est.getEstimationAttributes() == null || est.getEstimationAttributes().isEmpty()) {
+			return null;
+		}
+		Set<AttributeGroup> groups = est.getEstimationAttributes().stream()
+				.map(attr -> attr.getAttribute().getAttributeGroup())
+				.filter(Objects::nonNull)
+				.collect(Collectors.toSet());
+		if (groups.isEmpty()) {
+			return null;
+		}
+		if (groups.size() > 1) {
+			throw new RuntimeException("Multiple AttributeGroups found for same TenderEstimation");
+		}
+		return groups.iterator().next();
+	}
+	private boolean isSameInternalAttributes(
 			InternalBoq boq,
 			List<TenderEstimationAttribute> attrs
 	) {
-
 		if (boq.getAttributes().size() != attrs.size()) return false;
 
 		Set<UUID> boqAttrIds = boq.getAttributes().stream()
@@ -1533,59 +1634,93 @@ public class ProjectServiceImpl implements ProjectService {
 
 		return boqAttrIds.equals(incomingAttrIds);
 	}
-	@Transactional
-	public void updateParentCost(UUID parentId) {
-		TenderEstimation parent = tenderEstDao.findById(parentId)
-				.orElseThrow(() -> new RuntimeException("Parent not found"));
-		List<TenderEstimation> children =
-				tenderEstDao.findByParent_Id(parentId);
-		double totalCost = children.stream()
-				.mapToDouble(TenderEstimation::getTotalCostCompanyCurrency)
-				.sum();
-		parent.setTotalCostCompanyCurrency(totalCost);
-		double netQty = parent.getNetQuantity();
-		if (netQty > 0) {
-			double rate = totalCost / netQty;
-			parent.setCostUnitRate(rate);
-			parent.setRate(rate);
-		} else {
-			parent.setCostUnitRate(0);
-			parent.setRate(0);
+	private List<InternalBoqAttribute> mapAttributes(TenderEstimation est) {
+		List<InternalBoqAttribute> list = new ArrayList<>();
+		for (TenderEstimationAttribute attr : est.getEstimationAttributes()) {
+			InternalBoqAttribute i = new InternalBoqAttribute();
+			i.setAttribute(attr.getAttribute());
+			list.add(i);
 		}
-		parent.setResourceTotalCost(totalCost * parent.getExchangeRate());
-		tenderEstDao.save(parent);
-		if (parent.getParent() != null) {
-			updateParentCost(parent.getParent().getId());
+		return list;
+	}
+	private void propagateCost(TenderEstimation node) {
+		if (node.getResourceNature() == ResourceNature.COMPLEX) {
+			InternalBoq boq = findOrCreateInternalBoq(node);
+			double total = boq.getParentResource()
+					.stream()
+					.mapToDouble(TenderEstimation::getTotalCostCompanyCurrency)
+					.sum();
+
+			node.setTotalCostCompanyCurrency(total);
+
+			if (node.getNetQuantity() > 0) {
+				node.setCostUnitRate(total / node.getNetQuantity());
+			} else {
+				node.setCostUnitRate(0);
+			}
+
+			node.setResourceTotalCost(total * node.getExchangeRate());
+
+			tenderEstDao.save(node);
+		}
+
+		// 🔁 PROPAGATE UP
+		if (node.getParent() != null) {
+			propagateCost(node.getParent());
+		} else {
+			updateBoq(node.getBoq());
+			updateProject(node.getProject());
 		}
 	}
-	private void updateProjectTotal(String projectId) {
-		List<BOQ> boqList = boqDao.findByProjectId(convertToUUID(projectId));
-		BigDecimal total = boqList.stream()
-				.map(boq -> BigDecimal.valueOf(boq.getTotalAmount() != 0.0 ? boq.getTotalAmount() : 0.0))
-				.reduce(BigDecimal.ZERO, BigDecimal::add);
-		Projects project = projectDao.findById(convertToUUID(projectId))
-				.orElseThrow(() -> new RuntimeException("Not found"));
-		project.setTotalEstimatedValue(total);
+	private void updateBoq(BOQ boq) {
+		double total = tenderEstDao.findByBoqId(boq.getId()).stream()
+				.filter(e -> e.getParent() == null)
+				.mapToDouble(TenderEstimation::getTotalCostCompanyCurrency)
+				.sum();
+		boq.setTotalAmount(total);
+		if (boq.getQuantity() > 0) {
+			boq.setTotalRate(total / boq.getQuantity());
+		}
+		boqDao.save(boq);
+	}
+	private void updateProject(Projects project) {
+		List<BOQ> boqList = boqDao.findByProjectId(project.getId());
+		double total = boqList.stream()
+				.mapToDouble(BOQ::getTotalAmount)
+				.sum();
+		project.setTotalEstimatedValue(BigDecimal.valueOf(total));
 		projectDao.save(project);
 	}
 	private void calculateValues(TenderEstimation t, TenderResourceDto dto) {
+
+		if (t.getResourceNature() == ResourceNature.COMPLEX) return;
+
 		double calculatedQty;
-		if (t.getQuantityType() == QuantityType.FORMULA) {
-			calculatedQty = evaluateFormula(t.getFormulaElements());
-		} else if (t.getQuantityType() == QuantityType.DIRECT) {
-			calculatedQty = t.getBoq().getQuantity();
+
+		if (t.getParent() == null) {
+			if (t.getQuantityType() == QuantityType.FORMULA) {
+				calculatedQty = evaluateFormula(t.getFormulaElements());
+			} else if (t.getQuantityType() == QuantityType.DIRECT) {
+				calculatedQty = t.getBoq().getQuantity();
+			} else {
+				calculatedQty = t.getBoq().getQuantity() * t.getCoEfficient();
+			}
 		} else {
-			calculatedQty = t.getBoq().getQuantity() * t.getCoEfficient();
+			calculatedQty = t.getQuantityType() == QuantityType.FORMULA
+					? evaluateFormula(t.getFormulaElements())
+					: t.getCoEfficient();
 		}
+
 		double wasteQty = (dto.getWastePercentage() / 100) * calculatedQty;
 		double netQty = calculatedQty + wasteQty;
+
 		double totalCost = netQty * dto.getCostUnitRate();
-		double resourceCost = totalCost * dto.getExchangeRate();
+
 		t.setCalculatedQuantity(calculatedQty);
 		t.setWasteQuantity(wasteQty);
 		t.setNetQuantity(netQty);
 		t.setTotalCostCompanyCurrency(totalCost);
-		t.setResourceTotalCost(resourceCost);
+		t.setResourceTotalCost(totalCost * dto.getExchangeRate());
 	}
 	private double evaluateFormula(List<TenderFormulaElement> elements) {
 		if (elements == null || elements.isEmpty()) return 0;
@@ -1664,7 +1799,7 @@ public class ProjectServiceImpl implements ProjectService {
 	private void updateTenderEstimationFields(TenderEstimation tenderEst, TenderResourceDto dto) {
 		tenderEst.setDocNumber(dto.getDocNumber());
 		tenderEst.setCoEfficient(dto.getCoEfficient());
-		tenderEst.setRefCode(dto.getRefCode());
+		// 🔥 Fix: Removed tenderEst.setRefCode(dto.getRefCode()); to prevent 0 override
 		tenderEst.setWastePercentage(dto.getWastePercentage());
 		tenderEst.setRate(dto.getRate());
 		tenderEst.setAdditionalRate(dto.getAdditionalRate());
@@ -1672,11 +1807,13 @@ public class ProjectServiceImpl implements ProjectService {
 		tenderEst.setCostUnitRate(dto.getCostUnitRate());
 		tenderEst.setRateLock(dto.isRateLock());
 		tenderEst.setExchangeRate(dto.getExchangeRate());
+
 		ResourceType resourceType = (dto.getResourceTypeId() != null && !dto.getResourceTypeId().isEmpty())
 				? ResourceType.valueOf(dto.getResourceTypeId())
 				: null;
 		tenderEst.setResourceType(resourceType);
-		Projects project = (dto.getProjectId() != null && dto.getProjectId().trim().isEmpty() )
+
+		Projects project = (dto.getProjectId() != null && !dto.getProjectId().trim().isEmpty() )
 				? findByProjectId(dto.getProjectId())
 				: null;
 		tenderEst.setProject(project);
@@ -1720,138 +1857,11 @@ public class ProjectServiceImpl implements ProjectService {
 			tenderEst.setEstimationAttributes(attributes);
 		}
 	}
-	private void updateBoqTotals(BOQ boq) {
-		List<TenderEstimation> list = tenderEstDao.findByBoqId(boq.getId());
-		double total = list.stream()
-				.filter(t -> t.getParent() == null)
-				.mapToDouble(TenderEstimation::getTotalCostCompanyCurrency)
-				.sum();
-		boq.setTotalAmount(total);
-		if (boq.getQuantity() > 0) {
-			boq.setTotalRate(total / boq.getQuantity());
-		} else {
-			boq.setTotalRate(0);
-		}
-		boqDao.save(boq);
-	}
 	@Override
-	public List<?> getComplexResourcesByProject(String projectId) {
-		UUID projectUUID = convertToUUID(projectId);
-//		List<BOQ> boqList = boqDao.findByProjectId(projectUUID);
-//		if (boqList == null || boqList.isEmpty()) {
-//			return new ArrayList<>();
-//		}
-//		List<TenderEstimation> complexEstimations =
-//				tenderEstDao.findByBoqInAndResourceNature(boqList, ResourceNature.COMPLEX);
-//		return complexEstimations.stream()
-//				.map(this::mapToTreeDto)
-//				.collect(Collectors.toList());
-		return getInternalBoqByProject(projectUUID);
-	}
-	@Override
-	public List<Map<String, Object>> getInternalBoqByTender(String tenderEstimationId) {
-
-		UUID tenderId = UUID.fromString(tenderEstimationId);
-
-		TenderEstimation parent = tenderEstDao.findById(tenderId)
-				.orElseThrow(() -> new RuntimeException("TenderEstimation not found"));
-
-		List<InternalBoq> boqs =
-				internalBoqDao.findByProject(parent.getProject());
-
-		List<Map<String, Object>> result = new ArrayList<>();
-
-		for (InternalBoq boq : boqs) {
-
-			List<InternalBoqItem> items =
-					internalBoqItemDao.findByInternalBoq(boq);
-
-			if (items == null || items.isEmpty()) continue;
-
-			// 🔥 FILTER ONLY CHILD TREE OF THIS COMPLEX
-			List<InternalBoqItem> filteredItems = items.stream()
-					.filter(item -> isChildOf(item.getTenderEstimation(), parent))
-					.toList();
-
-			if (filteredItems.isEmpty()) continue;
-
-			// 🔥 CALCULATE TOTAL
-			double totalQty = filteredItems.stream()
-					.mapToDouble(InternalBoqItem::getQuantity)
-					.sum();
-
-			// 🔥 BUILD ITEM LIST
-			List<Map<String, Object>> itemList = filteredItems.stream()
-					.map(item -> {
-						Map<String, Object> map = new HashMap<>();
-						map.put("tenderEstimationId", item.getTenderEstimation().getId());
-						map.put("quantity", item.getQuantity());
-						return map;
-					})
-					.toList();
-
-			// 🔥 BUILD BOQ OBJECT
-			Map<String, Object> boqMap = new HashMap<>();
-			boqMap.put("internalBoqId", boq.getId());
-			boqMap.put("resourceId", boq.getResource().getId());
-			boqMap.put("resourceName", boq.getResource().getResourceName());
-			boqMap.put("uomCode", boq.getUom().getUomCode());
-			boqMap.put("totalQuantity", totalQty);
-			boqMap.put("items", itemList);
-
-			result.add(boqMap);
-		}
-
-		return result;
-	}
-	private boolean isChildOf(TenderEstimation child, TenderEstimation parent) {
-
-		TenderEstimation current = child;
-
-		while (current != null) {
-			if (current.getId().equals(parent.getId())) {
-				return true;
-			}
-			current = current.getParent();
-		}
-
-		return false;
-	}
-	public List<InternalBoqProjectDto> getInternalBoqByProject(UUID projectId) {
-
-		List<InternalBoq> boqs = internalBoqDao.findByProject_Id(projectId);
-
-		List<InternalBoqProjectDto> result = new ArrayList<>();
-
-		for (InternalBoq boq : boqs) {
-
-			List<InternalBoqItem> items =
-					internalBoqItemDao.findByInternalBoq(boq);
-
-			double totalQty = items.stream()
-					.mapToDouble(InternalBoqItem::getQuantity)
-					.sum();
-
-			List<InternalBoqItemDto> itemDtos = items.stream()
-					.map(item -> {
-						InternalBoqItemDto dto = new InternalBoqItemDto();
-						dto.setTenderEstimationId(item.getTenderEstimation().getId().toString());
-						dto.setQuantity(item.getQuantity());
-						return dto;
-					})
-					.toList();
-
-			InternalBoqProjectDto dto = new InternalBoqProjectDto();
-			dto.setInternalBoqId(boq.getId().toString());
-			dto.setResourceId(boq.getResource().getId().toString());
-			dto.setResourceName(boq.getResource().getResourceName());
-			dto.setUomCode(boq.getUom().getUomCode());
-			dto.setTotalQuantity(totalQty);
-			dto.setItems(itemDtos);
-			result.add(dto);
-		}
-
-		return result;
+	public List<InternalBoq> getInternalBoqByProject(UUID projectId) {
+		Projects project = projectDao.findById(projectId)
+				.orElseThrow(() -> new RuntimeException("Project not found"));
+		return internalBoqDao.findByProject(project);
 	}
 	@Override
 	public ActivityGroup getActivityGroupById(String activityGroupId) {
@@ -1877,26 +1887,81 @@ public class ProjectServiceImpl implements ProjectService {
 		return dtoList;
 	}
 	@Override
+	public InternalBoq getInternalBoqById(String internalBoqId) {
+		return  internalBoqDao.findById(convertToUUID(internalBoqId))
+				.orElseThrow(()->new DataNotFoundException(
+						messageSource.getMessage("data.not.found",null, Locale.ENGLISH)));
+	}
+	@Override
+	@Transactional
 	public String deleteTenderEstimationForBoq(String tenderEstimationId, String boqId) {
 		UUID tenderId = convertToUUID(tenderEstimationId);
 		UUID boqUUID = convertToUUID(boqId);
 		TenderEstimation tenderEstimation = tenderEstDao.findById(tenderId)
-				.orElseThrow(() -> new RuntimeException(
-						"TenderEstimation not found with ID: " + tenderEstimationId));
-
+				.orElseThrow(() -> new RuntimeException("TenderEstimation not found"));
 		if (tenderEstimation.getBoq() == null ||
 				!tenderEstimation.getBoq().getId().equals(boqUUID)) {
-
 			return messageSource.getMessage("tender.resource.not.associated", null, Locale.ENGLISH);
 		}
 		BOQ boq = tenderEstimation.getBoq();
 		TenderEstimation parent = tenderEstimation.getParent();
+		List<TenderEstimation> children = tenderEstDao.findByParent_Id(tenderEstimation.getId());
+		for (TenderEstimation child : children) {
+			deleteTenderEstimationForBoq(child.getId().toString(), boqId);
+		}
+		List<InternalBoq> internalBoqs =
+				internalBoqDao.findByProject_IdAndResource_IdAndUom_Id(
+						tenderEstimation.getProject().getId(),
+						tenderEstimation.getResources().getId(),
+						tenderEstimation.getUom().getId()
+				);
+		for (InternalBoq iBoq : internalBoqs) {
+			if (!isSameInternalAttributes(iBoq, tenderEstimation.getEstimationAttributes())) {
+				continue;
+			}
+			iBoq.getParentResource().removeIf(
+					est -> est.getId().equals(tenderEstimation.getId())
+			);
+			if (iBoq.getParentResource().isEmpty()) {
+				internalBoqDao.delete(iBoq);
+			} else {
+				double totalQty = iBoq.getParentResource().stream()
+						.mapToDouble(TenderEstimation::getNetQuantity)
+						.sum();
+				double totalAmount = iBoq.getParentResource().stream()
+						.mapToDouble(TenderEstimation::getTotalCostCompanyCurrency)
+						.sum();
+				iBoq.setTotalQuantity(totalQty);
+				iBoq.setAmount(totalAmount);
+				if (totalQty > 0) {
+					iBoq.setRate(totalAmount / totalQty);
+				} else {
+					iBoq.setRate(0.0);
+				}
+				internalBoqDao.save(iBoq);
+			}
+		}
+		if (tenderEstimation.getResourceNature() == ResourceNature.COMPLEX) {
+			List<InternalBoq> boqs =
+					internalBoqDao.findByProject_IdAndResource_IdAndUom_Id(
+							tenderEstimation.getProject().getId(),
+							tenderEstimation.getResources().getId(),
+							tenderEstimation.getUom().getId()
+					);
+
+			for (InternalBoq iBoq : boqs) {
+				if (isSameInternalAttributes(iBoq, tenderEstimation.getEstimationAttributes())) {
+					internalBoqDao.delete(iBoq);
+				}
+			}
+		}
 		tenderEstDao.delete(tenderEstimation);
 		if (parent != null) {
-			updateParentCost(parent.getId());
+			propagateCost(parent);
+		} else {
+			updateBoq(boq);
+			updateProject(boq.getProject());
 		}
-		updateBoqTotals(boq);
-		updateProjectTotal(boq.getProject().getId().toString());
 		return messageSource.getMessage("tender.resource.delete.success", null, Locale.ENGLISH);
 	}
 	@Override

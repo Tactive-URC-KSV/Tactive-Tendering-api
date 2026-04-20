@@ -3,10 +3,7 @@ package com.ksv.tactive.controller;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.sql.SQLIntegrityConstraintViolationException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 
 import com.ksv.tactive.dto.*;
 import com.ksv.tactive.project.entity.*;
@@ -550,9 +547,7 @@ public class ProjectControler {
 	}
 	@GetMapping("/tender-estimation/complex/project/{projectId}")
 	public ResponseEntity<?> getComplexResourcesByProject(@PathVariable String projectId) {
-		List<?> data =
-				projectService.getComplexResourcesByProject(projectId);
-		return ResponseEntity.ok(data);
+		return ResponseEntity.ok(projectService.getInternalBoqByProject(UUID.fromString(projectId)));
 	}
 	@GetMapping("tenderEstimation/estimatedResources/{boqId}")
 	public ResponseEntity<?> getEstimatedResourcesByBoq(@PathVariable String boqId) {
@@ -586,11 +581,11 @@ public class ProjectControler {
 	}
 	@GetMapping("tenderEstimation/internal-boq/{internalBoqId}")
 	public ResponseEntity<?> getInternalBoq(
-			@PathVariable String tenderEstimationId
+			@PathVariable String internalBoqId
 	) {
 		try {
 			return ResponseEntity.status(HttpStatus.OK)
-					.body(projectService.getInternalBoqByTender(tenderEstimationId));
+					.body(projectService.getInternalBoqById(internalBoqId));
 		} catch (DataNotFoundException e) {
 			return ResponseEntity.status(HttpStatus.CONFLICT)
 					.body(e.getMessage());
