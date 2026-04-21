@@ -73,7 +73,8 @@ public class TenderEstimationServiceImpl implements TenderEstimationService {
             project = internalBoq.getProject();
             tenderEst.setProject(project);
             if (internalBoq.getParentResource() != null && !internalBoq.getParentResource().isEmpty()) {
-                boq = internalBoq.getParentResource().get(0).getBoq();
+                parent = internalBoq.getParentResource().get(0);
+                boq = parent.getBoq();
                 if (boq != null) {
                     tenderEst.setBoq(boq);
                 }
@@ -514,8 +515,13 @@ public class TenderEstimationServiceImpl implements TenderEstimationService {
                     ? dto.getInternalBoqId() : dto.getBoqId();
             InternalBoq parentBoq = internalBoqDao.findById(convertToUUID(targetId)).orElse(null);
             tenderEst.setParentInternalBoq(parentBoq);
+            if (parentBoq != null && parentBoq.getParentResource() != null && !parentBoq.getParentResource().isEmpty()) {
+                tenderEst.setParent(parentBoq.getParentResource().get(0));
+                tenderEst.setBoq(tenderEst.getParent().getBoq());
+            }
         } else {
             tenderEst.setParentInternalBoq(null);
+            tenderEst.setParent(null);
         }
         tenderEst.setDocNumber(dto.getDocNumber());
         tenderEst.setCoEfficient(dto.getCoEfficient());

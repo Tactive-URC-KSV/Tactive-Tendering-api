@@ -56,7 +56,7 @@ public class TenderEstimation {
 	@JsonIgnore
 	@ManyToOne
 	@JoinColumn(name = "parent_id")
-	private List<TenderEstimation> parent;
+	private TenderEstimation parent;
 	@JsonIgnore
 	@ManyToOne
 	@JoinColumn(name = "project_id")
