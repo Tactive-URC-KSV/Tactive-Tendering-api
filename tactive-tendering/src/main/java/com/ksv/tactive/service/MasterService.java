@@ -102,6 +102,6 @@ public interface MasterService {
 	Page<AttributeGroupDTO> getAttributeGroups(int page, int size);
 	List<AttributeDTO> getAttributesByGroup(String groupId);
 	Page<ResourceDto> getAllResources(int page, int size, String resourceType);
-	Page<ResourceDto> searchResources(int page, int size, String search, String resourceType);
+	Page<ResourceDto> searchResources(int page, int size, String search, String resourceType, String resourceName, String resourceCode);
 	Page<AttributeGroupDTO> searchAttributeGroups(int page, int size, String search);
 }

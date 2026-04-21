@@ -12,4 +12,5 @@ public class TenderEstResourceDto {
     private double totalCostCompanyCurrency;
     private double resourceTotalCost;
     private double coEfficient;
+    private String internalBoqId;
 }

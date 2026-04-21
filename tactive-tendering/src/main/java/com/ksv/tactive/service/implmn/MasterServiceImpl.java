@@ -19,6 +19,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
+import jakarta.persistence.criteria.Predicate;
 import org.springframework.stereotype.Service;
 
 import com.ksv.tactive.project.dao.CurrencyDao;
@@ -496,27 +498,36 @@ public class MasterServiceImpl implements MasterService{
 		return resourcePage.map(this::convertToDto);
 	}
 	@Override
-	public Page<ResourceDto> searchResources(int page, int size, String search, String resourceType) {
+	public Page<ResourceDto> searchResources(int page, int size, String search, String resourceType, String resourceName, String resourceCode) {
 		Pageable pageable = PageRequest.of(page, size, Sort.by("resourceCode").ascending());
-		ResourceType type = null;
-		if (resourceType != null && !resourceType.isEmpty()) {
-			type = ResourceType.valueOf(resourceType.toUpperCase());
-		}
-		Page<Resources> resourcePage;
-		if (search != null && !search.trim().isEmpty() && type != null) {
-			resourcePage = resourceDao
-					.findByResourceTypeAndResourceNameContainingIgnoreCaseOrResourceTypeAndResourceCodeContainingIgnoreCase(
-							type, search, type, search, pageable);
-		} else if (search != null && !search.trim().isEmpty()) {
-			resourcePage = resourceDao
-					.findByResourceNameContainingIgnoreCaseOrResourceCodeContainingIgnoreCase(
-							search, search, pageable);
-		} else if (type != null) {
-			resourcePage = resourceDao.findByResourceType(type, pageable);
-		} else {
-			resourcePage = resourceDao.findAll(pageable);
-		}
-		return resourcePage.map(this::convertToDto);
+		
+		Specification<Resources> spec = (root, query, cb) -> {
+			List<Predicate> predicates = new ArrayList<>();
+
+			if (resourceType != null && !resourceType.isEmpty()) {
+				predicates.add(cb.equal(root.get("resourceType"), ResourceType.valueOf(resourceType.toUpperCase())));
+			}
+
+			if (resourceName != null && !resourceName.trim().isEmpty()) {
+				predicates.add(cb.like(cb.lower(root.get("resourceName")), "%" + resourceName.toLowerCase() + "%"));
+			}
+
+			if (resourceCode != null && !resourceCode.trim().isEmpty()) {
+				predicates.add(cb.like(cb.lower(root.get("resourceCode")), "%" + resourceCode.toLowerCase() + "%"));
+			}
+
+			if (search != null && !search.trim().isEmpty()) {
+				String keyword = "%" + search.toLowerCase() + "%";
+				predicates.add(cb.or(
+						cb.like(cb.lower(root.get("resourceName")), keyword),
+						cb.like(cb.lower(root.get("resourceCode")), keyword)
+				));
+			}
+
+			return cb.and(predicates.toArray(new Predicate[0]));
+		};
+
+		return resourceDao.findAll(spec, pageable).map(this::convertToDto);
 	}
 	private ResourceDto convertToDto(Resources resource) {
 		ResourceDto dto = new ResourceDto();
