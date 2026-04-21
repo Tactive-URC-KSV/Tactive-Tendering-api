@@ -40,7 +40,4 @@ public class InternalBoq {
     @JoinColumn(name = "internal_boq_id")
     private List<TenderEstimation> parentResource = new ArrayList<>();
 
-    @OneToMany(mappedBy = "parentInternalBoq", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<TenderEstimation> breakupItems = new ArrayList<>();
-
 }

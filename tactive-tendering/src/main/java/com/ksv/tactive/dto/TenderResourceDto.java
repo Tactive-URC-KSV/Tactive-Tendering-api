@@ -42,11 +42,6 @@ public class TenderResourceDto {
 	private String boqId;
 	private String projectId;
 	private String internalBoqId;
-
-	private boolean isInternal;
-	private List<String> parentIds;
-	private List<String> boqIds;
-
 	private List<AttributeSelectionDto> attributes;
 	private List<FormulaElementDto> formula;
 }
