@@ -73,13 +73,10 @@ public class TenderEstimationServiceImpl implements TenderEstimationService {
 
             tenderEst.setParentInternalBoq(parentInternalBoq);
             tenderEst.setProject(project);
+            tenderEst.setBoq(null); // Explicitly don't set BOQ if Internal BOQ is present
 
             if (parentInternalBoq.getParentResource() != null && !parentInternalBoq.getParentResource().isEmpty()) {
                 parents = new ArrayList<>(parentInternalBoq.getParentResource());
-                if (parents.get(0).getBoq() != null) {
-                    boq = parents.get(0).getBoq();
-                    tenderEst.setBoq(boq);
-                }
             }
         } else {
             String targetBoqId = dto.getBoqId();
@@ -127,22 +124,24 @@ public class TenderEstimationServiceImpl implements TenderEstimationService {
         } else {
             tenderEst = new TenderEstimation();
             tenderEst.setProject(project);
-            tenderEst.setBoq(boq);
+            tenderEst.setBoq(boq); // Will be null if it's an Internal BOQ item
             tenderEst.setParent(parents);
             tenderEst.setParentInternalBoq(parentInternalBoq);
 
             updateTenderEstimationFields(tenderEst, dto);
 
             int maxRefCode;
-            if (parents.isEmpty()) {
+            if (parents.isEmpty() && boq != null) {
                 maxRefCode = tenderEstDao.findByBoqId(boq.getId()).stream()
                         .filter(e -> e.getParent() == null || e.getParent().isEmpty())
                         .mapToInt(TenderEstimation::getRefCode)
                         .max().orElse(0);
-            } else {
+            } else if (!parents.isEmpty()) {
                 maxRefCode = tenderEstDao.findByParent_Id(parents.get(0).getId()).stream()
                         .mapToInt(TenderEstimation::getRefCode)
                         .max().orElse(0);
+            } else {
+                maxRefCode = 0;
             }
             tenderEst.setRefCode(maxRefCode + 1);
             saveFormulaElements(tenderEst, dto);
@@ -222,7 +221,6 @@ public class TenderEstimationServiceImpl implements TenderEstimationService {
 
         List<TenderEstimation> children = tenderEstDao.findByParentInternalBoq_Id(boq.getId());
 
-        // Sum of children costs gives the UNIT RATE for 1 complex resource
         double unitRateOfComplexItem = children.stream()
                 .mapToDouble(TenderEstimation::getTotalCostCompanyCurrency)
                 .sum();
@@ -362,15 +360,12 @@ public class TenderEstimationServiceImpl implements TenderEstimationService {
         }
 
         if (t.getParentInternalBoq() != null) {
-            // Apply the coefficient directly as the quantity for items in an Internal BOQ
-            // This acts as the Unit Recipe (Quantity per 1 unit of Parent)
             calculatedQty = unitMultiplier;
         } else {
-            // Root level items: Base is the BOQ quantity
             if (t.getQuantityType() == QuantityType.DIRECT) {
-                calculatedQty = t.getBoq().getQuantity();
+                calculatedQty = t.getBoq() != null ? t.getBoq().getQuantity() : 0.0;
             } else {
-                calculatedQty = t.getBoq().getQuantity() * unitMultiplier;
+                calculatedQty = (t.getBoq() != null ? t.getBoq().getQuantity() : 0.0) * unitMultiplier;
             }
         }
 
@@ -462,15 +457,14 @@ public class TenderEstimationServiceImpl implements TenderEstimationService {
         if (!isSimple && dto.getInternalBoqId() != null && !dto.getInternalBoqId().isEmpty()) {
             InternalBoq parentBoq = internalBoqDao.findById(convertToUUID(dto.getInternalBoqId())).orElse(null);
             tenderEst.setParentInternalBoq(parentBoq);
+            tenderEst.setBoq(null); // Explicitly don't set BOQ if Internal BOQ is present
             if (parentBoq != null && parentBoq.getParentResource() != null) {
                 tenderEst.setParent(new ArrayList<>(parentBoq.getParentResource()));
-                if (!tenderEst.getParent().isEmpty() && tenderEst.getParent().get(0).getBoq() != null) {
-                    tenderEst.setBoq(tenderEst.getParent().get(0).getBoq());
-                }
             }
         } else {
             tenderEst.setParentInternalBoq(null);
             tenderEst.setParent(new ArrayList<>());
+            // Note: If falling back to standard BOQ processing, ensure boq assignment happens correctly in addResourcesToTender context.
         }
 
         tenderEst.setDocNumber(dto.getDocNumber());
