@@ -56,11 +56,20 @@ public class TenderEstimation {
 	@JsonIgnore
 	@ManyToOne
 	@JoinColumn(name = "parent_id")
-	private TenderEstimation parent;
+	private List<TenderEstimation> parent;
 	@JsonIgnore
 	@ManyToOne
 	@JoinColumn(name = "project_id")
 	private Projects project;
+	@ManyToOne
+	@JoinColumn(name = "internal_boq_id")
+	@JsonIgnore
+	private InternalBoq internalBoq;
+
+	@ManyToOne
+	@JoinColumn(name = "parent_internal_boq_id")
+	@JsonIgnore
+	private InternalBoq parentInternalBoq;
 	@OneToMany(mappedBy = "tenderEstimation", cascade = CascadeType.ALL, orphanRemoval = true)
 	private List<TenderFormulaElement> formulaElements = new ArrayList<>();
 }

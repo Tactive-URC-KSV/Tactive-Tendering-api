@@ -161,9 +161,11 @@ public class MasterDataController {
 			@RequestParam(defaultValue = "0") int page,
 			@RequestParam(defaultValue = "30") int size,
 			@RequestParam(required = false) String search,
-			@RequestParam(required = false) String resourceType) {
+			@RequestParam(required = false) String resourceType,
+			@RequestParam(required = false) String resourceName,
+			@RequestParam(required = false) String resourceCode) {
 		Page<ResourceDto> resourcePage =
-				masterService.searchResources(page, size, search, resourceType);
+				masterService.searchResources(page, size, search, resourceType, resourceName, resourceCode);
 		if (resourcePage.isEmpty()) {
 			return ResponseEntity.status(HttpStatus.NO_CONTENT)
 					.body(messageSource.getMessage("data.not.found", null, Locale.ENGLISH));
