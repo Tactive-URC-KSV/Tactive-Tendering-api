@@ -362,9 +362,15 @@ public class TenderEstimationServiceImpl implements TenderEstimationService {
         if (t.getParentInternalBoq() != null) {
             calculatedQty = unitMultiplier;
         } else {
-            if (t.getQuantityType() == QuantityType.DIRECT) {
+            // Root level items
+            if (t.getQuantityType() == QuantityType.FORMULA) {
+                // Strictly use the formula result, ignoring BOQ quantity
+                calculatedQty = unitMultiplier;
+            } else if (t.getQuantityType() == QuantityType.DIRECT) {
+                // Direct uses exact BOQ quantity
                 calculatedQty = t.getBoq() != null ? t.getBoq().getQuantity() : 0.0;
             } else {
+                // Coefficient multiplies the BOQ quantity by the coefficient
                 calculatedQty = (t.getBoq() != null ? t.getBoq().getQuantity() : 0.0) * unitMultiplier;
             }
         }
