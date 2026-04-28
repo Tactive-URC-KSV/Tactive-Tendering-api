@@ -53,20 +53,26 @@ public class TenderEstimationServiceImpl implements TenderEstimationService {
     public String addResourcesToTender(TenderResourceDto dto) {
         if (dto.getProjectId() == null) throw new RuntimeException("ProjectId missing");
 
-        // FIX: Removed the `!isSimple` restriction.
-        // If an InternalBoqId is passed, it is a child item and MUST route to the parent, regardless of its nature.
         if (dto.getInternalBoqId() != null && !dto.getInternalBoqId().isEmpty()) {
             InternalBoq targetIb = internalBoqDao.findById(convertToUUID(dto.getInternalBoqId()))
                     .orElseThrow(() -> new RuntimeException("Internal BOQ not found"));
 
-            for (TenderEstimation owner : targetIb.getParentResource()) {
+            // Use a copy to prevent ConcurrentModificationException during loop iteration
+            List<TenderEstimation> owners = new ArrayList<>(targetIb.getParentResource());
+            for (TenderEstimation owner : owners) {
                 processSingleEstimationEntry(owner, targetIb, null, dto);
             }
         } else {
             String targetBoqId = dto.getBoqId();
+            if ((targetBoqId == null || targetBoqId.isEmpty()) && dto.getInternalBoqId() != null) {
+                InternalBoq tempIb = internalBoqDao.findById(convertToUUID(dto.getInternalBoqId())).orElse(null);
+                if (tempIb != null && !tempIb.getParentResource().isEmpty() && tempIb.getParentResource().get(0).getBoq() != null) {
+                    targetBoqId = tempIb.getParentResource().get(0).getBoq().getId().toString();
+                }
+            }
 
             if (targetBoqId == null || targetBoqId.isEmpty()) {
-                throw new RuntimeException("BOQ Id missing and could not be derived for Root Resource");
+                throw new RuntimeException("BOQ Id missing and could not be derived for Simple Resource");
             }
 
             BOQ boq = boqDao.findById(convertToUUID(targetBoqId))
@@ -116,24 +122,26 @@ public class TenderEstimationServiceImpl implements TenderEstimationService {
 
         saveFormulaElements(tenderEst, dto);
         calculateValues(tenderEst, dto);
-        tenderEst = tenderEstDao.save(tenderEst);
+
+        // saveAndFlush prevents TransientObjectException when downstream calculations query the DB
+        tenderEst = tenderEstDao.saveAndFlush(tenderEst);
         propagateCost(tenderEst);
     }
 
     private Optional<TenderEstimation> findDuplicateForSpecificParent(InternalBoq containerIB, BOQ boq, TenderEstimation parent, UUID resId, UUID uomId, List<UUID> attrs, String natureId) {
-        List<TenderEstimation> candidates = new ArrayList<>();
+        List<TenderEstimation> candidates;
 
-        if (containerIB != null) {
+        if (ResourceNature.SIMPLE.name().equalsIgnoreCase(natureId) && boq != null) {
+            candidates = tenderEstDao.findByBoq_IdAndProject_IdAndResources_Id(boq.getId(), boq.getProject().getId(), resId);
+        } else if (containerIB != null) {
             candidates = tenderEstDao.findByParentInternalBoq_IdAndResources_IdAndUom_Id(containerIB.getId(), resId, uomId);
             if (parent != null) {
                 candidates = candidates.stream().filter(c -> c.getParent() != null && c.getParent().getId().equals(parent.getId())).collect(Collectors.toList());
             }
         } else if (boq != null) {
-            if (ResourceNature.SIMPLE.name().equalsIgnoreCase(natureId)) {
-                candidates = tenderEstDao.findByBoq_IdAndProject_IdAndResources_Id(boq.getId(), boq.getProject().getId(), resId);
-            } else {
-                candidates = tenderEstDao.findByBoq_IdAndParentIsNullAndResources_IdAndUom_Id(boq.getId(), resId, uomId);
-            }
+            candidates = tenderEstDao.findByBoq_IdAndParentIsNullAndResources_IdAndUom_Id(boq.getId(), resId, uomId);
+        } else {
+            candidates = new ArrayList<>();
         }
 
         for (TenderEstimation est : candidates) {
@@ -153,7 +161,7 @@ public class TenderEstimationServiceImpl implements TenderEstimationService {
         saveFormulaElements(tenderEst, dto);
         calculateValues(tenderEst, dto);
 
-        tenderEst = tenderEstDao.save(tenderEst);
+        tenderEst = tenderEstDao.saveAndFlush(tenderEst);
         propagateCost(tenderEst);
 
         return "Updated Successfully";
@@ -188,13 +196,15 @@ public class TenderEstimationServiceImpl implements TenderEstimationService {
             iboq.setRate(0.0);
         }
 
-        internalBoqDao.save(iboq);
+        internalBoqDao.saveAndFlush(iboq);
 
-        for (TenderEstimation parent : iboq.getParentResource()) {
+        // Copy collection to avoid ConcurrentModificationException during updates
+        List<TenderEstimation> parentResources = new ArrayList<>(iboq.getParentResource());
+        for (TenderEstimation parent : parentResources) {
             parent.setCostUnitRate(iboq.getRate());
             parent.setTotalCostCompanyCurrency(parent.getNetQuantity() * iboq.getRate());
             parent.setResourceTotalCost(parent.getTotalCostCompanyCurrency() * parent.getExchangeRate());
-            tenderEstDao.save(parent);
+            tenderEstDao.saveAndFlush(parent);
 
             if (parent.getParentInternalBoq() != null) {
                 syncInternalBoqAndParents(parent.getParentInternalBoq());
@@ -210,7 +220,6 @@ public class TenderEstimationServiceImpl implements TenderEstimationService {
         double calculatedQty;
 
         if (t.getParentInternalBoq() != null && t.getParent() != null) {
-            // Calculates quantity based on the specific parent's net quantity
             calculatedQty = t.getParent().getNetQuantity() * unitMultiplier;
         } else {
             double boqQty = (t.getBoq() != null) ? t.getBoq().getQuantity() : 0.0;
@@ -256,7 +265,7 @@ public class TenderEstimationServiceImpl implements TenderEstimationService {
             if (isSameInternalAttributes(boq, est.getEstimationAttributes())) {
                 if (!boq.getParentResource().contains(est)) {
                     boq.getParentResource().add(est);
-                    internalBoqDao.save(boq);
+                    internalBoqDao.saveAndFlush(boq);
                 }
                 return boq;
             }
@@ -268,7 +277,7 @@ public class TenderEstimationServiceImpl implements TenderEstimationService {
         newBoq.setAttributeGroup(resolveAttributeGroup(est));
         newBoq.setAttributes(mapAttributes(est, newBoq));
         newBoq.getParentResource().add(est);
-        return internalBoqDao.save(newBoq);
+        return internalBoqDao.saveAndFlush(newBoq);
     }
 
     private AttributeGroup resolveAttributeGroup(TenderEstimation est) {
@@ -302,10 +311,14 @@ public class TenderEstimationServiceImpl implements TenderEstimationService {
 
     private double evaluateFormula(List<TenderFormulaElement> elements) {
         if (elements == null || elements.isEmpty()) return 0;
-        elements.sort(Comparator.comparingInt(TenderFormulaElement::getSequence));
+
+        // Prevent ConcurrentModificationException when sorting a persistent bag
+        List<TenderFormulaElement> sortedElements = new ArrayList<>(elements);
+        sortedElements.sort(Comparator.comparingInt(TenderFormulaElement::getSequence));
+
         List<Double> values = new ArrayList<>();
         List<String> operators = new ArrayList<>();
-        for (TenderFormulaElement el : elements) {
+        for (TenderFormulaElement el : sortedElements) {
             switch (el.getType()) {
                 case SOURCE:
                     double value = 0;
