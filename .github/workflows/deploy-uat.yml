@@ -30,16 +30,16 @@ jobs:
       - name: Debug Files
         run: ls -la tactive-tendering/target
 
-      # 5. Upload stop script (FIXED SCP WITH SINGLE QUOTES)
+      # 5. Upload stop script (ADDED -O FLAG FOR WINDOWS)
       - name: Upload stop-app.bat
         run: |
-          sshpass -p '${{ secrets.SERVER_PASS }}' scp \
+          sshpass -p '${{ secrets.SERVER_PASS }}' scp -O \
             -o StrictHostKeyChecking=no \
             -P ${{ secrets.SERVER_PORT }} \
             stop-app.bat \
             "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:E:/APP/Application/TactiveKSV/stop-app.bat"
 
-      # 6. Stop app (FIXED EXECUTION WITH SINGLE QUOTES)
+      # 6. Stop app
       - name: Stop Spring Boot App
         run: |
           sshpass -p '${{ secrets.SERVER_PASS }}' ssh \
@@ -48,29 +48,29 @@ jobs:
             ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
             "cmd /c E:\APP\Application\TactiveKSV\stop-app.bat"
 
-      # 7. Wait
+      # 7. Wait (Give Windows time to release the file lock)
       - name: Wait before deploy
-        run: sleep 5
+        run: sleep 10
 
-      # 8. Upload JAR (FIXED SCP WITH SINGLE QUOTES)
+      # 8. Upload JAR (ADDED -O FLAG FOR WINDOWS)
       - name: Upload JAR
         run: |
-          sshpass -p '${{ secrets.SERVER_PASS }}' scp \
+          sshpass -p '${{ secrets.SERVER_PASS }}' scp -O \
             -o StrictHostKeyChecking=no \
             -P ${{ secrets.SERVER_PORT }} \
             tactive-tendering/target/*.jar \
             "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:E:/APP/Application/TactiveKSV/tactive.jar"
 
-      # 9. Upload start script (FIXED SCP WITH SINGLE QUOTES)
+      # 9. Upload start script (ADDED -O FLAG FOR WINDOWS)
       - name: Upload start-app.bat
         run: |
-          sshpass -p '${{ secrets.SERVER_PASS }}' scp \
+          sshpass -p '${{ secrets.SERVER_PASS }}' scp -O \
             -o StrictHostKeyChecking=no \
             -P ${{ secrets.SERVER_PORT }} \
             start-app.bat \
             "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:E:/APP/Application/TactiveKSV/start-app.bat"
 
-      # 10. Start app (FIXED EXECUTION WITH SINGLE QUOTES)
+      # 10. Start app
       - name: Start Spring Boot App
         run: |
           sshpass -p '${{ secrets.SERVER_PASS }}' ssh \
