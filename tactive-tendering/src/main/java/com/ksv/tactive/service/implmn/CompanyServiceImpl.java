@@ -110,9 +110,9 @@ public class CompanyServiceImpl implements CompanyService {
 
 		Company savedCompany = companyRepository.save(company);
 
-		if (!isEdit) {
-			createUser(savedCompany);
-		}
+		// if (!isEdit) {
+		// 	// createUser(savedCompany);
+		// }
 	}
 
 	private void createUser(Company savedCompany) {
