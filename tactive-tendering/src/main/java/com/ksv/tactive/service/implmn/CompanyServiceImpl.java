@@ -46,25 +46,53 @@ public class CompanyServiceImpl implements CompanyService {
 
 		if (!"COMPANY".equalsIgnoreCase(dto.getComTypeId())) {
 
-			company.getAddressDetails().clear();
+			if (company.getAddressDetails() == null) {
+				company.setAddressDetails(new ArrayList<>());
+			} else {
+				company.getAddressDetails().clear();
+			}
 			company.getAddressDetails().addAll(buildAddress(company, dto));
 
-			company.getContacts().clear();
+			if (company.getContacts() == null) {
+				company.setContacts(new ArrayList<>());
+			} else {
+				company.getContacts().clear();
+			}
 			company.getContacts().addAll(buildContacts(company, dto));
 
-			company.getTaxDetails().clear();
+			if (company.getTaxDetails() == null) {
+				company.setTaxDetails(new ArrayList<>());
+			} else {
+				company.getTaxDetails().clear();
+			}
 			company.getTaxDetails().addAll(buildTaxes(company, dto));
 
-			company.getAdditionalInfos().clear();
+			if (company.getAdditionalInfos() == null) {
+				company.setAdditionalInfos(new ArrayList<>());
+			} else {
+				company.getAdditionalInfos().clear();
+			}
 			company.getAdditionalInfos().addAll(buildAdditionalInfos(company, dto));
 
-			company.getLocalNames().clear();
+			if (company.getLocalNames() == null) {
+				company.setLocalNames(new ArrayList<>());
+			} else {
+				company.getLocalNames().clear();
+			}
 			company.getLocalNames().addAll(buildLocalNames(company, dto));
 
-			company.getDirectors().clear();
+			if (company.getDirectors() == null) {
+				company.setDirectors(new ArrayList<>());
+			} else {
+				company.getDirectors().clear();
+			}
 			company.getDirectors().addAll(buildDirectors(company, dto));
 
-			company.getJointVentures().clear();
+			if (company.getJointVentures() == null) {
+				company.setJointVentures(new ArrayList<>());
+			} else {
+				company.getJointVentures().clear();
+			}
 			company.getJointVentures().addAll(buildJointVentures(company, dto));
 
 			if (company.getProfile() == null || company.getProfile().isEmpty()) {
@@ -89,6 +117,7 @@ public class CompanyServiceImpl implements CompanyService {
 
 	private void createUser(Company savedCompany) {
 		List<CompanyContact> contacts = savedCompany.getContacts();
+		if (contacts == null) return;
 
 		for (CompanyContact contact : contacts) {
 

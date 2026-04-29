@@ -9,6 +9,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 
 import java.sql.Date;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -50,27 +51,27 @@ public class Company {
 	private Currency currency;
 	private String finStartMonth;
     @OneToMany(mappedBy = "company", cascade = CascadeType.ALL, orphanRemoval = true)
-	private List<ComAddressDetails> addressDetails;
+	private List<ComAddressDetails> addressDetails = new ArrayList<>();
 
 	@OneToMany(mappedBy = "company", cascade = CascadeType.ALL, orphanRemoval = true)
-	private List<CompanyContact> contacts;
+	private List<CompanyContact> contacts = new ArrayList<>();
 
 	@OneToMany(mappedBy = "company", cascade = CascadeType.ALL, orphanRemoval = true)
-	private List<CompanyTax> taxDetails;
+	private List<CompanyTax> taxDetails = new ArrayList<>();
 
 	@OneToMany(mappedBy = "company", cascade = CascadeType.ALL, orphanRemoval = true)
-	private List<CompanyDirector> directors;
+	private List<CompanyDirector> directors = new ArrayList<>();
 
 	@OneToMany(mappedBy = "company", cascade = CascadeType.ALL, orphanRemoval = true)
-	private List<CompanyJointVenture> jointVentures;
+	private List<CompanyJointVenture> jointVentures = new ArrayList<>();
 
 	@OneToMany(mappedBy = "company", cascade = CascadeType.ALL, orphanRemoval = true)
-	private List<CompanyProfile> profile;
+	private List<CompanyProfile> profile = new ArrayList<>();
 
 	@OneToMany(mappedBy = "company", cascade = CascadeType.ALL, orphanRemoval = true)
-	private List<CompanyAdditionalInfo> additionalInfos;
+	private List<CompanyAdditionalInfo> additionalInfos = new ArrayList<>();
 
 	@OneToMany(mappedBy = "company", cascade = CascadeType.ALL, orphanRemoval = true)
-	private List<CompanyLocalName> localNames;
+	private List<CompanyLocalName> localNames = new ArrayList<>();
 
 }

@@ -9,6 +9,7 @@ import lombok.Data;
 
 import java.sql.Date;
 import java.sql.Time;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
@@ -34,14 +35,14 @@ public class Tender {
             joinColumns = @JoinColumn(name = "tender_id"),
             inverseJoinColumns = @JoinColumn(name = "scope_id")
     )
-    private Set<ScopeOfPackage> scopeOfPackages;
+    private Set<ScopeOfPackage> scopeOfPackages = new HashSet<>();
     @ManyToMany
     @JoinTable(
             name = "tender_boq",
             joinColumns = @JoinColumn(name = "tender_id"),
             inverseJoinColumns = @JoinColumn(name = "boq_id")
     )
-    private Set<BOQ> boq;
+    private Set<BOQ> boq = new HashSet<>();
     @Enumerated(EnumType.STRING)
     @Column(name = "status")
     private TenderStatus tenderStatus;
@@ -55,7 +56,7 @@ public class Tender {
             joinColumns = @JoinColumn(name = "contractor_id"),
             inverseJoinColumns = @JoinColumn(name = "tender_id")
     )
-    private Set<Contractor> contractor;
+    private Set<Contractor> contractor = new HashSet<>();
     private boolean siteInvestigation;
     private boolean preBidding;
     private Date preBiddingDate;
