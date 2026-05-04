@@ -74,23 +74,24 @@ public class ExcelFileService {
 
 	private List<String> getColumnHeader(Sheet sheet) {
 		List<String> columns = new ArrayList<>();
-		if (sheet != null) {
-			for (int i = 0; i < sheet.getPhysicalNumberOfRows(); i++) {
-				Row row = sheet.getRow(i);
-				int cell = 0;
-				while (row != null && row.getPhysicalNumberOfCells() > cell) {
-					if (row.getCell(cell) != null) {
-						columns.add(row.getCell(cell).getStringCellValue());
-					}
-					cell++;
+		if (sheet == null) return columns;
+		DataFormatter formatter = new DataFormatter();
+		for (int i = sheet.getFirstRowNum(); i <= sheet.getLastRowNum(); i++) {
+			Row row = sheet.getRow(i);
+			if (row == null) continue;
+			columns.clear();
+			for (int j = row.getFirstCellNum(); j < row.getLastCellNum(); j++) {
+				Cell cell = row.getCell(j);
+				String value = formatter.formatCellValue(cell);
+				if (value != null && !value.trim().isEmpty()) {
+					columns.add(value.trim());
 				}
-				if (columns.size() >= 4)
-					break;
+			}
+			if (columns.size() >= 3) {
+				return columns;
 			}
 		}
-		return columns.stream()
-				.filter(val -> val != null && !val.trim().isEmpty())
-				.collect(Collectors.toList());
+		return columns;
 	}
 
 	public List<BOQ> mapBOQData(String sheetName, Map<String, String> columnMapping, InputStream inputStream)
