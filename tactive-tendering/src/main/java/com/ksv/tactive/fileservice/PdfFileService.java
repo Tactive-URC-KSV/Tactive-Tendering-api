@@ -42,36 +42,48 @@ public class PdfFileService {
 	private PageIterator getPages(InputStream boqFile) throws IOException {
 		PDDocument document = PDDocument.load(boqFile);
 		ObjectExtractor oe = new ObjectExtractor(document);
-		document.close();
 		return oe.extract();
 	}
 
 	public List<String> getColumnsHeaders(MultipartFile boqFile) throws IOException {
 		InputStream inputStream = boqFile.getInputStream();
-		PageIterator iterator = getPages(inputStream);
+		PDDocument document = PDDocument.load(inputStream);
+
+		ObjectExtractor oe = new ObjectExtractor(document);
+		PageIterator iterator = oe.extract();
+
 		List<List<String>> allRows = new ArrayList<>();
 		List<String> headers = null;
+
 		while (iterator.hasNext()) {
 			Page page = iterator.next();
+
+			if (page == null) continue;
+
 			SpreadsheetExtractionAlgorithm sea = new SpreadsheetExtractionAlgorithm();
 			List<Table> tables = sea.extract(page);
+
 			for (Table table : tables) {
 				List<List<String>> rows = table.getRows().stream()
-						.map(row -> row.stream().map(cell -> cell.getText()).toList()).toList();
-				if (rows.isEmpty())
-					continue;
+						.map(row -> row.stream().map(cell -> cell.getText()).toList())
+						.toList();
+
+				if (rows.isEmpty()) continue;
+
 				if (headers == null) {
 					headers = rows.get(0);
 				}
-				int startIndex = 0;
-				if (rows.get(0).equals(headers)) {
-					startIndex = 1;
-				}
+
+				int startIndex = rows.get(0).equals(headers) ? 1 : 0;
+
 				for (int i = startIndex; i < rows.size(); i++) {
 					allRows.add(rows.get(i));
 				}
 			}
 		}
+
+		document.close();
+
 		return headers;
 	}
 	public List<BOQ> mapBOQData(Map<String, String> columnMapping, InputStream inputStream)
@@ -237,6 +249,7 @@ public class PdfFileService {
 	private String safe(String val) {
 		return val == null ? "" : val;
 	}
+
 	public List<ExcelExtractBOQ> getExtractedData(MultipartFile boqFile, Map<String, String> columnMapping,
 	        int startRow, int endRow) throws IOException {
 	    InputStream inputStream = boqFile.getInputStream();
