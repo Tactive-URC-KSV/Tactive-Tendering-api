@@ -39,6 +39,6 @@ public class BOQ {
 	private BOQ parentBOQ;
 	@JsonBackReference
 	@JsonIgnore
-	@OneToMany(mappedBy = "parentBOQ", cascade = CascadeType.ALL, orphanRemoval = true)
+	@OneToMany(mappedBy = "parentBOQ", cascade = CascadeType.ALL)
 	private List<BOQ> children = new ArrayList<>();
 }

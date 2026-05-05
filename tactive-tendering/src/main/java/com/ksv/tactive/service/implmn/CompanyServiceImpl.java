@@ -44,7 +44,7 @@ public class CompanyServiceImpl implements CompanyService {
 		boolean isEdit = dto.getCompanyId() != null && !dto.getCompanyId().isBlank();
 		Company company = buildCompany(dto);
 
-		if (!"COMPANY".equalsIgnoreCase(dto.getComTypeId())) {
+		if ("COMPANY".equalsIgnoreCase(dto.getComTypeId())) {
 
 			if (company.getAddressDetails() == null) {
 				company.setAddressDetails(new ArrayList<>());
@@ -144,7 +144,7 @@ public class CompanyServiceImpl implements CompanyService {
 		if (isValid(dto.getComTypeId())) {
 			company.setComType(CompanyType.valueOf(dto.getComTypeId().toUpperCase()));
 		}
-		if ("COMPANY".equalsIgnoreCase(dto.getComTypeId())) {
+		if (!"COMPANY".equalsIgnoreCase(dto.getComTypeId())) {
 			if (isValid(dto.getComLevelId())) {
 				company.setCompanyLevel(
 						CompanyLevel.valueOf(dto.getComLevelId().toUpperCase())

@@ -437,17 +437,40 @@ public class BOQServiceImpl implements BOQService {
         Map<UUID, BOQ> boqMap = boqList.stream()
                 .collect(Collectors.toMap(BOQ::getId, boq -> boq));
         for (Map.Entry<String, String> entry : parentChildUpdateMap.entrySet()) {
+
             UUID childId = convertToUUID(entry.getKey());
-            UUID parentId = convertToUUID(entry.getValue());
+            String parentValue = entry.getValue();
+
+            BOQ child = boqMap.get(childId);
+            if (child == null) {
+                throw new RuntimeException("Invalid child BOQ: " + childId);
+            }
+
+            // Remove from old parent
+            BOQ oldParent = child.getParentBOQ();
+            if (oldParent != null) {
+                oldParent.getChildren().remove(child);
+            }
+
+            // ROOT handling
+            if ("ROOT".equalsIgnoreCase(parentValue)) {
+                child.setParentBOQ(null);
+                continue;
+            }
+
+            UUID parentId = convertToUUID(parentValue);
+
             if (childId.equals(parentId)) {
                 throw new RuntimeException("BOQ cannot be parent of itself: " + childId);
             }
-            BOQ child = boqMap.get(childId);
+
             BOQ newParent = boqMap.get(parentId);
-            if (child == null || newParent == null) {
+            if (newParent == null) {
                 throw new RuntimeException("Invalid BOQ mapping: " + childId + " -> " + parentId);
             }
+
             child.setParentBOQ(newParent);
+
             if (!newParent.getChildren().contains(child)) {
                 newParent.getChildren().add(child);
             }
