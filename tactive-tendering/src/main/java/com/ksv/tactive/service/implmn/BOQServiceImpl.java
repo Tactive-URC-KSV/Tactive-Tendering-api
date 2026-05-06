@@ -100,8 +100,13 @@ public class BOQServiceImpl implements BOQService {
     }
 
     @Override
-    public List<String> getPdfColumns(MultipartFile boqFile) throws IOException {
-        return pdfService.getColumnsHeaders(boqFile);
+    public List<String> getPdfPages(MultipartFile boqFile) throws IOException {
+        return pdfService.getPdfPages(boqFile);
+    }
+
+    @Override
+    public List<String> getPdfColumns(MultipartFile boqFile, int startPage) throws IOException {
+        return pdfService.getColumnsHeaders(boqFile, startPage);
     }
 
     @Override
@@ -109,6 +114,12 @@ public class BOQServiceImpl implements BOQService {
         String fileName = boqFile.getOriginalFilename();
         if (fileName != null && (fileName.endsWith(".xlsx") || fileName.endsWith(".xls"))) {
             return excelService.getColumns(boqFile, sheetName);
+        } else if (fileName != null && fileName.endsWith(".pdf")) {
+            int startPage = 1;
+            try {
+                startPage = Integer.parseInt(sheetName);
+            } catch (NumberFormatException ignored) {}
+            return getPdfColumns(boqFile, startPage);
         }
         return null;
     }
@@ -162,7 +173,9 @@ public class BOQServiceImpl implements BOQService {
         if (fileName != null && (fileName.endsWith(".xlsx") || fileName.endsWith(".xls"))) {
             extractedRows = excelService.getExtractedData(boqFile, sheetName, columnMapping, startRow, endRow);
         } else {
-            extractedRows = pdfService.getExtractedData(boqFile, columnMapping, startRow, endRow);
+            int startPdfPage = 1;
+            try { startPdfPage = Integer.parseInt(sheetName); } catch (Exception e) {}
+            extractedRows = pdfService.getExtractedData(boqFile, columnMapping, startRow, endRow, startPdfPage);
         }
         if (extractedRows == null || extractedRows.isEmpty()) {
             throw new DataNotFoundException("No BOQ data extracted from file!");
@@ -345,7 +358,9 @@ public class BOQServiceImpl implements BOQService {
         if (fileName != null && (fileName.endsWith(".xlsx") || fileName.endsWith(".xls"))) {
             allRows = excelService.getExtractedData(boqFile, sheetName, columnMapping, startRow, endRow);
         } else {
-            allRows = pdfService.getExtractedData(boqFile, columnMapping, startRow, endRow);
+            int startPdfPage = 1;
+            try { startPdfPage = Integer.parseInt(sheetName); } catch (Exception e) {}
+            allRows = pdfService.getExtractedData(boqFile, columnMapping, startRow, endRow, startPdfPage);
         }
         if (search != null && !search.isBlank()) {
             String lower = search.toLowerCase();

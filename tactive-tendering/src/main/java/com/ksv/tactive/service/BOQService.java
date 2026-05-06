@@ -19,7 +19,8 @@ import java.util.Map;
 public interface BOQService {
     List<ProjectInfoDto> getAllBoqUploadedProject();
     List<String> getExcelSheets(MultipartFile boqFile) throws IOException;
-    List<String> getPdfColumns(MultipartFile boqFile) throws IOException;
+    List<String> getPdfPages(MultipartFile boqFile) throws IOException;
+    List<String> getPdfColumns(MultipartFile boqFile, int startPage) throws IOException;
     List<String> getExcelColumns(MultipartFile boqFile, String sheetName) throws IOException;
     String saveBoqFile(MultipartFile boqFile, String projectId);
     String mapBOQData(String projectId, String sheetName, Map<String, String> columnMapping,

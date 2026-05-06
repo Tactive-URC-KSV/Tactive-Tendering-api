@@ -44,7 +44,7 @@ public class BOQController {
             if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
                 return ResponseEntity.status(HttpStatus.OK).body(boqService.getExcelSheets(boqFile));
             } else if (fileName.endsWith(".pdf")) {
-                return ResponseEntity.status(HttpStatus.OK).body(boqService.getPdfColumns(boqFile));
+                return ResponseEntity.status(HttpStatus.OK).body(boqService.getPdfPages(boqFile));
             } else {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                         .body(messageSource.getMessage("file.type.not.supported", null, Locale.ENGLISH));

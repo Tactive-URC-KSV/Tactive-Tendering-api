@@ -45,7 +45,19 @@ public class PdfFileService {
 		return oe.extract();
 	}
 
-	public List<String> getColumnsHeaders(MultipartFile boqFile) throws IOException {
+	public List<String> getPdfPages(MultipartFile boqFile) throws IOException {
+		InputStream inputStream = boqFile.getInputStream();
+		PDDocument document = PDDocument.load(inputStream);
+		int totalPages = document.getNumberOfPages();
+		document.close();
+		List<String> pages = new ArrayList<>();
+		for (int i = 1; i <= totalPages; i++) {
+			pages.add(String.valueOf(i));
+		}
+		return pages;
+	}
+
+	public List<String> getColumnsHeaders(MultipartFile boqFile, int startPage) throws IOException {
 		InputStream inputStream = boqFile.getInputStream();
 		PDDocument document = PDDocument.load(inputStream);
 
@@ -54,9 +66,13 @@ public class PdfFileService {
 
 		List<List<String>> allRows = new ArrayList<>();
 		List<String> headers = null;
+		int currentPageNumber = 0;
 
 		while (iterator.hasNext()) {
 			Page page = iterator.next();
+			currentPageNumber++;
+
+			if (currentPageNumber < startPage) continue;
 
 			if (page == null) continue;
 
@@ -86,84 +102,94 @@ public class PdfFileService {
 
 		return headers;
 	}
-	public List<BOQ> mapBOQData(Map<String, String> columnMapping, InputStream inputStream)
+	public List<BOQ> mapBOQData(Map<String, String> columnMapping, InputStream inputStream, int startPage)
 	        throws IOException, DataNotFoundException {
 	    List<BOQ> boqList = new ArrayList<>();
-	    PageIterator iterator = getPages(inputStream);
-	    List<String> headers = null;
-	    while (iterator.hasNext()) {
-	        Page page = iterator.next();
-	        SpreadsheetExtractionAlgorithm sea = new SpreadsheetExtractionAlgorithm();
-	        List<Table> tables = sea.extract(page);
-	        for (Table table : tables) {
-	            List<List<String>> rows = table.getRows().stream()
-	                    .map(row -> row.stream()
-	                            .map(cell -> cell.getText() != null
-	                                    ? cell.getText().replaceAll("[\\r\\n]+", " ").trim()
-	                                    : "")
-	                            .toList())
-	                    .toList();
-	            if (rows.isEmpty()) continue;
-	            if (headers == null || headers.isEmpty()) {
-	                headers = rows.get(0).stream()
-	                        .map(String::trim)
-	                        .map(String::toLowerCase)
+	    PDDocument document = PDDocument.load(inputStream);
+	    try {
+	        ObjectExtractor oe = new ObjectExtractor(document);
+	        PageIterator iterator = oe.extract();
+	        List<String> headers = null;
+	        int currentPageNumber = 0;
+	        while (iterator.hasNext()) {
+	            Page page = iterator.next();
+	            currentPageNumber++;
+	            if (currentPageNumber < startPage) continue;
+	            
+	            SpreadsheetExtractionAlgorithm sea = new SpreadsheetExtractionAlgorithm();
+	            List<Table> tables = sea.extract(page);
+	            for (Table table : tables) {
+	                List<List<String>> rows = table.getRows().stream()
+	                        .map(row -> row.stream()
+	                                .map(cell -> cell.getText() != null
+	                                        ? cell.getText().replaceAll("[\\r\\n]+", " ").trim()
+	                                        : "")
+	                                .toList())
 	                        .toList();
-	            }
-	            int startIndex = (rows.get(0).equals(headers)) ? 1 : 0;
-	            for (int i = startIndex; i < rows.size(); i++) {
-	                List<String> row = rows.get(i);
-	                if (row.stream().allMatch(String::isBlank)) continue;
-	                String joinedRow = String.join(" ", row).toLowerCase();
-	                if (joinedRow.contains("total") || joinedRow.contains("grand total")) continue;
-	                BOQ boq = new BOQ();
-	                boolean hasValidData = false;
-	                for (Map.Entry<String, String> entry : columnMapping.entrySet()) {
-	                    String internalField = entry.getKey();
-	                    String columnHeader = entry.getValue().trim().toLowerCase();
-	                    int colIndex = -1;
-	                    for (int idx = 0; idx < headers.size(); idx++) {
-	                        if (headers.get(idx).equalsIgnoreCase(columnHeader)
-	                                || headers.get(idx).contains(columnHeader)
-	                                || columnHeader.contains(headers.get(idx))) {
-	                            colIndex = idx;
-	                            break;
-	                        }
-	                    }
-	                    if (colIndex == -1 || colIndex >= row.size()) continue;
-	                    String value = row.get(colIndex).trim();
-	                    if (value.isEmpty()) continue;
-	                    switch (internalField) {
-	                        case "boqCode" -> {
-	                            boq.setBoqCode(value);
-	                            hasValidData = true;
-	                        }
-	                        case "boqName" -> {
-	                            boq.setBoqName(value);
-	                            hasValidData = true;
-	                        }
-	                        case "quantity" -> {
-	                            Double parsedQty = parseQuantity(value);
-	                            if (parsedQty != null && parsedQty != 0) {
-	                                boq.setQuantity(parsedQty);
-	                                boq.setLastLevel(true);
-	                                hasValidData = true;
-	                            }
-	                        }
-	                        case "uom" -> {
-	                            if (!value.isBlank()) {
-//	                                boq.setUom(excelFileService.findUOM(value));
-	                                boq.setLastLevel(true);
-	                                hasValidData = true;
-	                            } else {
-	                                boq.setLastLevel(false);
-	                            }
-	                        }
-	                    }
+	                if (rows.isEmpty()) continue;
+	                if (headers == null || headers.isEmpty()) {
+	                    headers = rows.get(0).stream()
+	                            .map(String::trim)
+	                            .map(String::toLowerCase)
+	                            .toList();
 	                }
-	                if (hasValidData) boqList.add(boq);
+	                int startIndex = (rows.get(0).equals(headers)) ? 1 : 0;
+	                for (int i = startIndex; i < rows.size(); i++) {
+	                    List<String> row = rows.get(i);
+	                    if (row.stream().allMatch(String::isBlank)) continue;
+	                    String joinedRow = String.join(" ", row).toLowerCase();
+	                    if (joinedRow.contains("total") || joinedRow.contains("grand total")) continue;
+	                    BOQ boq = new BOQ();
+	                    boolean hasValidData = false;
+	                    for (Map.Entry<String, String> entry : columnMapping.entrySet()) {
+	                        String internalField = entry.getKey();
+	                        String columnHeader = entry.getValue().trim().toLowerCase();
+	                        int colIndex = -1;
+	                        for (int idx = 0; idx < headers.size(); idx++) {
+	                            if (headers.get(idx).equalsIgnoreCase(columnHeader)
+	                                    || headers.get(idx).contains(columnHeader)
+	                                    || columnHeader.contains(headers.get(idx))) {
+	                                colIndex = idx;
+	                                break;
+	                            }
+	                        }
+	                        if (colIndex == -1 || colIndex >= row.size()) continue;
+	                        String value = row.get(colIndex).trim();
+	                        if (value.isEmpty()) continue;
+	                        switch (internalField) {
+	                            case "boqCode" -> {
+	                                boq.setBoqCode(value);
+	                                hasValidData = true;
+	                            }
+	                            case "boqName" -> {
+	                                boq.setBoqName(value);
+	                                hasValidData = true;
+	                            }
+	                            case "quantity" -> {
+	                                Double parsedQty = parseQuantity(value);
+	                                if (parsedQty != null && parsedQty != 0) {
+	                                    boq.setQuantity(parsedQty);
+	                                    boq.setLastLevel(true);
+	                                    hasValidData = true;
+	                                }
+	                            }
+	                            case "uom" -> {
+	                                if (!value.isBlank()) {
+//	                                boq.setUom(excelFileService.findUOM(value));
+	                                    boq.setLastLevel(true);
+	                                    hasValidData = true;
+	                                } else {
+	                                    boq.setLastLevel(false);
+	                                }
+	                            }
+	                        }
+	                    }
+	                    if (hasValidData) boqList.add(boq);
+	                }
 	            }
 	        }
+	    } finally {
+	        document.close();
 	    }
 	    return boqList;
 	}
@@ -251,92 +277,104 @@ public class PdfFileService {
 	}
 
 	public List<ExcelExtractBOQ> getExtractedData(MultipartFile boqFile, Map<String, String> columnMapping,
-	        int startRow, int endRow) throws IOException {
-	    InputStream inputStream = boqFile.getInputStream();
-	    PageIterator iterator = getPages(inputStream);
-	    List<String> headers = null;
-	    List<ExcelExtractBOQ> boqList = new ArrayList<>();
-	    int globalRowCounter = 0;  
-	    int serialNumber = 1;
-	    while (iterator.hasNext()) {
-	        Page page = iterator.next();
-	        SpreadsheetExtractionAlgorithm sea = new SpreadsheetExtractionAlgorithm();
-	        List<Table> tables = sea.extract(page);
-	        for (Table table : tables) {
-	            List<List<String>> rows = table.getRows().stream()
-	                    .map(row -> row.stream()
-	                            .map(cell -> cell.getText() != null
-	                                    ? cell.getText().replaceAll("[\\r\\n]+", " ").trim()
-	                                    : "")
-	                            .toList())
-	                    .toList();
-	            if (rows.isEmpty()) continue;
-	            if (headers == null || headers.isEmpty()) {
-	                headers = rows.get(0).stream()
-	                        .map(String::trim)
-	                        .map(String::toLowerCase)
-	                        .toList();
-	            }
-	            int startIndex = (rows.get(0).equals(headers)) ? 1 : 0;
-	            for (int i = startIndex; i < rows.size(); i++) {
-	                List<String> row = rows.get(i);
-	                globalRowCounter++;
-	                if (startRow > 0 && globalRowCounter < startRow) {
-	                    continue;
-	                }
-	                if (endRow > 0 && globalRowCounter > endRow) {
-	                    return boqList; 
-	                }
-	                if (row.stream().allMatch(String::isBlank)) continue;
-	                String joinedRow = String.join(" ", row).toLowerCase();
-	                if (joinedRow.contains("total") || joinedRow.contains("grand total")) continue;
-	                ExcelExtractBOQ boq = new ExcelExtractBOQ();
-	                boq.setSno(serialNumber++);
-	                boolean hasValidData = false;
-	                for (Map.Entry<String, String> entry : columnMapping.entrySet()) {
-	                    String internalField = entry.getKey();
-	                    String columnHeader = entry.getValue().trim().toLowerCase();
-	                    int colIndex = -1;
-	                    for (int idx = 0; idx < headers.size(); idx++) {
-	                        if (headers.get(idx).equalsIgnoreCase(columnHeader)
-	                                || headers.get(idx).contains(columnHeader)
-	                                || columnHeader.contains(headers.get(idx))) {
-	                            colIndex = idx;
-	                            break;
-	                        }
-	                    }
-	                    if (colIndex == -1 || colIndex >= row.size()) continue;
-	                    String value = row.get(colIndex).trim();
-	                    if (value.isEmpty()) continue;
-	                    switch (internalField) {
-	                        case "boqCode" -> {
-	                            boq.setBoqCode(value);
-	                            hasValidData = true;
-	                        }
-	                        case "boqName" -> {
-	                            boq.setBoqName(value);
-	                            hasValidData = true;
-	                        }
-	                        case "quantity" -> {
-	                            Double parsedQty = parseQuantity(value);
-	                            if (parsedQty != null && parsedQty != 0) {
-	                                boq.setQuantity(parsedQty);
-	                                hasValidData = true;
-	                            }
-	                        }
-	                        case "uom" -> {
-	                            if (!value.isBlank()) {
-	                                boq.setUom(value);
-	                                hasValidData = true;
-	                            }
-	                        }
-	                    }
-	                }
-	                boq.setLastLevel(boq.getQuantity() > 0 || (boq.getUom() != null && !boq.getUom().isBlank()));
-	                if (hasValidData) boqList.add(boq);
-	            }
-	        }
-	    }
-	    return boqList;
-	}
+	        int startRow, int endRow, int startPage) throws IOException {
+        InputStream inputStream = boqFile.getInputStream();
+        PDDocument document = PDDocument.load(inputStream);
+        List<ExcelExtractBOQ> boqList;
+        try {
+            ObjectExtractor oe = new ObjectExtractor(document);
+            PageIterator iterator = oe.extract();
+            List<String> headers = null;
+            boqList = new ArrayList<>();
+            int globalRowCounter = 0;
+            int serialNumber = 1;
+            int currentPageNumber = 0;
+            while (iterator.hasNext()) {
+                Page page = iterator.next();
+                currentPageNumber++;
+
+                if (currentPageNumber < startPage) continue;
+
+                SpreadsheetExtractionAlgorithm sea = new SpreadsheetExtractionAlgorithm();
+                List<Table> tables = sea.extract(page);
+                for (Table table : tables) {
+                    List<List<String>> rows = table.getRows().stream()
+                            .map(row -> row.stream()
+                                    .map(cell -> cell.getText() != null
+                                            ? cell.getText().replaceAll("[\\r\\n]+", " ").trim()
+                                            : "")
+                                    .toList())
+                            .toList();
+                    if (rows.isEmpty()) continue;
+                    if (headers == null || headers.isEmpty()) {
+                        headers = rows.get(0).stream()
+                                .map(String::trim)
+                                .map(String::toLowerCase)
+                                .toList();
+                    }
+                    int startIndex = (rows.get(0).equals(headers)) ? 1 : 0;
+                    for (int i = startIndex; i < rows.size(); i++) {
+                        List<String> row = rows.get(i);
+                        globalRowCounter++;
+                        if (startRow > 0 && globalRowCounter < startRow) {
+                            continue;
+                        }
+                        if (endRow > 0 && globalRowCounter > endRow) {
+                            return boqList;
+                        }
+                        if (row.stream().allMatch(String::isBlank)) continue;
+                        String joinedRow = String.join(" ", row).toLowerCase();
+                        if (joinedRow.contains("total") || joinedRow.contains("grand total")) continue;
+                        ExcelExtractBOQ boq = new ExcelExtractBOQ();
+                        boq.setSno(serialNumber++);
+                        boolean hasValidData = false;
+                        for (Map.Entry<String, String> entry : columnMapping.entrySet()) {
+                            String internalField = entry.getKey();
+                            String columnHeader = entry.getValue().trim().toLowerCase();
+                            int colIndex = -1;
+                            for (int idx = 0; idx < headers.size(); idx++) {
+                                if (headers.get(idx).equalsIgnoreCase(columnHeader)
+                                        || headers.get(idx).contains(columnHeader)
+                                        || columnHeader.contains(headers.get(idx))) {
+                                    colIndex = idx;
+                                    break;
+                                }
+                            }
+                            if (colIndex == -1 || colIndex >= row.size()) continue;
+                            String value = row.get(colIndex).trim();
+                            if (value.isEmpty()) continue;
+                            switch (internalField) {
+                                case "boqCode" -> {
+                                    boq.setBoqCode(value);
+                                    hasValidData = true;
+                                }
+                                case "boqName" -> {
+                                    boq.setBoqName(value);
+                                    hasValidData = true;
+                                }
+                                case "quantity" -> {
+                                    Double parsedQty = parseQuantity(value);
+                                    if (parsedQty != null && parsedQty != 0) {
+                                        boq.setQuantity(parsedQty);
+                                        hasValidData = true;
+                                    }
+                                }
+                                case "uom" -> {
+                                    if (!value.isBlank()) {
+                                        boq.setUom(value);
+                                        hasValidData = true;
+                                    }
+                                }
+                            }
+                        }
+                        boq.setLastLevel(boq.getQuantity() > 0 || (boq.getUom() != null && !boq.getUom().isBlank()));
+                        if (hasValidData) boqList.add(boq);
+                    }
+                }
+            }
+        } finally {
+            document.close();
+        }
+        return boqList;
+    }
 }
