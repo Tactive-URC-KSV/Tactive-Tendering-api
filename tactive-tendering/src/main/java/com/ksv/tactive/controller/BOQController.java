@@ -67,12 +67,10 @@ public class BOQController {
     @PostMapping(value = "/project/extractedBOQ", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> getExtractedBOQData(@RequestParam("file") MultipartFile boqFile,
                                                  @RequestParam("sheetName") String sheetName,
-                                                 @RequestPart("columnMapping") Map<String, String> columnMapping, @RequestParam("startRow") int startRow,
-                                                 @RequestParam("endRow") int endRow, @RequestParam(defaultValue = "0") int page,
-                                                 @RequestParam(defaultValue = "50") int size, @RequestParam(required = false) String search) {
+                                                 @RequestPart("columnMapping") Map<String, String> columnMapping, @RequestParam(required = false) String search) {
         try {
-            PaginatedResponse<ExcelExtractBOQ> response = boqService.extractBOQDataPaginated(sheetName,
-                    columnMapping, boqFile, startRow, endRow, page, size, search);
+            List<ExcelExtractBOQ> response = boqService.extractBOQData(sheetName,
+                    columnMapping, boqFile, search);
             return ResponseEntity.ok(response);
         } catch (IOException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

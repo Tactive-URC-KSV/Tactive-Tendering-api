@@ -35,8 +35,8 @@ public interface BOQService {
     void generateBoqPdf(String projectId, HttpServletResponse response) throws IOException, DocumentException, DataNotFoundException;
     void deleteBOQ(List<String> boqCode, String projectId);
     BOQ getBoqById(String boqId);
-    PaginatedResponse<ExcelExtractBOQ> extractBOQDataPaginated(String sheetName,
-                                                            Map<String, String> columnMapping, MultipartFile boqFile, int startRow, int endRow, int page, int size, String search) throws IOException;
+    List<ExcelExtractBOQ> extractBOQData(String sheetName,
+                                                            Map<String, String> columnMapping, MultipartFile boqFile, String search) throws IOException;
     List<BOQ> searchBoq(String projectId, String searchQuery);
     Map<String, Double> getParentBoqTotalMap(String projectId);
     String updateBOQHierarchy(String projectId, Map<String, String> parentChildUpdateMap);

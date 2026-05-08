@@ -352,8 +352,10 @@ public class BOQServiceImpl implements BOQService {
     }
 
     @Override
-    public PaginatedResponse<ExcelExtractBOQ> extractBOQDataPaginated(String sheetName, Map<String, String> columnMapping, MultipartFile boqFile, int startRow, int endRow, int page, int size, String search) throws IOException {
+    public List<ExcelExtractBOQ> extractBOQData(String sheetName, Map<String, String> columnMapping, MultipartFile boqFile, String search) throws IOException {
         List<ExcelExtractBOQ> allRows;
+        int startRow = 0;
+        int endRow = 100000;
         String fileName = boqFile.getOriginalFilename();
         if (fileName != null && (fileName.endsWith(".xlsx") || fileName.endsWith(".xls"))) {
             allRows = excelService.getExtractedData(boqFile, sheetName, columnMapping, startRow, endRow);
@@ -371,19 +373,7 @@ public class BOQServiceImpl implements BOQService {
                     )
                     .toList();
         }
-        int totalElements = allRows.size();
-        int totalPages = (int) Math.ceil((double) totalElements / size);
-        int fromIndex = page * size;
-        int toIndex = Math.min(fromIndex + size, totalElements);
-        List<ExcelExtractBOQ> content =
-                (fromIndex >= totalElements) ? List.of() : allRows.subList(fromIndex, toIndex);
-        return new PaginatedResponse<>(
-                content,
-                page,
-                size,
-                totalElements,
-                totalPages
-        );
+        return allRows;
     }
 
     @Override
