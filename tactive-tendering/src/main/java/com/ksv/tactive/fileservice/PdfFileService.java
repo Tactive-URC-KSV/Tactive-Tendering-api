@@ -165,14 +165,13 @@ public class PdfFileService {
 	                                boq.setBoqName(value);
 	                                hasValidData = true;
 	                            }
-	                            case "quantity" -> {
-	                                Double parsedQty = parseQuantity(value);
-	                                if (parsedQty != null && parsedQty != 0) {
-	                                    boq.setQuantity(parsedQty);
-	                                    boq.setLastLevel(true);
-	                                    hasValidData = true;
-	                                }
-	                            }
+								case "quantity" -> {
+									Double parsedQty = parseQuantity(value);
+									if (parsedQty != null) {
+										boq.setQuantity(parsedQty);
+										hasValidData = true;
+									}
+								}
 	                            case "uom" -> {
 	                                if (!value.isBlank()) {
 //	                                boq.setUom(excelFileService.findUOM(value));
@@ -194,25 +193,32 @@ public class PdfFileService {
 	    return boqList;
 	}
 	private Double parseQuantity(String value) {
-	    if (value == null) return null;
-	    String cleaned = value.trim();
-	    boolean isNegative = cleaned.startsWith("(") && cleaned.endsWith(")");
-	    cleaned = cleaned.replaceAll("[()]", "");
-	    cleaned = cleaned.replaceAll("[^0-9.,-]", "");
-	    cleaned = cleaned.replaceAll(",", "");
-	    if (cleaned.isEmpty()) return null;
-	    try {
-	        double result = Double.parseDouble(cleaned);
-	        return isNegative ? -result : result;
-	    } catch (NumberFormatException e) {
-	        java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("[-+]?[0-9]*\\.?[0-9]+").matcher(value);
-	        if (matcher.find()) {
-	            try {
-	                return Double.parseDouble(matcher.group());
-	            } catch (NumberFormatException ignored) {}
-	        }
-	    }
-	    return null;
+		if (value == null || value.isBlank()) {
+			return null;
+		}
+		try {
+			String cleaned = value
+					.replace(",", "")
+					.replace("\n", " ")
+					.replaceAll("[^0-9.\\-]", "")
+					.trim();
+			if (cleaned.isEmpty()) {
+				return null;
+			}
+			return Double.parseDouble(cleaned);
+		} catch (Exception e) {
+			try {
+				java.util.regex.Matcher matcher =
+						java.util.regex.Pattern
+								.compile("[-+]?[0-9]*\\.?[0-9]+")
+								.matcher(value);
+				if (matcher.find()) {
+					return Double.parseDouble(matcher.group());
+				}
+			} catch (Exception ignored) {
+			}
+		}
+		return null;
 	}
 	public void generateBoqPdf(List<BOQ> boqList, HttpServletResponse response) throws IOException, DocumentException {
 		String projectName = boqList.get(0).getProject().getProjectName().trim().replaceAll("\\s+", "_");
@@ -352,13 +358,13 @@ public class PdfFileService {
                                     boq.setBoqName(value);
                                     hasValidData = true;
                                 }
-                                case "quantity" -> {
-                                    Double parsedQty = parseQuantity(value);
-                                    if (parsedQty != null && parsedQty != 0) {
-                                        boq.setQuantity(parsedQty);
-                                        hasValidData = true;
-                                    }
-                                }
+								case "quantity" -> {
+									Double parsedQty = parseQuantity(value);
+									if (parsedQty != null) {
+										boq.setQuantity(parsedQty);
+										hasValidData = true;
+									}
+								}
                                 case "uom" -> {
                                     if (!value.isBlank()) {
                                         boq.setUom(value);
