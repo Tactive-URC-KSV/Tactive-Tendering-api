@@ -19,6 +19,7 @@ import com.ksv.tactive.service.BOQService;
 import com.ksv.tactive.service.MasterService;
 import com.ksv.tactive.service.ProjectService;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -203,6 +204,7 @@ public class BOQServiceImpl implements BOQService {
                 boq.setBoqName(row.getBoqName());
                 if (row.getUom() != null) {
                     boq.setUom(findUOM(row.getUom()));
+                    boq.setUomCode(boq.getUom() != null ? boq.getUom().getUomCode() : row.getUom());
                 }
                 boqUniqueMap.put(key, boq);
             }
@@ -337,14 +339,25 @@ public class BOQServiceImpl implements BOQService {
     }
 
     @Override
+    @Transactional
     public void deleteBOQ(List<String> boqCode, String projectId) {
         for (String code : boqCode) {
-            BOQ boq = boqDao.findById(convertToUUID(code)).orElseThrow(() -> new DataNotFoundException(
-                    messageSource.getMessage("boq.not.found", null, Locale.ENGLISH)));
+            BOQ boq = boqDao.findById(convertToUUID(code))
+                    .orElseThrow(() -> new DataNotFoundException(
+                            messageSource.getMessage("boq.not.found", null, Locale.ENGLISH)));
+            deleteChildren(boq);
             boqDao.delete(boq);
         }
     }
-
+    private void deleteChildren(BOQ parent) {
+        if (parent.getChildren() != null && !parent.getChildren().isEmpty()) {
+            List<BOQ> children = new ArrayList<>(parent.getChildren());
+            for (BOQ child : children) {
+                deleteChildren(child);
+                boqDao.delete(child);
+            }
+        }
+    }
     @Override
     public BOQ getBoqById(String boqId) {
         return boqDao.findById(convertToUUID(boqId))

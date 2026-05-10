@@ -29,6 +29,8 @@ public class BOQ {
 	private double totalRate;
 	private double totalAmount;
 	private boolean lastLevel;
+	@Column(nullable = true)
+	private String uomCode;
 	@JsonBackReference
 	@ManyToOne(cascade = CascadeType.DETACH)
 	@JoinColumn(name = "project_id")
@@ -39,6 +41,6 @@ public class BOQ {
 	private BOQ parentBOQ;
 	@JsonBackReference
 	@JsonIgnore
-	@OneToMany(mappedBy = "parentBOQ", cascade = CascadeType.ALL)
+	@OneToMany(mappedBy = "parentBOQ", cascade = { CascadeType.PERSIST, CascadeType.MERGE })
 	private List<BOQ> children = new ArrayList<>();
 }
