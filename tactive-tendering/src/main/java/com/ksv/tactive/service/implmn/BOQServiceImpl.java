@@ -162,7 +162,7 @@ public class BOQServiceImpl implements BOQService {
     }
 
     @Override
-    public String mapBOQData(String projectId, String sheetName, Map<String, String> columnMapping,
+    public String mapBOQData(String projectId, String sheetName, Map<String, List<String>> columnMapping,
                              Map<Long, Long> parentChildMapping, Map<Long, Boolean> lastLevelMapping, Map<Long, Long> levelMapping,
                              MultipartFile boqFile) throws IOException {
         Projects project = projectDao.findById(convertToUUID(projectId)).orElse(null);
@@ -365,7 +365,7 @@ public class BOQServiceImpl implements BOQService {
     }
 
     @Override
-    public List<ExcelExtractBOQ> extractBOQData(String sheetName, Map<String, String> columnMapping, MultipartFile boqFile, String search) throws IOException {
+    public List<ExcelExtractBOQ> extractBOQData(String sheetName, Map<String, List<String>> columnMapping, MultipartFile boqFile, String search) throws IOException {
         List<ExcelExtractBOQ> allRows;
         int startRow = 0;
         int endRow = 100000;
@@ -508,7 +508,7 @@ public class BOQServiceImpl implements BOQService {
     }
 
     @Override
-    public String saveTemplate(Template template, Map<String, String> mapping) {
+    public String saveTemplate(Template template, Map<String, List<String>> mapping) {
         if (templateDao.findByTemplateName(template.getTemplateName()) == null) {
             Template savedTemplate = templateDao.save(template);
             saveTemplateMapping(mapping, savedTemplate);
@@ -517,12 +517,12 @@ public class BOQServiceImpl implements BOQService {
         return messageSource.getMessage("template.duplicate", null, Locale.ENGLISH);
     }
 
-    private void saveTemplateMapping(Map<String, String> mapping, Template savedTemplate) {
-        for (Map.Entry<String, String> map : mapping.entrySet()) {
+    private void saveTemplateMapping(Map<String, List<String>> mapping, Template savedTemplate) {
+        for (Map.Entry<String, List<String>> map : mapping.entrySet()) {
             TemplateMapping tempMap = new TemplateMapping();
             tempMap.setTemplate(savedTemplate);
             tempMap.setInternalFields(map.getKey());
-            tempMap.setExcelFields(map.getValue());
+            tempMap.setExcelFields(String.join("|||", map.getValue()));
             templateMappingDao.save(tempMap);
         }
     }
@@ -539,9 +539,11 @@ public class BOQServiceImpl implements BOQService {
                 () -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
         templateDto.setTemplate(template);
         List<TemplateMapping> mappings = templateMappingDao.findByTemplateId(UUID.fromString(templateId));
-        Map<String, String> mapping = new HashMap<>();
+        Map<String, List<String>> mapping = new HashMap<>();
         for (TemplateMapping map : mappings) {
-            mapping.put(map.getInternalFields(), map.getExcelFields());
+            String excelFields = map.getExcelFields();
+            List<String> fieldList = Arrays.asList(excelFields.split("\\|\\|\\|"));
+            mapping.put(map.getInternalFields(), fieldList);
         }
         templateDto.setTemplateMapping(mapping);
         return templateDto;

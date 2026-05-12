@@ -67,7 +67,7 @@ public class BOQController {
     @PostMapping(value = "/project/extractedBOQ", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> getExtractedBOQData(@RequestParam("file") MultipartFile boqFile,
                                                  @RequestParam("sheetName") String sheetName,
-                                                 @RequestPart("columnMapping") Map<String, String> columnMapping, @RequestParam(required = false) String search) {
+                                                 @RequestPart("columnMapping") Map<String, List<String>> columnMapping, @RequestParam(required = false) String search) {
         try {
             List<ExcelExtractBOQ> response = boqService.extractBOQData(sheetName,
                     columnMapping, boqFile, search);
@@ -96,7 +96,7 @@ public class BOQController {
                                         @RequestParam String levelMapping) {
         try {
             ObjectMapper mapper = new ObjectMapper();
-            Map<String, String> columnMap = mapper.readValue(columnMapping, new TypeReference<Map<String, String>>() {});
+            Map<String, List<String>> columnMap = mapper.readValue(columnMapping, new TypeReference<Map<String, List<String>>>() {});
             Map<Long, Long> parentChildMap = mapper.readValue(parentChildMapping, new TypeReference<Map<Long, Long>>() {});
             Map<Long, Boolean> lastLevelMap = mapper.readValue(lastLevelMapping, new TypeReference<Map<Long, Boolean>>() {});
             Map<Long, Long> levelMap = mapper.readValue(levelMapping, new TypeReference<Map<Long, Long>>() {});
@@ -228,7 +228,7 @@ public class BOQController {
     }
 
     @PostMapping("project/saveTemplateMapping")
-    public ResponseEntity<?> saveTemplate(@RequestPart Template template, @RequestPart Map<String, String> mapping) {
+    public ResponseEntity<?> saveTemplate(@RequestPart Template template, @RequestPart Map<String, List<String>> mapping) {
         return ResponseEntity.status(HttpStatus.OK).body(boqService.saveTemplate(template, mapping));
     }
 

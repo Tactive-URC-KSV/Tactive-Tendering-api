@@ -82,10 +82,10 @@ public class ExcelFileService {
 		return columns;
 	}
 
-	public List<BOQ> mapBOQData(String sheetName, Map<String, String> columnMapping, InputStream inputStream)
+	public List<BOQ> mapBOQData(String sheetName, Map<String, List<String>> columnMapping, InputStream inputStream)
 			throws EncryptedDocumentException, IOException, DataNotFoundException {
 		Sheet sheet = findSheetByName(sheetName, inputStream);
-		Map<String, Integer> columnIndex = findColumnIndexMap(sheet, columnMapping);
+		Map<String, List<Integer>> columnIndex = findColumnIndexMap(sheet, columnMapping);
 		List<BOQ> boqList = new ArrayList<>();
 
 		if (sheet != null && !columnIndex.isEmpty()) {
@@ -99,28 +99,38 @@ public class ExcelFileService {
 					BOQ boq = new BOQ();
 					boolean hasData = false;
 
-					for (Map.Entry<String, Integer> entry : columnIndex.entrySet()) {
+					for (Map.Entry<String, List<Integer>> entry : columnIndex.entrySet()) {
 						String internalField = entry.getKey();
-						Integer indexValue = entry.getValue();
+						List<Integer> colIndices = entry.getValue();
 
-						Cell cell = currentRow.getCell(indexValue);
-						String value = getCellValueAsString(cell, evaluator);
+						// Collect all non-null values from mapped columns
+						List<String> values = new ArrayList<>();
+						for (Integer colIdx : colIndices) {
+							Cell cell = currentRow.getCell(colIdx);
+							String value = getCellValueAsString(cell, evaluator);
+							if (value != null && !value.isBlank()) {
+								values.add(value);
+							}
+						}
 
-						if (value != null && !value.isBlank()) {
-							switch (internalField) {
-								case "boqCode" -> { boq.setBoqCode(value); hasData = true; }
-								case "boqName" -> { boq.setBoqName(value); hasData = true; }
-								case "quantity" -> {
+						if (values.isEmpty()) continue;
+
+						switch (internalField) {
+							case "boqCode" -> { boq.setBoqCode(String.join(" ", values)); hasData = true; }
+							case "boqName" -> { boq.setBoqName(String.join(" ", values)); hasData = true; }
+							case "quantity" -> {
+								for (String val : values) {
 									try {
-										boq.setQuantity(Double.valueOf(value.replaceAll("[^0-9.-]", "")));
+										boq.setQuantity(Double.valueOf(val.replaceAll("[^0-9.-]", "")));
 										boq.setLastLevel(true);
 										hasData = true;
+										break;
 									} catch (NumberFormatException ignored) {}
 								}
-								case "uom" -> {
-									boq.setLastLevel(true);
-									hasData = true;
-								}
+							}
+							case "uom" -> {
+								boq.setLastLevel(true);
+								hasData = true;
 							}
 						}
 					}
@@ -149,8 +159,12 @@ public class ExcelFileService {
 		}
 	}
 
-	private int findRowNumber(Sheet sheet, Map<String, String> columnMapping) {
+	private int findRowNumber(Sheet sheet, Map<String, List<String>> columnMapping) {
 		DataFormatter formatter = new DataFormatter();
+		// Flatten all column header values
+		List<String> allExpectedHeaders = columnMapping.values().stream()
+				.flatMap(List::stream)
+				.toList();
 		for (int row = sheet.getFirstRowNum(); row <= Math.min(sheet.getLastRowNum(), 50); row++) {
 			Row currentRow = sheet.getRow(row);
 			if (currentRow != null && !currentRow.getZeroHeight()) {
@@ -161,7 +175,7 @@ public class ExcelFileService {
 					Cell currentCell = currentRow.getCell(cell);
 					String cellValue = formatter.formatCellValue(currentCell).toLowerCase().replaceAll("[^a-z0-9]", "");
 
-					for (String expectedHeader : columnMapping.values()) {
+					for (String expectedHeader : allExpectedHeaders) {
 						String normalizedExpected = expectedHeader.toLowerCase().replaceAll("[^a-z0-9]", "");
 						if (!cellValue.isEmpty() && cellValue.contains(normalizedExpected)) {
 							matchCount++;
@@ -177,9 +191,9 @@ public class ExcelFileService {
 		return 0;
 	}
 
-	// SANITIZED HEADER MAPPING
-	private Map<String, Integer> findColumnIndexMap(Sheet sheet, Map<String, String> columnMapping) {
-		Map<String, Integer> columnIndexMap = new HashMap<>();
+	// SANITIZED HEADER MAPPING - supports multiple columns per internal field
+	private Map<String, List<Integer>> findColumnIndexMap(Sheet sheet, Map<String, List<String>> columnMapping) {
+		Map<String, List<Integer>> columnIndexMap = new HashMap<>();
 		if (sheet == null) return columnIndexMap;
 
 		DataFormatter formatter = new DataFormatter();
@@ -209,19 +223,20 @@ public class ExcelFileService {
 
 				String cellValue = formatter.formatCellValue(cell).toLowerCase().replaceAll("[^a-z0-9]", "");
 
-				for (Map.Entry<String, String> mapping : columnMapping.entrySet()) {
+				for (Map.Entry<String, List<String>> mapping : columnMapping.entrySet()) {
 					String internalKey = mapping.getKey();
-					String expectedHeader = mapping.getValue();
+					List<String> expectedHeaders = mapping.getValue();
 
-					if (expectedHeader == null) continue;
+					for (String expectedHeader : expectedHeaders) {
+						if (expectedHeader == null) continue;
 
-					String normalizedExpected = expectedHeader.toLowerCase().replaceAll("[^a-z0-9]", "");
+						String normalizedExpected = expectedHeader.toLowerCase().replaceAll("[^a-z0-9]", "");
 
-					if (!cellValue.isEmpty() && cellValue.contains(normalizedExpected)) {
-						// SANITIZATION 4: Left-to-Right Priority Lock.
-						// If we already mapped boqCode, do NOT overwrite it with a ghost column on the right.
-						if (!columnIndexMap.containsKey(internalKey)) {
-							columnIndexMap.put(internalKey, cellNum);
+						if (!cellValue.isEmpty() && cellValue.contains(normalizedExpected)) {
+							List<Integer> indices = columnIndexMap.computeIfAbsent(internalKey, k -> new ArrayList<>());
+							if (!indices.contains(cellNum)) {
+								indices.add(cellNum);
+							}
 						}
 					}
 				}
@@ -291,14 +306,14 @@ public class ExcelFileService {
 	}
 
 	public List<ExcelExtractBOQ> getExtractedData(
-			MultipartFile boqFile, String sheetName, Map<String, String> columnMapping, int startRow, int endRow) throws IOException {
+			MultipartFile boqFile, String sheetName, Map<String, List<String>> columnMapping, int startRow, int endRow) throws IOException {
 
 		Workbook workbook = boqFile.getOriginalFilename().endsWith(".xlsx") ? readXlsxFile(boqFile) : readXlsFile(boqFile);
 		Sheet sheet = workbook.getSheet(sheetName);
 		if (sheet == null) return new ArrayList<>();
 
 		System.out.println("Provided Mapping: " + columnMapping);
-		Map<String, Integer> columnIndex = findColumnIndexMap(sheet, columnMapping);
+		Map<String, List<Integer>> columnIndex = findColumnIndexMap(sheet, columnMapping);
 		System.out.println("Actual Mapped Columns: " + columnIndex);
 
 		if (columnIndex.isEmpty()) return new ArrayList<>();
@@ -322,29 +337,48 @@ public class ExcelFileService {
 			boq.setSno(serialNumber++);
 			boolean hasData = false;
 
-			for (Map.Entry<String, Integer> entry : columnIndex.entrySet()) {
+			for (Map.Entry<String, List<Integer>> entry : columnIndex.entrySet()) {
 				String internalField = entry.getKey();
-				Integer colIndex = entry.getValue();
+				List<Integer> colIndices = entry.getValue();
 
-				Cell cell = row.getCell(colIndex);
-				String rawValue = getCellValueAsString(cell, evaluator);
+				// Collect all non-null values from mapped columns
+				List<String> values = new ArrayList<>();
+				for (Integer colIdx : colIndices) {
+					Cell cell = row.getCell(colIdx);
+					String rawValue = getCellValueAsString(cell, evaluator);
+					if (rawValue != null) {
+						values.add(rawValue);
+					}
+				}
 
-				if (rawValue != null) {
-					switch (internalField) {
-						case "boqCode" -> { boq.setBoqCode(rawValue); hasData = true; }
-						case "boqName" -> { boq.setBoqName(rawValue); hasData = true; }
-						case "quantity" -> {
+				if (values.isEmpty()) continue;
+
+				switch (internalField) {
+					case "boqCode" -> {
+						boq.setBoqCode(String.join(" ", values));
+						hasData = true;
+					}
+					case "boqName" -> {
+						boq.setBoqName(String.join(" ", values));
+						hasData = true;
+					}
+					case "quantity" -> {
+						for (String val : values) {
 							try {
-								String cleanedValue = rawValue.replace(",", "").replaceAll("[^0-9.-]", "").trim();
+								String cleanedValue = val.replace(",", "").replaceAll("[^0-9.-]", "").trim();
 								if (!cleanedValue.isEmpty()) {
 									boq.setQuantity(Double.parseDouble(cleanedValue));
 									hasData = true;
+									break; // Use first valid numeric value
 								}
 							} catch (Exception e) {
-								boq.setQuantity(0d);
+								// Try next column
 							}
 						}
-						case "uom" -> { boq.setUom(rawValue); hasData = true; }
+					}
+					case "uom" -> {
+						boq.setUom(values.get(0)); // Use first non-empty UOM
+						hasData = true;
 					}
 				}
 			}

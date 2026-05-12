@@ -283,11 +283,11 @@ public class PdfFileService {
 		return val == null ? "" : val;
 	}
 
-	public List<ExcelExtractBOQ> getExtractedData(MultipartFile boqFile, Map<String, String> columnMapping,
+	public List<ExcelExtractBOQ> getExtractedData(MultipartFile boqFile, Map<String, List<String>> columnMapping,
 												  int startRow, int endRow, int startPage) throws IOException {
 
 		List<ExcelExtractBOQ> boqList = new ArrayList<>();
-		Map<String, Integer> mappedColumnIndexes = new HashMap<>(); // Store indexes ONCE
+		Map<String, List<Integer>> mappedColumnIndexes = new HashMap<>(); // Store indexes ONCE
 		List<String> normalizedHeaders = null;
 
 		// Auto-closes the document to prevent memory leaks
@@ -323,16 +323,23 @@ public class PdfFileService {
 					if (normalizedHeaders == null || normalizedHeaders.isEmpty()) {
 						normalizedHeaders = rows.get(0).stream().map(h -> h.toLowerCase().replaceAll("[^a-z0-9]", "")).toList();
 
-						// Map internal fields to column indexes
-						for (Map.Entry<String, String> mapping : columnMapping.entrySet()) {
+						// Map internal fields to column indexes (multiple per field)
+						for (Map.Entry<String, List<String>> mapping : columnMapping.entrySet()) {
 							String internalKey = mapping.getKey();
-							String expectedHeader = mapping.getValue().toLowerCase().replaceAll("[^a-z0-9]", "");
+							List<String> expectedHeaders = mapping.getValue();
 
-							for (int i = 0; i < normalizedHeaders.size(); i++) {
-								String actualHeader = normalizedHeaders.get(i);
-								if (!actualHeader.isEmpty() && (actualHeader.contains(expectedHeader) || expectedHeader.contains(actualHeader))) {
-									mappedColumnIndexes.put(internalKey, i);
-									break;
+							for (String expectedHeader : expectedHeaders) {
+								String normalizedExpected = expectedHeader.toLowerCase().replaceAll("[^a-z0-9]", "");
+
+								for (int i = 0; i < normalizedHeaders.size(); i++) {
+									String actualHeader = normalizedHeaders.get(i);
+									if (!actualHeader.isEmpty() && (actualHeader.contains(normalizedExpected) || normalizedExpected.contains(actualHeader))) {
+										List<Integer> indices = mappedColumnIndexes.computeIfAbsent(internalKey, k -> new ArrayList<>());
+										if (!indices.contains(i)) {
+											indices.add(i);
+										}
+										break; // Found this expected header, move to next
+									}
 								}
 							}
 						}
@@ -362,26 +369,36 @@ public class PdfFileService {
 						boolean hasValidData = false;
 
 						// O(1) lookup using our pre-calculated Map
-						for (Map.Entry<String, Integer> entry : mappedColumnIndexes.entrySet()) {
+						for (Map.Entry<String, List<Integer>> entry : mappedColumnIndexes.entrySet()) {
 							String internalField = entry.getKey();
-							int colIndex = entry.getValue();
+							List<Integer> colIndices = entry.getValue();
 
-							if (colIndex >= row.size()) continue;
+							// Collect all non-null values from mapped columns
+							List<String> values = new ArrayList<>();
+							for (int colIndex : colIndices) {
+								if (colIndex >= row.size()) continue;
+								String value = row.get(colIndex).trim();
+								if (!value.isEmpty()) {
+									values.add(value);
+								}
+							}
 
-							String value = row.get(colIndex).trim();
-							if (value.isEmpty()) continue;
+							if (values.isEmpty()) continue;
 
 							switch (internalField) {
-								case "boqCode" -> { boq.setBoqCode(value); hasValidData = true; }
-								case "boqName" -> { boq.setBoqName(value); hasValidData = true; }
+								case "boqCode" -> { boq.setBoqCode(String.join(" ", values)); hasValidData = true; }
+								case "boqName" -> { boq.setBoqName(String.join(" ", values)); hasValidData = true; }
 								case "quantity" -> {
-									Double parsedQty = parseQuantity(value);
-									if (parsedQty != null) {
-										boq.setQuantity(parsedQty);
-										hasValidData = true;
+									for (String val : values) {
+										Double parsedQty = parseQuantity(val);
+										if (parsedQty != null) {
+											boq.setQuantity(parsedQty);
+											hasValidData = true;
+											break; // Use first valid numeric value
+										}
 									}
 								}
-								case "uom" -> { boq.setUom(value); hasValidData = true; }
+								case "uom" -> { boq.setUom(values.get(0)); hasValidData = true; }
 							}
 						}
 
