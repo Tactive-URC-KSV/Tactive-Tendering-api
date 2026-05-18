@@ -19,6 +19,7 @@ import com.ksv.tactive.service.BOQService;
 import com.ksv.tactive.service.MasterService;
 import com.ksv.tactive.service.ProjectService;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -100,8 +101,13 @@ public class BOQServiceImpl implements BOQService {
     }
 
     @Override
-    public List<String> getPdfColumns(MultipartFile boqFile) throws IOException {
-        return pdfService.getColumnsHeaders(boqFile);
+    public List<String> getPdfPages(MultipartFile boqFile) throws IOException {
+        return pdfService.getPdfPages(boqFile);
+    }
+
+    @Override
+    public List<String> getPdfColumns(MultipartFile boqFile, int startPage) throws IOException {
+        return pdfService.getColumnsHeaders(boqFile, startPage);
     }
 
     @Override
@@ -109,6 +115,12 @@ public class BOQServiceImpl implements BOQService {
         String fileName = boqFile.getOriginalFilename();
         if (fileName != null && (fileName.endsWith(".xlsx") || fileName.endsWith(".xls"))) {
             return excelService.getColumns(boqFile, sheetName);
+        } else if (fileName != null && fileName.endsWith(".pdf")) {
+            int startPage = 1;
+            try {
+                startPage = Integer.parseInt(sheetName);
+            } catch (NumberFormatException ignored) {}
+            return getPdfColumns(boqFile, startPage);
         }
         return null;
     }
@@ -150,7 +162,7 @@ public class BOQServiceImpl implements BOQService {
     }
 
     @Override
-    public String mapBOQData(String projectId, String sheetName, Map<String, String> columnMapping,
+    public String mapBOQData(String projectId, String sheetName, Map<String, List<String>> columnMapping,
                              Map<Long, Long> parentChildMapping, Map<Long, Boolean> lastLevelMapping, Map<Long, Long> levelMapping,
                              MultipartFile boqFile) throws IOException {
         Projects project = projectDao.findById(convertToUUID(projectId)).orElse(null);
@@ -162,7 +174,9 @@ public class BOQServiceImpl implements BOQService {
         if (fileName != null && (fileName.endsWith(".xlsx") || fileName.endsWith(".xls"))) {
             extractedRows = excelService.getExtractedData(boqFile, sheetName, columnMapping, startRow, endRow);
         } else {
-            extractedRows = pdfService.getExtractedData(boqFile, columnMapping, startRow, endRow);
+            int startPdfPage = 1;
+            try { startPdfPage = Integer.parseInt(sheetName); } catch (Exception e) {}
+            extractedRows = pdfService.getExtractedData(boqFile, columnMapping, startRow, endRow, startPdfPage);
         }
         if (extractedRows == null || extractedRows.isEmpty()) {
             throw new DataNotFoundException("No BOQ data extracted from file!");
@@ -190,6 +204,7 @@ public class BOQServiceImpl implements BOQService {
                 boq.setBoqName(row.getBoqName());
                 if (row.getUom() != null) {
                     boq.setUom(findUOM(row.getUom()));
+                    boq.setUomCode(boq.getUom() != null ? boq.getUom().getUomCode() : row.getUom());
                 }
                 boqUniqueMap.put(key, boq);
             }
@@ -324,14 +339,25 @@ public class BOQServiceImpl implements BOQService {
     }
 
     @Override
+    @Transactional
     public void deleteBOQ(List<String> boqCode, String projectId) {
         for (String code : boqCode) {
-            BOQ boq = boqDao.findById(convertToUUID(code)).orElseThrow(() -> new DataNotFoundException(
-                    messageSource.getMessage("boq.not.found", null, Locale.ENGLISH)));
+            BOQ boq = boqDao.findById(convertToUUID(code))
+                    .orElseThrow(() -> new DataNotFoundException(
+                            messageSource.getMessage("boq.not.found", null, Locale.ENGLISH)));
+            deleteChildren(boq);
             boqDao.delete(boq);
         }
     }
-
+    private void deleteChildren(BOQ parent) {
+        if (parent.getChildren() != null && !parent.getChildren().isEmpty()) {
+            List<BOQ> children = new ArrayList<>(parent.getChildren());
+            for (BOQ child : children) {
+                deleteChildren(child);
+                boqDao.delete(child);
+            }
+        }
+    }
     @Override
     public BOQ getBoqById(String boqId) {
         return boqDao.findById(convertToUUID(boqId))
@@ -339,13 +365,17 @@ public class BOQServiceImpl implements BOQService {
     }
 
     @Override
-    public PaginatedResponse<ExcelExtractBOQ> extractBOQDataPaginated(String sheetName, Map<String, String> columnMapping, MultipartFile boqFile, int startRow, int endRow, int page, int size, String search) throws IOException {
+    public List<ExcelExtractBOQ> extractBOQData(String sheetName, Map<String, List<String>> columnMapping, MultipartFile boqFile, String search) throws IOException {
         List<ExcelExtractBOQ> allRows;
+        int startRow = 0;
+        int endRow = 100000;
         String fileName = boqFile.getOriginalFilename();
         if (fileName != null && (fileName.endsWith(".xlsx") || fileName.endsWith(".xls"))) {
             allRows = excelService.getExtractedData(boqFile, sheetName, columnMapping, startRow, endRow);
         } else {
-            allRows = pdfService.getExtractedData(boqFile, columnMapping, startRow, endRow);
+            int startPdfPage = 1;
+            try { startPdfPage = Integer.parseInt(sheetName); } catch (Exception e) {}
+            allRows = pdfService.getExtractedData(boqFile, columnMapping, startRow, endRow, startPdfPage);
         }
         if (search != null && !search.isBlank()) {
             String lower = search.toLowerCase();
@@ -356,19 +386,7 @@ public class BOQServiceImpl implements BOQService {
                     )
                     .toList();
         }
-        int totalElements = allRows.size();
-        int totalPages = (int) Math.ceil((double) totalElements / size);
-        int fromIndex = page * size;
-        int toIndex = Math.min(fromIndex + size, totalElements);
-        List<ExcelExtractBOQ> content =
-                (fromIndex >= totalElements) ? List.of() : allRows.subList(fromIndex, toIndex);
-        return new PaginatedResponse<>(
-                content,
-                page,
-                size,
-                totalElements,
-                totalPages
-        );
+        return allRows;
     }
 
     @Override
@@ -437,17 +455,40 @@ public class BOQServiceImpl implements BOQService {
         Map<UUID, BOQ> boqMap = boqList.stream()
                 .collect(Collectors.toMap(BOQ::getId, boq -> boq));
         for (Map.Entry<String, String> entry : parentChildUpdateMap.entrySet()) {
+
             UUID childId = convertToUUID(entry.getKey());
-            UUID parentId = convertToUUID(entry.getValue());
+            String parentValue = entry.getValue();
+
+            BOQ child = boqMap.get(childId);
+            if (child == null) {
+                throw new RuntimeException("Invalid child BOQ: " + childId);
+            }
+
+            // Remove from old parent
+            BOQ oldParent = child.getParentBOQ();
+            if (oldParent != null) {
+                oldParent.getChildren().remove(child);
+            }
+
+            // ROOT handling
+            if ("ROOT".equalsIgnoreCase(parentValue)) {
+                child.setParentBOQ(null);
+                continue;
+            }
+
+            UUID parentId = convertToUUID(parentValue);
+
             if (childId.equals(parentId)) {
                 throw new RuntimeException("BOQ cannot be parent of itself: " + childId);
             }
-            BOQ child = boqMap.get(childId);
+
             BOQ newParent = boqMap.get(parentId);
-            if (child == null || newParent == null) {
+            if (newParent == null) {
                 throw new RuntimeException("Invalid BOQ mapping: " + childId + " -> " + parentId);
             }
+
             child.setParentBOQ(newParent);
+
             if (!newParent.getChildren().contains(child)) {
                 newParent.getChildren().add(child);
             }
@@ -467,7 +508,7 @@ public class BOQServiceImpl implements BOQService {
     }
 
     @Override
-    public String saveTemplate(Template template, Map<String, String> mapping) {
+    public String saveTemplate(Template template, Map<String, List<String>> mapping) {
         if (templateDao.findByTemplateName(template.getTemplateName()) == null) {
             Template savedTemplate = templateDao.save(template);
             saveTemplateMapping(mapping, savedTemplate);
@@ -476,12 +517,12 @@ public class BOQServiceImpl implements BOQService {
         return messageSource.getMessage("template.duplicate", null, Locale.ENGLISH);
     }
 
-    private void saveTemplateMapping(Map<String, String> mapping, Template savedTemplate) {
-        for (Map.Entry<String, String> map : mapping.entrySet()) {
+    private void saveTemplateMapping(Map<String, List<String>> mapping, Template savedTemplate) {
+        for (Map.Entry<String, List<String>> map : mapping.entrySet()) {
             TemplateMapping tempMap = new TemplateMapping();
             tempMap.setTemplate(savedTemplate);
             tempMap.setInternalFields(map.getKey());
-            tempMap.setExcelFields(map.getValue());
+            tempMap.setExcelFields(String.join("|||", map.getValue()));
             templateMappingDao.save(tempMap);
         }
     }
@@ -498,9 +539,11 @@ public class BOQServiceImpl implements BOQService {
                 () -> new DataNotFoundException(messageSource.getMessage("data.not.found", null, Locale.ENGLISH)));
         templateDto.setTemplate(template);
         List<TemplateMapping> mappings = templateMappingDao.findByTemplateId(UUID.fromString(templateId));
-        Map<String, String> mapping = new HashMap<>();
+        Map<String, List<String>> mapping = new HashMap<>();
         for (TemplateMapping map : mappings) {
-            mapping.put(map.getInternalFields(), map.getExcelFields());
+            String excelFields = map.getExcelFields();
+            List<String> fieldList = Arrays.asList(excelFields.split("\\|\\|\\|"));
+            mapping.put(map.getInternalFields(), fieldList);
         }
         templateDto.setTemplateMapping(mapping);
         return templateDto;

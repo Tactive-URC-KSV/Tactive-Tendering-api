@@ -53,11 +53,9 @@ public class TenderEstimation {
 	private boolean rateLock;
 	@OneToMany(mappedBy = "tenderEstimation", cascade = CascadeType.ALL, orphanRemoval = true)
 	private List<TenderEstimationAttribute> estimationAttributes = new ArrayList<>();
-	@ManyToMany
-	@JoinTable(name = "tender_est_parents", 
-               joinColumns = @JoinColumn(name = "child_id"), 
-               inverseJoinColumns = @JoinColumn(name = "parent_id"))
-	private List<TenderEstimation> parent = new ArrayList<>();
+	@ManyToOne
+	@JoinColumn(name = "parent_resource")
+	private TenderEstimation parent;
 	@JsonIgnore
 	@ManyToOne
 	@JoinColumn(name = "project_id")

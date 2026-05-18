@@ -1,56 +1,84 @@
-
 name: Deploy Spring Boot UAT (Windows Server)
 
 on:
   push:
     branches:
-      - UAT   # deploy only on UAT branch push
+      - UAT
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout UAT branch
+      # 1. Checkout
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 2. Set up JDK
+      # 2. Setup Java
       - name: Setup JDK 21
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 21
 
-      # 3. Build the app (Maven) from subdirectory
+      # 3. Build
       - name: Build JAR
         run: mvn clean package -DskipTests
-        working-directory: ./tactive-tendering   
+        working-directory: ./tactive-tendering
 
-     # 4. Copy JAR to Windows Server using SCP (E: drive)
+      # 4. Debug
+      - name: Debug Files
+        run: ls -la tactive-tendering/target
+
+      # 5. Upload stop script (ADDED -O FLAG FOR WINDOWS)
       - name: Upload stop-app.bat
         run: |
-          sshpass -p "${{ secrets.SERVER_PASS }}" scp -o StrictHostKeyChecking=no -P ${{ secrets.SERVER_PORT }} \
-          stop-app.bat ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:"E:/APP/Application/TactiveKSV/stop-app.bat"
+          sshpass -p '${{ secrets.SERVER_PASS }}' scp -O \
+            -o StrictHostKeyChecking=no \
+            -P ${{ secrets.SERVER_PORT }} \
+            stop-app.bat \
+            "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:E:/APP/Application/TactiveKSV/stop-app.bat"
+
+      # 6. Stop app
       - name: Stop Spring Boot App
         run: |
-          sshpass -p "${{ secrets.SERVER_PASS }}" ssh -o StrictHostKeyChecking=no -p ${{ secrets.SERVER_PORT }} \
-          ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "E:/APP/Application/TactiveKSV/stop-app.bat"
-   
-          
-      - name: Upload JAR via SCP
-        run: |
-          sshpass -p "${{ secrets.SERVER_PASS }}" scp -o StrictHostKeyChecking=no -P ${{ secrets.SERVER_PORT }} tactive-tendering/target/*.jar ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:"E:/APP/Application/TactiveKSV/tactive.jar"
+          sshpass -p '${{ secrets.SERVER_PASS }}' ssh \
+            -o StrictHostKeyChecking=no \
+            -p ${{ secrets.SERVER_PORT }} \
+            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
+            "cmd /c E:\APP\Application\TactiveKSV\stop-app.bat"
 
+      # 7. Wait (Give Windows time to release the file lock)
+      - name: Wait before deploy
+        run: sleep 10
+
+      # 8. Upload JAR (ADDED -O FLAG FOR WINDOWS)
+      - name: Upload JAR
+        run: |
+          sshpass -p '${{ secrets.SERVER_PASS }}' scp -O \
+            -o StrictHostKeyChecking=no \
+            -P ${{ secrets.SERVER_PORT }} \
+            tactive-tendering/target/*.jar \
+            "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:E:/APP/Application/TactiveKSV/tactive.jar"
+
+      # 9. Upload start script (ADDED -O FLAG FOR WINDOWS)
       - name: Upload start-app.bat
         run: |
-          sshpass -p "${{ secrets.SERVER_PASS }}" scp -o StrictHostKeyChecking=no -P ${{ secrets.SERVER_PORT }} \
-          start-app.bat ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:"E:/APP/Application/TactiveKSV/start-app.bat"
-          
-      - name: Restart Spring Boot App
-        run: |
-          sshpass -p "${{ secrets.SERVER_PASS }}" ssh -o StrictHostKeyChecking=no -p ${{ secrets.SERVER_PORT }} \
-          ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "E:/APP/Application/TactiveKSV/start-app.bat"
-   
+          sshpass -p '${{ secrets.SERVER_PASS }}' scp -O \
+            -o StrictHostKeyChecking=no \
+            -P ${{ secrets.SERVER_PORT }} \
+            start-app.bat \
+            "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:E:/APP/Application/TactiveKSV/start-app.bat"
 
-    
+      # 10. Start app
+      - name: Start Spring Boot App
+        run: |
+          sshpass -p '${{ secrets.SERVER_PASS }}' ssh \
+            -o StrictHostKeyChecking=no \
+            -p ${{ secrets.SERVER_PORT }} \
+            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
+            "cmd /c E:\APP\Application\TactiveKSV\start-app.bat"
+
+      # 11. Done
+      - name: Deployment Success
+        run: echo "Deployment completed successfully 🚀"
