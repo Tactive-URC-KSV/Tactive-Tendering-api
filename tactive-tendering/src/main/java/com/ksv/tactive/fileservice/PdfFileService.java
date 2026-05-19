@@ -3,10 +3,10 @@ package com.ksv.tactive.fileservice;
 import com.itextpdf.text.Font;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -29,10 +29,8 @@ import com.ksv.tactive.project.entity.BOQ;
 import com.ksv.tactive.service.MasterService;
 
 import jakarta.servlet.http.HttpServletResponse;
-import technology.tabula.ObjectExtractor;
-import technology.tabula.Page;
-import technology.tabula.PageIterator;
-import technology.tabula.Table;
+import technology.tabula.*;
+import technology.tabula.extractors.BasicExtractionAlgorithm;
 import technology.tabula.extractors.SpreadsheetExtractionAlgorithm;
 
 @Service
@@ -222,7 +220,7 @@ public class PdfFileService {
 		return null;
 	}
 	public void generateBoqPdf(List<BOQ> boqList, HttpServletResponse response) throws IOException, DocumentException {
-		String projectName = boqList.get(0).getProject().getProjectName().trim().replaceAll("\\s+", "_");
+		String projectName = boqList.get(0).getProjectId().toString().trim().replaceAll("\\s+", "_");
 		String fileName = projectName + "_BOQ.pdf";
 		response.setContentType("application/pdf");
 		response.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
@@ -283,136 +281,335 @@ public class PdfFileService {
 		return val == null ? "" : val;
 	}
 
-	public List<ExcelExtractBOQ> getExtractedData(MultipartFile boqFile, Map<String, List<String>> columnMapping,
-												  int startRow, int endRow, int startPage) throws IOException {
+	public List<ExcelExtractBOQ> getExtractedData(
+			MultipartFile boqFile,
+			Map<String, List<String>> columnMapping,
+			int startRow,
+			int endRow,
+			int startPage
+	) throws IOException {
 
 		List<ExcelExtractBOQ> boqList = new ArrayList<>();
-		Map<String, List<Integer>> mappedColumnIndexes = new HashMap<>(); // Store indexes ONCE
-		List<String> normalizedHeaders = null;
 
-		// Auto-closes the document to prevent memory leaks
-		try (InputStream inputStream = boqFile.getInputStream();
-			 PDDocument document = PDDocument.load(inputStream)) {
+		try (
+				InputStream inputStream = boqFile.getInputStream();
+				PDDocument document = PDDocument.load(inputStream)
+		) {
 
-			ObjectExtractor oe = new ObjectExtractor(document);
-			PageIterator iterator = oe.extract();
+			ObjectExtractor extractor = new ObjectExtractor(document);
+
+			PageIterator pages = extractor.extract();
+
+			int currentPage = 0;
+
+			int serialNo = 1;
 
 			int globalRowCounter = 0;
-			int serialNumber = 1;
-			int currentPageNumber = 0;
 
-			while (iterator.hasNext()) {
-				Page page = iterator.next();
-				currentPageNumber++;
+			Pattern boqCodePattern =
+					Pattern.compile(
+							"^([0-9]+(\\.[0-9A-Za-z()]+)+|[A-Z]+\\.[0-9]+|[a-z]\\.)$"
+					);
 
-				if (currentPageNumber < startPage) continue;
+			/*
+			 * DYNAMIC HEADER NORMALIZATION
+			 */
+			Set<String> normalizedMappedHeaders =
+					new HashSet<>();
 
-				SpreadsheetExtractionAlgorithm sea = new SpreadsheetExtractionAlgorithm();
-				List<Table> tables = sea.extract(page);
+			for (Map.Entry<String, List<String>> mapping
+					: columnMapping.entrySet()) {
+
+				for (String header : mapping.getValue()) {
+
+					normalizedMappedHeaders.add(
+							header.toLowerCase()
+									.replaceAll("[^a-z0-9]", "")
+					);
+				}
+			}
+
+			while (pages.hasNext()) {
+
+				Page page = pages.next();
+
+				currentPage++;
+
+				if (currentPage < startPage) {
+					continue;
+				}
+
+				BasicExtractionAlgorithm extractionAlgorithm =
+						new BasicExtractionAlgorithm();
+
+				List<Table> tables =
+						extractionAlgorithm.extract(page);
 
 				for (Table table : tables) {
-					List<List<String>> rows = table.getRows().stream()
-							.map(row -> row.stream()
-									.map(cell -> cell.getText() != null ? cell.getText().replaceAll("[\\r\\n]+", " ").trim() : "")
-									.toList())
-							.toList();
 
-					if (rows.isEmpty()) continue;
+					List<List<String>> rows =
+							new ArrayList<>();
 
-					// 1. IDENTIFY HEADERS ONCE
-					if (normalizedHeaders == null || normalizedHeaders.isEmpty()) {
-						normalizedHeaders = rows.get(0).stream().map(h -> h.toLowerCase().replaceAll("[^a-z0-9]", "")).toList();
+					for (List<RectangularTextContainer> tableRow
+							: table.getRows()) {
 
-						// Map internal fields to column indexes (multiple per field)
-						for (Map.Entry<String, List<String>> mapping : columnMapping.entrySet()) {
-							String internalKey = mapping.getKey();
-							List<String> expectedHeaders = mapping.getValue();
+						List<String> extractedRow =
+								new ArrayList<>();
 
-							for (String expectedHeader : expectedHeaders) {
-								String normalizedExpected = expectedHeader.toLowerCase().replaceAll("[^a-z0-9]", "");
+						for (RectangularTextContainer cell
+								: tableRow) {
 
-								for (int i = 0; i < normalizedHeaders.size(); i++) {
-									String actualHeader = normalizedHeaders.get(i);
-									if (!actualHeader.isEmpty() && (actualHeader.contains(normalizedExpected) || normalizedExpected.contains(actualHeader))) {
-										List<Integer> indices = mappedColumnIndexes.computeIfAbsent(internalKey, k -> new ArrayList<>());
-										if (!indices.contains(i)) {
-											indices.add(i);
-										}
-										break; // Found this expected header, move to next
-									}
-								}
-							}
+							String text =
+									cell.getText() != null
+											? cell.getText().trim()
+											: "";
+
+							extractedRow.add(text);
 						}
+
+						rows.add(extractedRow);
 					}
 
-					// 2. SKIP REPEATED HEADERS SAFELY
-					int startIndex = 0;
-					List<String> currentRowNormalized = rows.get(0).stream().map(h -> h.toLowerCase().replaceAll("[^a-z0-9]", "")).toList();
-					// If at least 2 headers match, it's a repeated header row from a new page
-					long matchCount = currentRowNormalized.stream().filter(normalizedHeaders::contains).count();
-					if (matchCount >= 2) {
-						startIndex = 1;
-					}
+					for (List<String> row : rows) {
 
-					// 3. EXTRACT DATA (Super Fast)
-					for (int i = startIndex; i < rows.size(); i++) {
-						List<String> row = rows.get(i);
 						globalRowCounter++;
 
-						if (startRow > 0 && globalRowCounter < startRow) continue;
-						if (endRow > 0 && globalRowCounter > endRow) return boqList;
+						if (startRow > 0
+								&& globalRowCounter < startRow) {
+							continue;
+						}
 
-						if (row.stream().allMatch(String::isBlank)) continue;
+						if (endRow > 0
+								&& globalRowCounter > endRow) {
 
-						ExcelExtractBOQ boq = new ExcelExtractBOQ();
-						boq.setSno(serialNumber++);
-						boolean hasValidData = false;
+							return boqList;
+						}
 
-						// O(1) lookup using our pre-calculated Map
-						for (Map.Entry<String, List<Integer>> entry : mappedColumnIndexes.entrySet()) {
-							String internalField = entry.getKey();
-							List<Integer> colIndices = entry.getValue();
+						if (row.isEmpty()) {
+							continue;
+						}
 
-							// Collect all non-null values from mapped columns
-							List<String> values = new ArrayList<>();
-							for (int colIndex : colIndices) {
-								if (colIndex >= row.size()) continue;
-								String value = row.get(colIndex).trim();
-								if (!value.isEmpty()) {
-									values.add(value);
-								}
-							}
+						String fullRow =
+								String.join(" ", row)
+										.replaceAll("\\s+", " ")
+										.trim();
 
-							if (values.isEmpty()) continue;
+						if (fullRow.isBlank()) {
+							continue;
+						}
 
-							switch (internalField) {
-								case "boqCode" -> { boq.setBoqCode(String.join(" ", values)); hasValidData = true; }
-								case "boqName" -> { boq.setBoqName(String.join(" ", values)); hasValidData = true; }
-								case "quantity" -> {
-									for (String val : values) {
-										Double parsedQty = parseQuantity(val);
-										if (parsedQty != null) {
-											boq.setQuantity(parsedQty);
-											hasValidData = true;
-											break; // Use first valid numeric value
-										}
-									}
-								}
-								case "uom" -> { boq.setUom(values.get(0)); hasValidData = true; }
+						String normalizedRow =
+								fullRow.toLowerCase()
+										.replaceAll("[^a-z0-9]", "");
+
+						/*
+						 * REMOVE HEADER ROWS
+						 */
+						boolean isHeaderRow =
+								normalizedMappedHeaders.stream()
+										.allMatch(normalizedRow::contains);
+
+						if (isHeaderRow) {
+							continue;
+						}
+
+						/*
+						 * REMOVE FOOTERS
+						 */
+						if (normalizedRow.matches(".*page[ivxlcdm0-9]+.*")) {
+							continue;
+						}
+
+						if (normalizedRow.contains("carriedtosummary")) {
+							continue;
+						}
+
+						if (normalizedRow.contains("carriedtograndsummary")) {
+							continue;
+						}
+
+						if (normalizedRow.contains("summary")) {
+							continue;
+						}
+
+						/*
+						 * SPLIT USING BOQ CODE
+						 */
+						List<String> tokens =
+								Arrays.stream(fullRow.split("\\s+"))
+										.filter(v -> !v.isBlank())
+										.toList();
+
+						List<Integer> boqPositions =
+								new ArrayList<>();
+
+						for (int i = 0; i < tokens.size(); i++) {
+
+							Matcher matcher =
+									boqCodePattern.matcher(tokens.get(i));
+
+							if (matcher.find()) {
+								boqPositions.add(i);
 							}
 						}
 
-						boq.setLastLevel(boq.getQuantity() > 0 || (boq.getUom() != null && !boq.getUom().isBlank()));
+						if (boqPositions.isEmpty()) {
+							continue;
+						}
 
-						if (hasValidData) {
+						/*
+						 * CREATE SEPARATE BOQ ROWS
+						 */
+						for (int i = 0; i < boqPositions.size(); i++) {
+
+							int start =
+									boqPositions.get(i);
+
+							int end =
+									(i + 1 < boqPositions.size())
+											? boqPositions.get(i + 1)
+											: tokens.size();
+
+							List<String> itemTokens =
+									tokens.subList(start, end);
+
+							if (itemTokens.isEmpty()) {
+								continue;
+							}
+
+							String boqCode =
+									itemTokens.get(0)
+											.trim();
+
+							String remainingText =
+									itemTokens.size() > 1
+											? String.join(
+											" ",
+											itemTokens.subList(
+													1,
+													itemTokens.size()
+											)
+									)
+											: "";
+
+							/*
+							 * FIND QUANTITY
+							 */
+							Double quantity = null;
+
+							Pattern quantityPattern =
+									Pattern.compile(
+											"([0-9]{1,3}(,[0-9]{3})*(\\.[0-9]+)?|[0-9]+(\\.[0-9]+)?)$"
+									);
+
+							Matcher quantityMatcher =
+									quantityPattern.matcher(remainingText);
+
+							if (quantityMatcher.find()) {
+
+								try {
+
+									String quantityText =
+											quantityMatcher.group(1)
+													.replace(",", "");
+
+									quantity =
+											Double.parseDouble(quantityText);
+
+									remainingText =
+											remainingText.substring(
+													0,
+													quantityMatcher.start()
+											).trim();
+
+								} catch (Exception ignored) {
+								}
+							}
+
+							/*
+							 * FIND UOM USING REGEX
+							 */
+							String detectedUom = "";
+
+							Pattern uomPattern =
+									Pattern.compile(
+											"\\b([a-zA-Z]{1,10}(\\/[a-zA-Z]{1,10})?)\\b"
+									);
+
+							Matcher uomMatcher =
+									uomPattern.matcher(remainingText);
+
+							List<String> possibleUoms =
+									new ArrayList<>();
+
+							while (uomMatcher.find()) {
+
+								String match =
+										uomMatcher.group()
+												.trim();
+
+								if (match.length() <= 10) {
+									possibleUoms.add(match);
+								}
+							}
+
+							if (!possibleUoms.isEmpty()) {
+
+								detectedUom =
+										possibleUoms.get(
+												possibleUoms.size() - 1
+										);
+
+								remainingText =
+										remainingText.replaceAll(
+														"\\b"
+																+ Pattern.quote(detectedUom)
+																+ "\\b",
+														""
+												)
+												.trim();
+							}
+
+							/*
+							 * REMOVE INVALID ROWS
+							 */
+							if (boqCode.isBlank()) {
+								continue;
+							}
+
+							if (remainingText.isBlank()) {
+								continue;
+							}
+
+							if (remainingText.length() < 2) {
+								continue;
+							}
+
+							ExcelExtractBOQ boq =
+									new ExcelExtractBOQ();
+
+							boq.setSno(serialNo++);
+
+							boq.setBoqCode(boqCode);
+
+							boq.setBoqName(remainingText);
+
+							boq.setUom(detectedUom);
+
+							boq.setQuantity(quantity);
+
+							boq.setLastLevel(
+									!detectedUom.isBlank()
+											|| quantity != null
+							);
+
 							boqList.add(boq);
-						} else {
-							serialNumber--; // Don't increment if row was useless junk
 						}
 					}
 				}
 			}
-		} // PDDocument auto-closes here
+		}
+
 		return boqList;
 	}
 }

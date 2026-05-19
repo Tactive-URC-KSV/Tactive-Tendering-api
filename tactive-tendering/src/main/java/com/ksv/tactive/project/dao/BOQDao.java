@@ -13,6 +13,6 @@ public interface BOQDao extends JpaRepository<BOQ, UUID>{
 	List<BOQ> findByProjectId(UUID projectId);
 	List<BOQ> findByProjectIdAndParentBOQId(UUID projectId, UUID parentBoqId);
     List<BOQ> findByProjectIdAndBoqNameContainingIgnoreCase(UUID projectId, String searchQuery);
-    Optional<BOQ> findByProject_IdAndBoqCodeIgnoreCaseAndBoqNameIgnoreCase(UUID id, String boqCode, String boqName);
+    Optional<BOQ> findByProjectIdAndBoqCodeIgnoreCaseAndBoqNameIgnoreCase(UUID id, String boqCode, String boqName);
     Page<BOQ> findByProjectIdAndParentBOQIsNull(UUID projectId, Pageable pageable);
 }

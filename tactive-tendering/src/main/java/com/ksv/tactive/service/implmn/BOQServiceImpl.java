@@ -2,7 +2,6 @@ package com.ksv.tactive.service.implmn;
 
 import com.itextpdf.text.DocumentException;
 import com.ksv.tactive.dto.ExcelExtractBOQ;
-import com.ksv.tactive.dto.PaginatedResponse;
 import com.ksv.tactive.dto.ProjectInfoDto;
 import com.ksv.tactive.exception.DataNotFoundException;
 import com.ksv.tactive.exception.FileNotSaveException;
@@ -165,7 +164,7 @@ public class BOQServiceImpl implements BOQService {
     public String mapBOQData(String projectId, String sheetName, Map<String, List<String>> columnMapping,
                              Map<Long, Long> parentChildMapping, Map<Long, Boolean> lastLevelMapping, Map<Long, Long> levelMapping,
                              MultipartFile boqFile) throws IOException {
-        Projects project = projectDao.findById(convertToUUID(projectId)).orElse(null);
+//        Projects project = projectDao.findById(convertToUUID(projectId)).orElse(null);
         saveBoqFile(boqFile, projectId);
         int startRow = 0;
         int endRow = 100000;
@@ -191,14 +190,14 @@ public class BOQServiceImpl implements BOQService {
             BOQ boq = boqUniqueMap.get(key);
             if (boq == null) {
                 boq = boqDao
-                        .findByProject_IdAndBoqCodeIgnoreCaseAndBoqNameIgnoreCase(
-                                project.getId(),
+                        .findByProjectIdAndBoqCodeIgnoreCaseAndBoqNameIgnoreCase(
+                                convertToUUID(projectId),
                                 row.getBoqCode(),
                                 row.getBoqName()
                         )
                         .orElseGet(BOQ::new);
                 if (boq.getId() == null) {
-                    boq.setProject(project);
+                    boq.setProjectId(convertToUUID(projectId));
                 }
                 boq.setBoqCode(row.getBoqCode());
                 boq.setBoqName(row.getBoqName());
