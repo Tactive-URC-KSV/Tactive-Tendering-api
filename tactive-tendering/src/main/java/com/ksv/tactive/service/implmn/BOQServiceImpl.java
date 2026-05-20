@@ -207,7 +207,7 @@ public class BOQServiceImpl implements BOQService {
                 }
                 boqUniqueMap.put(key, boq);
             }
-            boq.setQuantity(row.getQuantity());
+            boq.setQuantity(row.getQuantity() != null ? row.getQuantity() : 0.0);
             Long level = levelMapping.getOrDefault(row.getSno(), 0L);
             boq.setLevel(level.intValue());
             if (!row.isLastLevel()) {
