@@ -13,7 +13,7 @@ REM Path to log file
 SET LOG_FILE=E:\APP\Application\TactiveKSV\logs\app.log
 
 echo Starting Spring Boot application...
-start "TactiveApp" /B javaw -jar "%JAR_PATH%" --spring.config.additional-location=file:"%CONFIG_PATH%" > "%LOG_FILE%" 2>&1
+java -jar "%JAR_PATH%" --spring.config.additional-location=file:"%CONFIG_PATH%" > "%LOG_FILE%" 2>&1
 
 echo Data loading process completed. Logs at %LOG_FILE%.
 exit /b 0
