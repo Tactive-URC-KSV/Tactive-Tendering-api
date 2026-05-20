@@ -55,10 +55,13 @@ jobs:
       # 8. Upload JAR (ADDED -O FLAG FOR WINDOWS)
       - name: Upload JAR
         run: |
+          # Rename the executable jar to tactive.jar to avoid wildcard expansion issues in SCP
+          find tactive-tendering/target -maxdepth 1 -name "*.jar" ! -name "*-plain.jar" -exec mv {} tactive-tendering/target/tactive.jar \;
+          
           sshpass -p '${{ secrets.SERVER_PASS }}' scp -O \
             -o StrictHostKeyChecking=no \
             -P ${{ secrets.SERVER_PORT }} \
-            tactive-tendering/target/*.jar \
+            tactive-tendering/target/tactive.jar \
             "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:E:/APP/Application/TactiveKSV/tactive.jar"
 
       # 9. Upload start script (ADDED -O FLAG FOR WINDOWS)
