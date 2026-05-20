@@ -59,9 +59,6 @@ public class BOQServiceImpl implements BOQService {
     private PdfFileService pdfService;
 
     @Autowired
-    private PdfAiExtractionService pdfAiService;
-
-    @Autowired
     private MasterService masterService;
 
     @Autowired
@@ -178,7 +175,7 @@ public class BOQServiceImpl implements BOQService {
         } else {
             int startPdfPage = 1;
             try { startPdfPage = Integer.parseInt(sheetName); } catch (Exception e) {}
-            extractedRows = pdfAiService.getExtractedData(boqFile, columnMapping, startRow, endRow, startPdfPage);
+            extractedRows = pdfService.getExtractedData(boqFile, columnMapping, startRow, endRow, startPdfPage);
         }
         if (extractedRows == null || extractedRows.isEmpty()) {
             throw new DataNotFoundException("No BOQ data extracted from file!");
@@ -377,7 +374,7 @@ public class BOQServiceImpl implements BOQService {
         } else {
             int startPdfPage = 1;
             try { startPdfPage = Integer.parseInt(sheetName); } catch (Exception e) {}
-            allRows = pdfAiService.getExtractedData(boqFile, columnMapping, startRow, endRow, startPdfPage);
+            allRows = pdfService.getExtractedData(boqFile, columnMapping, startRow, endRow, startPdfPage);
         }
         if (search != null && !search.isBlank()) {
             String lower = search.toLowerCase();
