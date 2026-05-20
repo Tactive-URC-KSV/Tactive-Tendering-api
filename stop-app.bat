@@ -1,10 +1,14 @@
 @echo off
-echo Terminating all java.exe processes...
+echo Terminating all java.exe and javaw.exe processes...
 
-taskkill /F /IM java.exe >nul 2>&1
+echo Current Java Processes:
+tasklist | findstr java
+
+taskkill /F /T /IM java.exe
+taskkill /F /T /IM javaw.exe
 
 IF %ERRORLEVEL% EQU 0 (
-    echo All java.exe processes terminated successfully.
+    echo Java processes terminated successfully.
 ) ELSE (
-    echo No java.exe processes found or an error occurred.
+    echo No java processes found or an error occurred during termination.
 )
