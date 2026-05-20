@@ -52,17 +52,26 @@ jobs:
       - name: Wait before deploy
         run: sleep 10
 
-      # 8. Upload JAR (ADDED -O FLAG FOR WINDOWS)
+      # 8. Upload JAR (Upload to a new name to avoid File Lock issues during transfer)
       - name: Upload JAR
         run: |
-          # Rename the executable jar to tactive.jar to avoid wildcard expansion issues in SCP
-          find tactive-tendering/target -maxdepth 1 -name "*.jar" ! -name "*-plain.jar" -exec mv {} tactive-tendering/target/tactive.jar \;
+          # Rename the executable jar locally
+          find tactive-tendering/target -maxdepth 1 -name "*.jar" ! -name "*-plain.jar" -exec mv {} tactive-tendering/target/tactive-new.jar \;
           
           sshpass -p '${{ secrets.SERVER_PASS }}' scp -O \
             -o StrictHostKeyChecking=no \
             -P ${{ secrets.SERVER_PORT }} \
-            tactive-tendering/target/tactive.jar \
-            "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:E:/APP/Application/TactiveKSV/tactive.jar"
+            tactive-tendering/target/tactive-new.jar \
+            "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:E:/APP/Application/TactiveKSV/tactive-new.jar"
+
+      # 8.5 Replace JAR on server
+      - name: Replace old JAR
+        run: |
+          sshpass -p '${{ secrets.SERVER_PASS }}' ssh \
+            -o StrictHostKeyChecking=no \
+            -p ${{ secrets.SERVER_PORT }} \
+            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
+            "cmd /c move /Y E:\APP\Application\TactiveKSV\tactive-new.jar E:\APP\Application\TactiveKSV\tactive.jar"
 
       # 9. Upload start script (ADDED -O FLAG FOR WINDOWS)
       - name: Upload start-app.bat
