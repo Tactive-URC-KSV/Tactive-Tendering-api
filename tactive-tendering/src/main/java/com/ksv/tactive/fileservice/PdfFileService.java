@@ -402,7 +402,7 @@ public class PdfFileService {
 							}
 						}
 
-						boq.setLastLevel(boq.getQuantity() > 0 || (boq.getUom() != null && !boq.getUom().isBlank()));
+						boq.setLastLevel(boq.getQuantity() != null || (boq.getUom() != null && !boq.getUom().isBlank()));
 
 						if (hasValidData) {
 							boqList.add(boq);
