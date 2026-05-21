@@ -222,7 +222,7 @@ public class PdfFileService {
 		return null;
 	}
 	public void generateBoqPdf(List<BOQ> boqList, HttpServletResponse response) throws IOException, DocumentException {
-		String projectName = boqList.get(0).getProject().getProjectName().trim().replaceAll("\\s+", "_");
+		String projectName = boqList.get(0).getProjectId().toString().trim().replaceAll("\\s+", "_");
 		String fileName = projectName + "_BOQ.pdf";
 		response.setContentType("application/pdf");
 		response.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
