@@ -15,8 +15,8 @@ public class CorsConfig {
                 "http://localhost:5174",
                 "https://tactive-tendering-ui.onrender.com",
                 "https://tactive-tendering-contractor-form.onrender.com"
-//                "http://182.20.10.1",
-//                "http://20.233.8.189"
+                "http://182.20.10.1",
+                "http://20.233.8.189"
                 ));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT","PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Cache-Control", "Content-Type"));
