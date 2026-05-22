@@ -31,7 +31,7 @@ public class BOQ {
 	private boolean lastLevel;
 	@Column(nullable = true)
 	private String uomCode;
-	private UUID projectId;
+	private String projectId;
 	@JsonIgnore
 	@ManyToOne(cascade = CascadeType.DETACH)
 	@JoinColumn(name = "parent_boq_id")

@@ -10,9 +10,9 @@ import org.springframework.stereotype.Repository;
 import com.ksv.tactive.project.entity.BOQ;
 @Repository
 public interface BOQDao extends JpaRepository<BOQ, UUID>{
-	List<BOQ> findByProjectId(UUID projectId);
-	List<BOQ> findByProjectIdAndParentBOQId(UUID projectId, UUID parentBoqId);
-    List<BOQ> findByProjectIdAndBoqNameContainingIgnoreCase(UUID projectId, String searchQuery);
-    Optional<BOQ> findByProjectIdAndBoqCodeIgnoreCaseAndBoqNameIgnoreCase(UUID id, String boqCode, String boqName);
-    Page<BOQ> findByProjectIdAndParentBOQIsNull(UUID projectId, Pageable pageable);
+	List<BOQ> findByProjectId(String projectId);
+	List<BOQ> findByProjectIdAndParentBOQId(String projectId, UUID parentBoqId);
+//    List<BOQ> findByProjectIdAndBoqNameContainingIgnoreCase(UUID projectId, String searchQuery);
+    Optional<BOQ> findByProjectIdAndBoqCodeIgnoreCaseAndBoqNameIgnoreCase(String id, String boqCode, String boqName);
+    Page<BOQ> findByProjectIdAndParentBOQIsNull(String projectId, Pageable pageable);
 }

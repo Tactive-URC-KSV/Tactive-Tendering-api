@@ -132,7 +132,7 @@ public class TenderEstimationServiceImpl implements TenderEstimationService {
         List<TenderEstimation> candidates;
 
         if (ResourceNature.SIMPLE.name().equalsIgnoreCase(natureId) && boq != null) {
-            candidates = tenderEstDao.findByBoq_IdAndProject_IdAndResources_Id(boq.getId(), boq.getProjectId(), resId);
+            candidates = tenderEstDao.findByBoq_IdAndProject_IdAndResources_Id(boq.getId(), convertToUUID(boq.getProjectId()), resId);
         } else if (containerIB != null) {
             candidates = tenderEstDao.findByParentInternalBoq_IdAndResources_IdAndUom_Id(containerIB.getId(), resId, uomId);
             if (parent != null) {
@@ -254,7 +254,7 @@ public class TenderEstimationServiceImpl implements TenderEstimationService {
 
     private void updateProject(String projectId) {
         Projects project = projectDao.findById(convertToUUID(projectId)).orElse(null);
-        List<BOQ> boqList = boqDao.findByProjectId(convertToUUID(projectId));
+        List<BOQ> boqList = boqDao.findByProjectId(projectId);
         double total = boqList.stream().mapToDouble(BOQ::getTotalAmount).sum();
         if (project != null) {
             project.setTotalEstimatedValue(BigDecimal.valueOf(total));

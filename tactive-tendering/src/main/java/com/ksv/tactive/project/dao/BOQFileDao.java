@@ -5,5 +5,5 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import com.ksv.tactive.project.entity.BOQFile;
 public interface BOQFileDao extends JpaRepository<BOQFile, UUID>{
-	List<BOQFile> findByProjectId(UUID projectId);
+	List<BOQFile> findByProject(String projectId);
 }

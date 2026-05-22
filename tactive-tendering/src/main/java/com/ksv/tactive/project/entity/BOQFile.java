@@ -13,7 +13,5 @@ public class BOQFile {
 	private UUID id;
 	private String filename;
 	private String fileUrl;
-	@ManyToOne(cascade = CascadeType.ALL)
-	@JoinColumn(name = "project_id")
-	private Projects project;
+	private String project;
 }

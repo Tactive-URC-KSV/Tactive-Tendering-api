@@ -86,8 +86,9 @@ public class BOQServiceImpl implements BOQService {
 
     @Override
     public List<ProjectInfoDto> getAllBoqUploadedProject() {
-        Set<UUID> projectIds = boqFileDao.findAll().stream()
-                .map(bq -> bq.getProject().getId())
+        Set<String> projectIds = boqDao.findAll().stream()
+                .filter(bq -> bq.getProjectId().length() == 36)
+                .map(BOQ::getProjectId)
                 .collect(Collectors.toSet());
         return projectService.getAllProjects().stream()
                 .filter(project -> projectIds.contains(UUID.fromString(project.getProjectId())))
@@ -146,12 +147,12 @@ public class BOQServiceImpl implements BOQService {
             Path targetLocation = directory.resolve(fileName);
             Files.copy(boqFile.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
             String filePath = targetLocation.toString();
-            List<BOQFile> boqFiles = boqFileDao.findByProjectId(UUID.fromString(projectId));
+            List<BOQFile> boqFiles = boqFileDao.findByProject(projectId);
             if (boqFiles.stream().noneMatch(b -> b.getFilename().equals(fileName))) {
                 BOQFile boqFileEntity = new BOQFile();
                 boqFileEntity.setFilename(fileName);
                 boqFileEntity.setFileUrl(filePath);
-                boqFileEntity.setProject(projectDao.findById(convertToUUID(projectId)).orElse(null));
+                boqFileEntity.setProject(projectId);
                 boqFileDao.save(boqFileEntity);
             }
             return filePath;
@@ -165,7 +166,7 @@ public class BOQServiceImpl implements BOQService {
                              Map<Long, Long> parentChildMapping, Map<Long, Boolean> lastLevelMapping, Map<Long, Long> levelMapping,
                              MultipartFile boqFile) throws IOException {
 //        Projects project = projectDao.findById(convertToUUID(projectId)).orElse(null);
-        saveBoqFile(boqFile, projectId);
+//        saveBoqFile(boqFile, projectId);
         int startRow = 0;
         int endRow = 100000;
         List<ExcelExtractBOQ> extractedRows;
@@ -191,13 +192,13 @@ public class BOQServiceImpl implements BOQService {
             if (boq == null) {
                 boq = boqDao
                         .findByProjectIdAndBoqCodeIgnoreCaseAndBoqNameIgnoreCase(
-                                convertToUUID(projectId),
+                                projectId,
                                 row.getBoqCode(),
                                 row.getBoqName()
                         )
                         .orElseGet(BOQ::new);
                 if (boq.getId() == null) {
-                    boq.setProjectId(convertToUUID(projectId));
+                    boq.setProjectId(projectId);
                 }
                 boq.setBoqCode(row.getBoqCode());
                 boq.setBoqName(row.getBoqName());
@@ -270,7 +271,7 @@ public class BOQServiceImpl implements BOQService {
 
     @Override
     public List<BOQ> getParentBOQ(String projectId) {
-        List<BOQ> boqList = boqDao.findByProjectId(UUID.fromString(projectId));
+        List<BOQ> boqList = boqDao.findByProjectId(projectId);
         if (boqList.isEmpty()) {
             return null;
         }
@@ -281,7 +282,7 @@ public class BOQServiceImpl implements BOQService {
 
     @Override
     public List<BOQ> getChildBOQ(String projectId, String parentBoqId) {
-        List<BOQ> boqList = boqDao.findByProjectIdAndParentBOQId(UUID.fromString(projectId), UUID.fromString(parentBoqId));
+        List<BOQ> boqList = boqDao.findByProjectIdAndParentBOQId(projectId, UUID.fromString(parentBoqId));
         if (boqList.isEmpty()) {
             return null;
         }
@@ -297,7 +298,7 @@ public class BOQServiceImpl implements BOQService {
 
     @Override
     public Map<String, Integer> getBOQCount(String projectId) {
-        List<BOQ> boqList = boqDao.findByProjectId(UUID.fromString(projectId));
+        List<BOQ> boqList = boqDao.findByProjectId(projectId);
         Map<String, Integer> boqCountMap = new HashMap<>();
         int boqcount = boqList.size();
         int lastLevelCount = (int) boqList.stream()
@@ -326,14 +327,14 @@ public class BOQServiceImpl implements BOQService {
     @Override
     public void generateBoqExcel(String projectId, HttpServletResponse response) throws IOException, DataNotFoundException {
         response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-        List<BOQ> boqList = boqDao.findByProjectId(UUID.fromString(projectId));
+        List<BOQ> boqList = boqDao.findByProjectId(projectId);
         excelService.generateBoqFile(boqList, response);
     }
 
     @Override
     public void generateBoqPdf(String projectId, HttpServletResponse response) throws IOException, DocumentException, DataNotFoundException {
         response.setContentType("application/pdf");
-        List<BOQ> boqList = boqDao.findByProjectId(UUID.fromString(projectId));
+        List<BOQ> boqList = boqDao.findByProjectId(projectId);
         pdfService.generateBoqPdf(boqList, response);
     }
 
@@ -391,7 +392,7 @@ public class BOQServiceImpl implements BOQService {
     @Override
     public List<BOQ> searchBoq(String projectId, String searchQuery) {
         UUID uuid = UUID.fromString(projectId);
-        List<BOQ> boqList = boqDao.findByProjectId(uuid);
+        List<BOQ> boqList = boqDao.findByProjectId(uuid.toString());
         if (searchQuery == null || searchQuery.trim().isEmpty()) {
             return boqList;
         }
@@ -406,7 +407,7 @@ public class BOQServiceImpl implements BOQService {
 
     @Override
     public Map<String, Double> getParentBoqTotalMap(String projectId) {
-        List<BOQ> boqList = boqDao.findByProjectId(UUID.fromString(projectId));
+        List<BOQ> boqList = boqDao.findByProjectId(projectId);
         if (boqList == null || boqList.isEmpty()) {
             throw new DataNotFoundException("No BOQ found for project");
         }
@@ -447,7 +448,7 @@ public class BOQServiceImpl implements BOQService {
     @Override
     public String updateBOQHierarchy(String projectId, Map<String, String> parentChildUpdateMap) {
         UUID projId = convertToUUID(projectId);
-        List<BOQ> boqList = boqDao.findByProjectId(projId);
+        List<BOQ> boqList = boqDao.findByProjectId(projId.toString());
         if (boqList == null || boqList.isEmpty()) {
             throw new DataNotFoundException("No BOQs found for project");
         }
@@ -499,7 +500,7 @@ public class BOQServiceImpl implements BOQService {
     @Override
     public Page<BOQ> getParentBOQs(String projectId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("boqCode").ascending());
-        Page<BOQ> boqPage = boqDao.findByProjectIdAndParentBOQIsNull(convertToUUID(projectId), pageable);
+        Page<BOQ> boqPage = boqDao.findByProjectIdAndParentBOQIsNull(projectId, pageable);
         if (boqPage.isEmpty()) {
             throw new DataNotFoundException("No BOQ data found");
         }
