@@ -548,4 +548,18 @@ public class BOQServiceImpl implements BOQService {
         templateDto.setTemplateMapping(mapping);
         return templateDto;
     }
+
+    @Override
+    public List<BOQ> getAllBOQsByProjectId(String projectId) {
+        List<BOQ> boqList = boqDao.findByProjectId(projectId);
+        if (boqList == null || boqList.isEmpty()) {
+            throw new DataNotFoundException(messageSource.getMessage("boq.not.found", null, Locale.ENGLISH));
+        }
+        for (BOQ boq : boqList) {
+            if (boq.getParentBOQ() != null) {
+                boq.setParentBoqId(boq.getParentBOQ().getId().toString());
+            }
+        }
+        return boqList;
+    }
 }

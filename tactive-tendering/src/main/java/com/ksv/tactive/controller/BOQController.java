@@ -269,4 +269,13 @@ public class BOQController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
         }
     }
+
+    @GetMapping("project/getAllBoqDetails/{projectId}")
+    public ResponseEntity<?> getAllBoqDetails(@PathVariable String projectId) {
+        try {
+            return ResponseEntity.status(HttpStatus.OK).body(boqService.getAllBOQsByProjectId(projectId));
+        } catch (DataNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NO_CONTENT).body(e.getMessage());
+        }
+    }
 }

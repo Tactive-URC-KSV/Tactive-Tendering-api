@@ -44,4 +44,5 @@ public interface BOQService {
     String saveTemplate(Template template, Map<String, List<String>> mapping);
     List<Template> getAllTemplate();
     TemplateDto getTemplateById(String templateId);
+    List<BOQ> getAllBOQsByProjectId(String projectId);
 }

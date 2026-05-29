@@ -40,4 +40,7 @@ public class BOQ {
 	@JsonIgnore
 	@OneToMany(mappedBy = "parentBOQ", cascade = { CascadeType.PERSIST, CascadeType.MERGE })
 	private List<BOQ> children = new ArrayList<>();
+	
+	@Transient
+	private String parentBoqId;
 }
