@@ -13,6 +13,7 @@ public class ExcelExtractBOQ {
 	private int level;
 	private long parentSno;
 	private boolean lastLevel;
+	private String division;
+	private Long pageNo;
 	
-
 }

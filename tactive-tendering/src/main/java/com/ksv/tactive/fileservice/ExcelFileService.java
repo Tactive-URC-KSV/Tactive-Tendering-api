@@ -118,6 +118,7 @@ public class ExcelFileService {
 						switch (internalField) {
 							case "boqCode" -> { boq.setBoqCode(String.join(" ", values)); hasData = true; }
 							case "boqName" -> { boq.setBoqName(String.join(" ", values)); hasData = true; }
+							case "division" -> { boq.setDivision(String.join(" ", values)); hasData = true; }
 							case "quantity" -> {
 								for (String val : values) {
 									try {
@@ -357,7 +358,7 @@ public class ExcelFileService {
 	}
 
 	public List<ExcelExtractBOQ> getExtractedData(
-			MultipartFile boqFile, String sheetName, Map<String, List<String>> columnMapping, int startRow, int endRow) throws IOException {
+			MultipartFile boqFile, String sheetName, Map<String, List<String>> columnMapping, int startRow, int endRow, String pageBreakWord) throws IOException {
 
 		Workbook workbook = boqFile.getOriginalFilename().endsWith(".xlsx") ? readXlsxFile(boqFile) : readXlsFile(boqFile);
 		Sheet sheet = workbook.getSheet(sheetName);
@@ -373,6 +374,7 @@ public class ExcelFileService {
 
 		List<ExcelExtractBOQ> extractedData = new ArrayList<>();
 		int serialNumber = 1;
+		long currentPageNo = 1L;
 
 		for (int rowNum = finalStartRow; rowNum <= finalEndRow; rowNum++) {
 			Row row = sheet.getRow(rowNum);
@@ -380,8 +382,36 @@ public class ExcelFileService {
 			// SANITIZATION: Skip null rows and hidden rows
 			if (row == null || row.getZeroHeight()) continue;
 
+			boolean pageBreakFound = false;
+			boolean hasOtherText = false;
+			if (pageBreakWord != null && !pageBreakWord.trim().isEmpty()) {
+				String lowerBreakWord = pageBreakWord.toLowerCase().trim();
+				for (int i = 0; i < row.getLastCellNum(); i++) {
+					Cell cell = row.getCell(i);
+					String cellValue = getCellValueAsString(cell, evaluator);
+					if (cellValue != null && !cellValue.trim().isEmpty()) {
+						String lowerCell = cellValue.toLowerCase().trim();
+						if (lowerCell.contains(lowerBreakWord)) {
+							pageBreakFound = true;
+							String remaining = lowerCell.replace(lowerBreakWord, "").trim();
+							if (!remaining.isEmpty()) {
+								hasOtherText = true;
+							}
+						} else {
+							hasOtherText = true;
+						}
+					}
+				}
+			}
+
+			if (pageBreakFound && !hasOtherText) {
+				currentPageNo++;
+				continue;
+			}
+
 			ExcelExtractBOQ boq = new ExcelExtractBOQ();
 			boq.setSno(serialNumber++);
+			boq.setPageNo(currentPageNo);
 			boolean hasData = false;
 
 			for (Map.Entry<String, List<Integer>> entry : columnIndex.entrySet()) {
@@ -407,6 +437,10 @@ public class ExcelFileService {
 					}
 					case "boqName" -> {
 						boq.setBoqName(String.join(" -- ", values));
+						hasData = true;
+					}
+					case "division" -> {
+						boq.setDivision(String.join(" -- ", values));
 						hasData = true;
 					}
 					case "quantity" -> {
@@ -439,6 +473,10 @@ public class ExcelFileService {
 				extractedData.add(boq);
 			} else {
 				serialNumber--; // Revert serial number if row was empty
+			}
+
+			if (pageBreakFound) {
+				currentPageNo++;
 			}
 		}
 		workbook.close();

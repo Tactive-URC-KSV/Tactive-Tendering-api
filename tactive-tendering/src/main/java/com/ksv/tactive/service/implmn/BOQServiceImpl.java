@@ -164,7 +164,7 @@ public class BOQServiceImpl implements BOQService {
     @Override
     public String mapBOQData(String projectId, String sheetName, Map<String, List<String>> columnMapping,
                              Map<Long, Long> parentChildMapping, Map<Long, Boolean> lastLevelMapping, Map<Long, Long> levelMapping,
-                             MultipartFile boqFile) throws IOException {
+                             MultipartFile boqFile, String pageBreakWord) throws IOException {
 //        Projects project = projectDao.findById(convertToUUID(projectId)).orElse(null);
 //        saveBoqFile(boqFile, projectId);
         int startRow = 0;
@@ -172,17 +172,18 @@ public class BOQServiceImpl implements BOQService {
         List<ExcelExtractBOQ> extractedRows;
         String fileName = boqFile.getOriginalFilename();
         if (fileName != null && (fileName.endsWith(".xlsx") || fileName.endsWith(".xls"))) {
-            extractedRows = excelService.getExtractedData(boqFile, sheetName, columnMapping, startRow, endRow);
+            extractedRows = excelService.getExtractedData(boqFile, sheetName, columnMapping, startRow, endRow, pageBreakWord);
         } else {
             int startPdfPage = 1;
             try { startPdfPage = Integer.parseInt(sheetName); } catch (Exception e) {}
-            extractedRows = pdfService.getExtractedData(boqFile, columnMapping, startRow, endRow, startPdfPage);
+            extractedRows = pdfService.getExtractedData(boqFile, columnMapping, startRow, endRow, startPdfPage, pageBreakWord);
         }
         if (extractedRows == null || extractedRows.isEmpty()) {
             throw new DataNotFoundException("No BOQ data extracted from file!");
         }
-        Map<String, BOQ> boqUniqueMap = new HashMap<>();
+        Map<String, BOQ> boqUniqueMap = new java.util.LinkedHashMap<>();
         Map<Long, BOQ> rowToBoqMap = new HashMap<>();
+        long currentTime = System.currentTimeMillis();
         for (ExcelExtractBOQ row : extractedRows) {
             if (!isValidText(row.getBoqCode()) && !isNotEmpty(row.getBoqCode())) {
                 continue;
@@ -206,11 +207,16 @@ public class BOQServiceImpl implements BOQService {
                     boq.setUom(findUOM(row.getUom()));
                     boq.setUomCode(boq.getUom() != null ? boq.getUom().getUomCode() : row.getUom());
                 }
+                if (boq.getCreatedAt() == null) {
+                    boq.setCreatedAt(new java.sql.Timestamp(currentTime++));
+                }
+                boq.setDivision(row.getDivision());
                 boqUniqueMap.put(key, boq);
             }
             boq.setQuantity(row.getQuantity() != null ? row.getQuantity() : 0.0);
             Long level = levelMapping.getOrDefault(row.getSno(), 0L);
             boq.setLevel(level.intValue());
+            boq.setPageNo(row.getPageNo());
             if (!row.isLastLevel()) {
                 boq.setLastLevel(lastLevelMapping.getOrDefault(row.getSno(), false));
             } else {
@@ -271,7 +277,7 @@ public class BOQServiceImpl implements BOQService {
 
     @Override
     public List<BOQ> getParentBOQ(String projectId) {
-        List<BOQ> boqList = boqDao.findByProjectId(projectId);
+        List<BOQ> boqList = boqDao.findByProjectIdOrderByCreatedAtAsc(projectId);
         if (boqList.isEmpty()) {
             return null;
         }
@@ -282,7 +288,7 @@ public class BOQServiceImpl implements BOQService {
 
     @Override
     public List<BOQ> getChildBOQ(String projectId, String parentBoqId) {
-        List<BOQ> boqList = boqDao.findByProjectIdAndParentBOQId(projectId, UUID.fromString(parentBoqId));
+        List<BOQ> boqList = boqDao.findByProjectIdAndParentBOQIdOrderByCreatedAtAsc(projectId, UUID.fromString(parentBoqId));
         if (boqList.isEmpty()) {
             return null;
         }
@@ -298,7 +304,7 @@ public class BOQServiceImpl implements BOQService {
 
     @Override
     public Map<String, Integer> getBOQCount(String projectId) {
-        List<BOQ> boqList = boqDao.findByProjectId(projectId);
+        List<BOQ> boqList = boqDao.findByProjectIdOrderByCreatedAtAsc(projectId);
         Map<String, Integer> boqCountMap = new HashMap<>();
         int boqcount = boqList.size();
         int lastLevelCount = (int) boqList.stream()
@@ -327,14 +333,14 @@ public class BOQServiceImpl implements BOQService {
     @Override
     public void generateBoqExcel(String projectId, HttpServletResponse response) throws IOException, DataNotFoundException {
         response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-        List<BOQ> boqList = boqDao.findByProjectId(projectId);
+        List<BOQ> boqList = boqDao.findByProjectIdOrderByCreatedAtAsc(projectId);
         excelService.generateBoqFile(boqList, response);
     }
 
     @Override
     public void generateBoqPdf(String projectId, HttpServletResponse response) throws IOException, DocumentException, DataNotFoundException {
         response.setContentType("application/pdf");
-        List<BOQ> boqList = boqDao.findByProjectId(projectId);
+        List<BOQ> boqList = boqDao.findByProjectIdOrderByCreatedAtAsc(projectId);
         pdfService.generateBoqPdf(boqList, response);
     }
 
@@ -346,7 +352,8 @@ public class BOQServiceImpl implements BOQService {
                     .orElseThrow(() -> new DataNotFoundException(
                             messageSource.getMessage("boq.not.found", null, Locale.ENGLISH)));
             deleteChildren(boq);
-            boqDao.delete(boq);
+            boq.setArchive(true);
+            boqDao.save(boq);
         }
     }
     private void deleteChildren(BOQ parent) {
@@ -354,7 +361,8 @@ public class BOQServiceImpl implements BOQService {
             List<BOQ> children = new ArrayList<>(parent.getChildren());
             for (BOQ child : children) {
                 deleteChildren(child);
-                boqDao.delete(child);
+                child.setArchive(true);
+                boqDao.save(child);
             }
         }
     }
@@ -365,17 +373,17 @@ public class BOQServiceImpl implements BOQService {
     }
 
     @Override
-    public List<ExcelExtractBOQ> extractBOQData(String sheetName, Map<String, List<String>> columnMapping, MultipartFile boqFile, String search) throws IOException {
+    public List<ExcelExtractBOQ> extractBOQData(String sheetName, Map<String, List<String>> columnMapping, MultipartFile boqFile, String search, String pageBreakWord) throws IOException {
         List<ExcelExtractBOQ> allRows;
         int startRow = 0;
         int endRow = 100000;
         String fileName = boqFile.getOriginalFilename();
         if (fileName != null && (fileName.endsWith(".xlsx") || fileName.endsWith(".xls"))) {
-            allRows = excelService.getExtractedData(boqFile, sheetName, columnMapping, startRow, endRow);
+            allRows = excelService.getExtractedData(boqFile, sheetName, columnMapping, startRow, endRow, pageBreakWord);
         } else {
             int startPdfPage = 1;
             try { startPdfPage = Integer.parseInt(sheetName); } catch (Exception e) {}
-            allRows = pdfService.getExtractedData(boqFile, columnMapping, startRow, endRow, startPdfPage);
+            allRows = pdfService.getExtractedData(boqFile, columnMapping, startRow, endRow, startPdfPage, pageBreakWord);
         }
         if (search != null && !search.isBlank()) {
             String lower = search.toLowerCase();
@@ -392,7 +400,7 @@ public class BOQServiceImpl implements BOQService {
     @Override
     public List<BOQ> searchBoq(String projectId, String searchQuery) {
         UUID uuid = UUID.fromString(projectId);
-        List<BOQ> boqList = boqDao.findByProjectId(uuid.toString());
+        List<BOQ> boqList = boqDao.findByProjectIdOrderByCreatedAtAsc(uuid.toString());
         if (searchQuery == null || searchQuery.trim().isEmpty()) {
             return boqList;
         }
@@ -407,18 +415,41 @@ public class BOQServiceImpl implements BOQService {
 
     @Override
     public Map<String, Double> getParentBoqTotalMap(String projectId) {
-        List<BOQ> boqList = boqDao.findByProjectId(projectId);
+        List<BOQ> boqList = boqDao.findByProjectIdOrderByCreatedAtAsc(projectId);
         if (boqList == null || boqList.isEmpty()) {
             throw new DataNotFoundException("No BOQ found for project");
         }
         Map<String, List<BOQ>> childMap = buildChildMap(boqList);
         Map<String, Double> result = new HashMap<>();
+        
+        // Calculate for ALL non-leaf BOQs
         for (BOQ boq : boqList) {
-            if (boq.getParentBOQ() == null) {
+            if (!boq.isLastLevel()) {
                 double total = calculateTotalRecursively(boq, childMap);
                 result.put(boq.getId().toString(), total);
             }
         }
+        
+        // Calculate for divisions
+        Map<String, List<BOQ>> divisionMap = new HashMap<>();
+        for (BOQ boq : boqList) {
+            if (boq.getParentBOQ() == null) {
+                String div = boq.getDivision();
+                if (div == null || div.trim().isEmpty() || "Non-Categorized".equalsIgnoreCase(div)) {
+                    div = "Non-Categorized";
+                }
+                divisionMap.computeIfAbsent(div, k -> new ArrayList<>()).add(boq);
+            }
+        }
+        
+        for (Map.Entry<String, List<BOQ>> entry : divisionMap.entrySet()) {
+            double divTotal = 0.0;
+            for (BOQ boq : entry.getValue()) {
+                divTotal += result.getOrDefault(boq.getId().toString(), boq.getTotalAmount() != 0.0 ? boq.getTotalAmount() : 0.0);
+            }
+            result.put("div_" + entry.getKey(), divTotal);
+        }
+        
         return result;
     }
 
@@ -436,6 +467,9 @@ public class BOQServiceImpl implements BOQService {
     private double calculateTotalRecursively(BOQ boq, Map<String, List<BOQ>> childMap) {
         String boqId = boq.getId().toString();
         if (!childMap.containsKey(boqId)) {
+            if (!boq.isLastLevel()) {
+                return 0.0;
+            }
             return boq.getTotalAmount() != 0.0 ? boq.getTotalAmount() : 0.0;
         }
         double total = 0.0;
@@ -448,7 +482,7 @@ public class BOQServiceImpl implements BOQService {
     @Override
     public String updateBOQHierarchy(String projectId, Map<String, String> parentChildUpdateMap) {
         UUID projId = convertToUUID(projectId);
-        List<BOQ> boqList = boqDao.findByProjectId(projId.toString());
+        List<BOQ> boqList = boqDao.findByProjectIdOrderByCreatedAtAsc(projId.toString());
         if (boqList == null || boqList.isEmpty()) {
             throw new DataNotFoundException("No BOQs found for project");
         }
@@ -498,8 +532,40 @@ public class BOQServiceImpl implements BOQService {
     }
 
     @Override
+    public String updateBOQDivision(String projectId, Map<String, String> boqDivisionUpdateMap) {
+        UUID projId = convertToUUID(projectId);
+        List<BOQ> boqList = boqDao.findByProjectIdOrderByCreatedAtAsc(projId.toString());
+        if (boqList == null || boqList.isEmpty()) {
+            throw new DataNotFoundException("No BOQs found for project");
+        }
+        Map<UUID, BOQ> boqMap = boqList.stream()
+                .collect(Collectors.toMap(BOQ::getId, boq -> boq));
+
+        for (Map.Entry<String, String> entry : boqDivisionUpdateMap.entrySet()) {
+            UUID childId = convertToUUID(entry.getKey());
+            String newDivision = entry.getValue();
+
+            if (newDivision != null && newDivision.startsWith("div_")) {
+                newDivision = newDivision.substring(4);
+            }
+            if ("Non-Categorized".equalsIgnoreCase(newDivision) || "ROOT".equalsIgnoreCase(newDivision)) {
+                newDivision = null;
+            }
+
+            BOQ child = boqMap.get(childId);
+            if (child == null) {
+                throw new RuntimeException("Invalid child BOQ: " + childId);
+            }
+            
+            child.setDivision(newDivision);
+        }
+        boqDao.saveAll(boqList);
+        return "BOQ division updated successfully for project: " + projectId;
+    }
+
+    @Override
     public Page<BOQ> getParentBOQs(String projectId, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("boqCode").ascending());
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").ascending());
         Page<BOQ> boqPage = boqDao.findByProjectIdAndParentBOQIsNull(projectId, pageable);
         if (boqPage.isEmpty()) {
             throw new DataNotFoundException("No BOQ data found");
@@ -551,7 +617,7 @@ public class BOQServiceImpl implements BOQService {
 
     @Override
     public List<BOQ> getAllBOQsByProjectId(String projectId) {
-        List<BOQ> boqList = boqDao.findByProjectId(projectId);
+        List<BOQ> boqList = boqDao.findByProjectIdOrderByCreatedAtAsc(projectId);
         if (boqList == null || boqList.isEmpty()) {
             throw new DataNotFoundException(messageSource.getMessage("boq.not.found", null, Locale.ENGLISH));
         }
@@ -561,5 +627,95 @@ public class BOQServiceImpl implements BOQService {
             }
         }
         return boqList;
+    }
+
+    @Override
+    public List<String> getDivisionsByProjectId(String projectId) {
+        return boqDao.findDistinctDivisionsByProjectId(projectId);
+    }
+
+    @Override
+    public Page<BOQ> getBOQsByDivision(String projectId, String division, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").ascending());
+        if (division == null || division.trim().isEmpty() || division.equalsIgnoreCase("Non-Categorized")) {
+            return boqDao.findByProjectIdAndNoDivision(projectId, pageable);
+        }
+        return boqDao.findByProjectIdAndDivisionOrderByCreatedAtAsc(projectId, division, pageable);
+    }
+
+    @Override
+    public List<BOQ> getBoqsByLevel(String projectId, int level) {
+        return boqDao.findByProjectIdAndLevel(projectId, level);
+    }
+
+    @Override
+    public BOQ createSingleBoq(String projectId, BOQ boqData) {
+        boqData.setProjectId(projectId);
+        
+        if (boqData.getUomCode() != null && !boqData.getUomCode().trim().isEmpty()) {
+            boqData.setUom(findUOM(boqData.getUomCode()));
+        }
+
+        if (boqData.getLevel() > 1 && boqData.getParentBoqId() != null && !boqData.getParentBoqId().trim().isEmpty()) {
+            BOQ parentBoq = boqDao.findById(UUID.fromString(boqData.getParentBoqId()))
+                    .orElseThrow(() -> new DataNotFoundException("Parent BOQ not found"));
+            
+            parentBoq.setLastLevel(false);
+            boqDao.save(parentBoq);
+            boqData.setParentBOQ(parentBoq);
+            
+            if (boqData.getPageNo() == null || boqData.getPageNo() == 0) {
+                boqData.setPageNo(parentBoq.getPageNo());
+            }
+        }
+        
+        return boqDao.save(boqData);
+    }
+
+    @Override
+    public BOQ updateSingleBoq(String projectId, String boqId, BOQ boqData) {
+        BOQ existingBoq = boqDao.findById(convertToUUID(boqId))
+                .orElseThrow(() -> new DataNotFoundException("BOQ not found"));
+        
+        existingBoq.setBoqCode(boqData.getBoqCode());
+        existingBoq.setBoqName(boqData.getBoqName());
+        existingBoq.setDescription(boqData.getDescription());
+        existingBoq.setQuantity(boqData.getQuantity());
+        
+        if (boqData.getUomCode() != null && !boqData.getUomCode().trim().isEmpty()) {
+            existingBoq.setUomCode(boqData.getUomCode());
+            existingBoq.setUom(findUOM(boqData.getUomCode()));
+        } else {
+            existingBoq.setUomCode(null);
+            existingBoq.setUom(null);
+        }
+
+        existingBoq.setDivision(boqData.getDivision());
+        existingBoq.setPageNo(boqData.getPageNo());
+        existingBoq.setEnqSlNo(boqData.getEnqSlNo());
+        existingBoq.setClientBoqCode(boqData.getClientBoqCode());
+        existingBoq.setBoqShortName(boqData.getBoqShortName());
+        existingBoq.setRateOnly(boqData.isRateOnly());
+        existingBoq.setProvisionalSum(boqData.isProvisionalSum());
+        existingBoq.setNotQuotedBoq(boqData.isNotQuotedBoq());
+        existingBoq.setLastLevel(boqData.isLastLevel());
+        
+        // Handle level and parent BOQ
+        existingBoq.setLevel(boqData.getLevel());
+        if (boqData.getLevel() > 1 && boqData.getParentBoqId() != null && !boqData.getParentBoqId().trim().isEmpty()) {
+            BOQ parentBoq = boqDao.findById(UUID.fromString(boqData.getParentBoqId()))
+                    .orElseThrow(() -> new DataNotFoundException("Parent BOQ not found"));
+            parentBoq.setLastLevel(false);
+            boqDao.save(parentBoq);
+            existingBoq.setParentBOQ(parentBoq);
+        } else if (boqData.getLevel() <= 1) {
+            existingBoq.setParentBOQ(null);
+        }
+        
+        // Increment version on update
+        int currentVersion = existingBoq.getVersion() != null ? existingBoq.getVersion() : 1;
+        existingBoq.setVersion(currentVersion + 1);
+
+        return boqDao.save(existingBoq);
     }
 }

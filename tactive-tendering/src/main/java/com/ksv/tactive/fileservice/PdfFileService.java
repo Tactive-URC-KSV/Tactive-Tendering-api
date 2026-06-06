@@ -164,6 +164,10 @@ public class PdfFileService {
 									boq.setBoqName(value);
 									hasValidData = true;
 								}
+								case "division" -> {
+									boq.setDivision(value);
+									hasValidData = true;
+								}
 								case "quantity" -> {
 									Double parsedQty = parseQuantity(value);
 									if (parsedQty != null) {
@@ -285,7 +289,8 @@ public class PdfFileService {
 												  Map<String, List<String>> columnMapping,
 												  int startRow,
 												  int endRow,
-												  int startPage) throws IOException {
+												  int startPage,
+												  String pageBreakWord) throws IOException {
 
 		List<ExcelExtractBOQ> boqList = new ArrayList<>();
 		Map<String, List<Integer>> mappedColumnIndexes = new HashMap<>();
@@ -300,6 +305,7 @@ public class PdfFileService {
 			int globalRowCounter = 0;
 			int serialNumber = 1;
 			int currentPageNumber = 0;
+			long currentBoqPageNo = 1L;
 
 			while (iterator.hasNext()) {
 
@@ -474,9 +480,35 @@ public class PdfFileService {
 							continue;
 						}
 
+						boolean pageBreakFound = false;
+						boolean hasOtherText = false;
+						if (pageBreakWord != null && !pageBreakWord.trim().isEmpty()) {
+							String lowerBreakWord = pageBreakWord.toLowerCase().trim();
+							for (String cellValue : row) {
+								if (cellValue != null && !cellValue.trim().isEmpty()) {
+									String lowerCell = cellValue.toLowerCase().trim();
+									if (lowerCell.contains(lowerBreakWord)) {
+										pageBreakFound = true;
+										String remaining = lowerCell.replace(lowerBreakWord, "").trim();
+										if (!remaining.isEmpty()) {
+											hasOtherText = true;
+										}
+									} else {
+										hasOtherText = true;
+									}
+								}
+							}
+						}
+
+						if (pageBreakFound && !hasOtherText) {
+							currentBoqPageNo++;
+							continue;
+						}
+
 						ExcelExtractBOQ boq = new ExcelExtractBOQ();
 
 						boq.setSno(serialNumber);
+						boq.setPageNo(currentBoqPageNo);
 
 						boolean hasValidData = false;
 
@@ -516,6 +548,11 @@ public class PdfFileService {
 									hasValidData = true;
 								}
 
+								case "division" -> {
+									boq.setDivision(String.join(" ", values));
+									hasValidData = true;
+								}
+
 								case "quantity" -> {
 
 									for (String val : values) {
@@ -551,6 +588,10 @@ public class PdfFileService {
 						if (hasValidData) {
 							boqList.add(boq);
 							serialNumber++;
+						}
+
+						if (pageBreakFound) {
+							currentBoqPageNo++;
 						}
 					}
 				}
