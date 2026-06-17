@@ -280,8 +280,8 @@ public class BOQController {
         }
     }
 
-    @GetMapping("project/getAllBoqDetails/{projectId}")
-    public ResponseEntity<?> getAllBoqDetails(@PathVariable String projectId) {
+    @GetMapping("project/getAllBoqDetails")
+    public ResponseEntity<?> getAllBoqDetails(@RequestParam String projectId) {
         try {
             return ResponseEntity.status(HttpStatus.OK).body(boqService.getAllBOQsByProjectId(projectId));
         } catch (DataNotFoundException e) {
