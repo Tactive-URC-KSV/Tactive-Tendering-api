@@ -118,6 +118,7 @@ public class ExcelFileService {
 						switch (internalField) {
 							case "boqCode" -> { boq.setBoqCode(String.join(" ", values)); hasData = true; }
 							case "boqName" -> { boq.setBoqName(String.join(" ", values)); hasData = true; }
+							case "division" -> { boq.setDivision(String.join(" ", values)); hasData = true; }
 							case "quantity" -> {
 								for (String val : values) {
 									try {
@@ -191,72 +192,123 @@ public class ExcelFileService {
 		return 0;
 	}
 
-	// SANITIZED HEADER MAPPING - supports multiple columns per internal field
-	private Map<String, List<Integer>> findColumnIndexMap(Sheet sheet, Map<String, List<String>> columnMapping) {
+	private Map<String, List<Integer>> findColumnIndexMap(
+			Sheet sheet,
+			Map<String, List<String>> columnMapping) {
+
 		Map<String, List<Integer>> columnIndexMap = new HashMap<>();
-		if (sheet == null) return columnIndexMap;
+
+		if (sheet == null) {
+			return columnIndexMap;
+		}
 
 		DataFormatter formatter = new DataFormatter();
 
-		for (int rowNum = sheet.getFirstRowNum(); rowNum <= Math.min(sheet.getLastRowNum(), 50); rowNum++) {
+		for (int rowNum = sheet.getFirstRowNum();
+			 rowNum <= Math.min(sheet.getLastRowNum(), 50);
+			 rowNum++) {
+
 			Row row = sheet.getRow(rowNum);
 
-			// SANITIZATION 1: Skip entirely empty or hidden rows
-			if (row == null || row.getZeroHeight()) continue;
+			if (row == null || row.getZeroHeight()) {
+				continue;
+			}
+
+			Map<String, List<Integer>> currentRowMapping = new HashMap<>();
 
 			int emptyCellStreak = 0;
 
-			for (int cellNum = Math.max(0, row.getFirstCellNum()); cellNum < row.getLastCellNum(); cellNum++) {
+			for (int cellNum = Math.max(0, row.getFirstCellNum());
+				 cellNum < row.getLastCellNum();
+				 cellNum++) {
 
-				// SANITIZATION 2: Skip hidden columns (Prevents mapping ghost columns)
-				if (sheet.isColumnHidden(cellNum)) continue;
+				if (sheet.isColumnHidden(cellNum)) {
+					continue;
+				}
 
 				Cell cell = row.getCell(cellNum);
 
-				// SANITIZATION 3: Bounding box to stop runaway right-ward scanning
 				if (cell == null || cell.getCellType() == CellType.BLANK) {
 					emptyCellStreak++;
-					if (emptyCellStreak >= 5) break;
+
+					if (emptyCellStreak >= 5) {
+						break;
+					}
+
 					continue;
 				}
+
 				emptyCellStreak = 0;
 
-				String cellValue = formatter.formatCellValue(cell).toLowerCase().replaceAll("[^a-z0-9]", "");
+				String rawCellValue = formatter.formatCellValue(cell);
+
+				if (rawCellValue == null || rawCellValue.trim().isEmpty()) {
+					continue;
+				}
+
+				String cellValue = rawCellValue
+						.toLowerCase()
+						.replaceAll("[^a-z0-9]", "");
 
 				for (Map.Entry<String, List<String>> mapping : columnMapping.entrySet()) {
+
 					String internalKey = mapping.getKey();
 					List<String> expectedHeaders = mapping.getValue();
 
 					for (String expectedHeader : expectedHeaders) {
-						if (expectedHeader == null) continue;
 
-						String normalizedExpected = expectedHeader.toLowerCase().replaceAll("[^a-z0-9]", "");
+						if (expectedHeader == null || expectedHeader.trim().isEmpty()) {
+							continue;
+						}
 
-						if (!cellValue.isEmpty() && cellValue.contains(normalizedExpected)) {
-							List<Integer> indices = columnIndexMap.computeIfAbsent(internalKey, k -> new ArrayList<>());
+						String normalizedExpected = expectedHeader
+								.toLowerCase()
+								.replaceAll("[^a-z0-9]", "");
+
+						boolean exactMatch =
+								cellValue.equals(normalizedExpected);
+
+						boolean fuzzyMatch =
+								cellValue.replaceAll("_", "")
+										.equals(normalizedExpected.replaceAll("_", ""));
+
+						if (exactMatch || fuzzyMatch) {
+
+							List<Integer> indices =
+									currentRowMapping.computeIfAbsent(
+											internalKey,
+											k -> new ArrayList<>()
+									);
+
 							if (!indices.contains(cellNum)) {
 								indices.add(cellNum);
 							}
+
+							break;
 						}
 					}
 				}
 			}
-			if (columnIndexMap.size() >= 2) {
-				break;
-			} else {
-				columnIndexMap.clear(); // Reset if this wasn't the actual header row
+
+			if (currentRowMapping.size() >= 2) {
+
+				columnIndexMap.clear();
+				columnIndexMap.putAll(currentRowMapping);
+
+				if (columnIndexMap.size() == columnMapping.size()) {
+					break;
+				}
 			}
 		}
 		return columnIndexMap;
 	}
-
 	private Sheet findSheetByName(String sheetName, InputStream inputStream) throws IOException {
 		Workbook workbook = WorkbookFactory.create(inputStream);
 		return workbook != null ? workbook.getSheet(sheetName) : null;
 	}
 
 	public void generateBoqFile(List<BOQ> boqList, HttpServletResponse response) throws IOException {
-		String projectName = boqList.get(0).getProject().getProjectName().trim().replaceAll("\\s+", "_");
+		String projectName = boqList.get(0).getProjectId().toString().trim().replaceAll("\\s+", "_");
 		response.setHeader("Content-Disposition", "attachment; filename=" + projectName + ".xlsx");
 		try (XSSFWorkbook workBook = new XSSFWorkbook()) {
 			XSSFSheet sheet = workBook.createSheet("BOQ");
@@ -306,16 +358,12 @@ public class ExcelFileService {
 	}
 
 	public List<ExcelExtractBOQ> getExtractedData(
-			MultipartFile boqFile, String sheetName, Map<String, List<String>> columnMapping, int startRow, int endRow) throws IOException {
+			MultipartFile boqFile, String sheetName, Map<String, List<String>> columnMapping, int startRow, int endRow, String pageBreakWord) throws IOException {
 
 		Workbook workbook = boqFile.getOriginalFilename().endsWith(".xlsx") ? readXlsxFile(boqFile) : readXlsFile(boqFile);
 		Sheet sheet = workbook.getSheet(sheetName);
 		if (sheet == null) return new ArrayList<>();
-
-		System.out.println("Provided Mapping: " + columnMapping);
 		Map<String, List<Integer>> columnIndex = findColumnIndexMap(sheet, columnMapping);
-		System.out.println("Actual Mapped Columns: " + columnIndex);
-
 		if (columnIndex.isEmpty()) return new ArrayList<>();
 
 		FormulaEvaluator evaluator = workbook.getCreationHelper().createFormulaEvaluator();
@@ -326,6 +374,7 @@ public class ExcelFileService {
 
 		List<ExcelExtractBOQ> extractedData = new ArrayList<>();
 		int serialNumber = 1;
+		long currentPageNo = 1L;
 
 		for (int rowNum = finalStartRow; rowNum <= finalEndRow; rowNum++) {
 			Row row = sheet.getRow(rowNum);
@@ -333,8 +382,36 @@ public class ExcelFileService {
 			// SANITIZATION: Skip null rows and hidden rows
 			if (row == null || row.getZeroHeight()) continue;
 
+			boolean pageBreakFound = false;
+			boolean hasOtherText = false;
+			if (pageBreakWord != null && !pageBreakWord.trim().isEmpty()) {
+				String lowerBreakWord = pageBreakWord.toLowerCase().trim();
+				for (int i = 0; i < row.getLastCellNum(); i++) {
+					Cell cell = row.getCell(i);
+					String cellValue = getCellValueAsString(cell, evaluator);
+					if (cellValue != null && !cellValue.trim().isEmpty()) {
+						String lowerCell = cellValue.toLowerCase().trim();
+						if (lowerCell.contains(lowerBreakWord)) {
+							pageBreakFound = true;
+							String remaining = lowerCell.replace(lowerBreakWord, "").trim();
+							if (!remaining.isEmpty()) {
+								hasOtherText = true;
+							}
+						} else {
+							hasOtherText = true;
+						}
+					}
+				}
+			}
+
+			if (pageBreakFound && !hasOtherText) {
+				currentPageNo++;
+				continue;
+			}
+
 			ExcelExtractBOQ boq = new ExcelExtractBOQ();
 			boq.setSno(serialNumber++);
+			boq.setPageNo(currentPageNo);
 			boolean hasData = false;
 
 			for (Map.Entry<String, List<Integer>> entry : columnIndex.entrySet()) {
@@ -355,11 +432,15 @@ public class ExcelFileService {
 
 				switch (internalField) {
 					case "boqCode" -> {
-						boq.setBoqCode(String.join(" ", values));
+						boq.setBoqCode(String.join(" -- ", values));
 						hasData = true;
 					}
 					case "boqName" -> {
-						boq.setBoqName(String.join(" ", values));
+						boq.setBoqName(String.join(" -- ", values));
+						hasData = true;
+					}
+					case "division" -> {
+						boq.setDivision(String.join(" -- ", values));
 						hasData = true;
 					}
 					case "quantity" -> {
@@ -383,12 +464,19 @@ public class ExcelFileService {
 				}
 			}
 
-			boq.setLastLevel(boq.getQuantity() > 0 || (boq.getUom() != null && !boq.getUom().isBlank()));
+			boq.setLastLevel(
+					(boq.getQuantity() != null && boq.getQuantity() > 0)
+							|| (boq.getUom() != null && !boq.getUom().isBlank())
+			);
 
 			if (hasData) {
 				extractedData.add(boq);
 			} else {
 				serialNumber--; // Revert serial number if row was empty
+			}
+
+			if (pageBreakFound) {
+				currentPageNo++;
 			}
 		}
 		workbook.close();

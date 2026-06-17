@@ -9,10 +9,11 @@ public class ExcelExtractBOQ {
 	private String boqCode;
 	private String boqName;
 	private String uom;
-	private double quantity;
+	private Double quantity;
 	private int level;
 	private long parentSno;
 	private boolean lastLevel;
+	private String division;
+	private Long pageNo;
 	
-
 }

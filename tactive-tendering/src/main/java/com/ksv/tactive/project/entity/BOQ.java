@@ -3,6 +3,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import org.hibernate.annotations.SQLRestriction;
+
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
@@ -10,6 +12,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 @Data
 @Entity
+@SQLRestriction("archive = false")
 @Table(name = "boq", indexes = { @Index(name = "idx_project_id", columnList = "project_id"),
 		@Index(name = "idx_parent_boq_id", columnList = "parent_boq_id") })
 public class BOQ {
@@ -31,10 +34,7 @@ public class BOQ {
 	private boolean lastLevel;
 	@Column(nullable = true)
 	private String uomCode;
-	@JsonBackReference
-	@ManyToOne(cascade = CascadeType.DETACH)
-	@JoinColumn(name = "project_id")
-	private Projects project;
+	private String projectId;
 	@JsonIgnore
 	@ManyToOne(cascade = CascadeType.DETACH)
 	@JoinColumn(name = "parent_boq_id")
@@ -43,4 +43,38 @@ public class BOQ {
 	@JsonIgnore
 	@OneToMany(mappedBy = "parentBOQ", cascade = { CascadeType.PERSIST, CascadeType.MERGE })
 	private List<BOQ> children = new ArrayList<>();
+	
+	@Transient
+	private String parentBoqId;
+	private String division;
+	private Long pageNo;
+	
+	@Column
+	private Double enqSlNo;
+	
+	@Column(columnDefinition = "integer default 1")
+	private Integer version = 1;
+	
+	private String clientBoqCode;
+	private String boqShortName;
+	
+	@Column(length = 6000)
+	private String description;
+	
+	@Column(columnDefinition = "boolean default false")
+	private boolean rateOnly = false;
+	
+	@Column(columnDefinition = "boolean default false")
+	private boolean provisionalSum = false;
+	
+	@Column(columnDefinition = "boolean default false")
+	private boolean notQuotedBoq = false;
+	
+	@Column(nullable = false, columnDefinition = "boolean default false")
+	private boolean archive = false;
+
+	@org.hibernate.annotations.CreationTimestamp
+	@Column(name = "created_at", updatable = false)
+	private java.sql.Timestamp createdAt;
 }
+

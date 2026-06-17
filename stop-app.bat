@@ -1,10 +1,16 @@
 @echo off
-echo Terminating all java.exe processes...
+echo Stopping all Java processes...
 
-taskkill /F /IM java.exe >nul 2>&1
+:: Kill java.exe
+taskkill /F /IM java.exe /T >nul 2>&1
 
-IF %ERRORLEVEL% EQU 0 (
-    echo All java.exe processes terminated successfully.
-) ELSE (
-    echo No java.exe processes found or an error occurred.
+:: Kill javaw.exe
+taskkill /F /IM javaw.exe /T >nul 2>&1
+
+:: Optional: kill by port (example 8080)
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr :8080') do (
+    taskkill /F /PID %%a >nul 2>&1
 )
+
+echo Done.
+pause

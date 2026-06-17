@@ -67,10 +67,12 @@ public class BOQController {
     @PostMapping(value = "/project/extractedBOQ", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> getExtractedBOQData(@RequestParam("file") MultipartFile boqFile,
                                                  @RequestParam("sheetName") String sheetName,
-                                                 @RequestPart("columnMapping") Map<String, List<String>> columnMapping, @RequestParam(required = false) String search) {
+                                                 @RequestPart("columnMapping") Map<String, List<String>> columnMapping, 
+                                                 @RequestParam(required = false) String search,
+                                                 @RequestParam(required = false) String pageBreakWord) {
         try {
             List<ExcelExtractBOQ> response = boqService.extractBOQData(sheetName,
-                    columnMapping, boqFile, search);
+                    columnMapping, boqFile, search, pageBreakWord);
             return ResponseEntity.ok(response);
         } catch (IOException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -87,13 +89,21 @@ public class BOQController {
         return ResponseEntity.status(HttpStatus.OK).body(boqService.updateBOQHierarchy(projectId, parentChildUpdateMap));
     }
 
+    @PutMapping("/update-boq-division/{projectId}")
+    public ResponseEntity<?> updateBOQDivision(
+            @PathVariable String projectId,
+            @RequestBody Map<String, String> boqDivisionUpdateMap) {
+        return ResponseEntity.status(HttpStatus.OK).body(boqService.updateBOQDivision(projectId, boqDivisionUpdateMap));
+    }
+
     @PostMapping(value = "project/mapBOQ/{projectId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> mapBoqData(@PathVariable String projectId, @RequestPart("file") MultipartFile boqFile,
                                         @RequestParam String sheetName,
                                         @RequestParam String columnMapping,
                                         @RequestParam String parentChildMapping,
                                         @RequestParam String lastLevelMapping,
-                                        @RequestParam String levelMapping) {
+                                        @RequestParam String levelMapping,
+                                        @RequestParam(required = false) String pageBreakWord) {
         try {
             ObjectMapper mapper = new ObjectMapper();
             Map<String, List<String>> columnMap = mapper.readValue(columnMapping, new TypeReference<Map<String, List<String>>>() {});
@@ -102,7 +112,7 @@ public class BOQController {
             Map<Long, Long> levelMap = mapper.readValue(levelMapping, new TypeReference<Map<Long, Long>>() {});
 
             return ResponseEntity.status(HttpStatus.OK).body(boqService.mapBOQData(
-                    projectId, sheetName, columnMap, parentChildMap, lastLevelMap, levelMap, boqFile
+                    projectId, sheetName, columnMap, parentChildMap, lastLevelMap, levelMap, boqFile, pageBreakWord
             ));
         } catch (IOException | DataNotFoundException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -266,6 +276,70 @@ public class BOQController {
             return ResponseEntity.ok(boqService.searchBoq(projectId, searchQuery));
         } catch (Exception e) {
             e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+        }
+    }
+
+    @GetMapping("project/getAllBoqDetails")
+    public ResponseEntity<?> getAllBoqDetails(@RequestParam String projectId) {
+        try {
+            return ResponseEntity.status(HttpStatus.OK).body(boqService.getAllBOQsByProjectId(projectId));
+        } catch (DataNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NO_CONTENT).body(e.getMessage());
+        }
+    }
+
+    @GetMapping("project/getDivisions/{projectId}")
+    public ResponseEntity<?> getDivisions(@PathVariable String projectId) {
+        try {
+            List<String> divisions = boqService.getDivisionsByProjectId(projectId);
+            return ResponseEntity.status(HttpStatus.OK).body(divisions);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+        }
+    }
+
+    @GetMapping("project/getParentBoqByDivision/{projectId}/{division}")
+    public ResponseEntity<?> getParentBoqByDivision(
+            @PathVariable String projectId,
+            @PathVariable String division,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "15") int size) {
+        try {
+            Page<BOQ> boqPage = boqService.getBOQsByDivision(projectId, division, page, size);
+            Map<String, Object> response = new HashMap<>();
+            response.put("data", boqPage.getContent());
+            response.put("currentPage", boqPage.getNumber());
+            response.put("totalItems", boqPage.getTotalElements());
+            response.put("totalPages", boqPage.getTotalPages());
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+        }
+    }
+    @GetMapping("project/getBoqsByLevel/{projectId}/{level}")
+    public ResponseEntity<?> getBoqsByLevel(@PathVariable String projectId, @PathVariable int level) {
+        try {
+            return ResponseEntity.status(HttpStatus.OK).body(boqService.getBoqsByLevel(projectId, level));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+        }
+    }
+
+    @PostMapping("project/createSingleBoq/{projectId}")
+    public ResponseEntity<?> createSingleBoq(@PathVariable String projectId, @RequestBody BOQ boqData) {
+        try {
+            return ResponseEntity.status(HttpStatus.CREATED).body(boqService.createSingleBoq(projectId, boqData));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+        }
+    }
+
+    @PutMapping("project/updateSingleBoq/{projectId}/{boqId}")
+    public ResponseEntity<?> updateSingleBoq(@PathVariable String projectId, @PathVariable String boqId, @RequestBody BOQ boqData) {
+        try {
+            return ResponseEntity.status(HttpStatus.OK).body(boqService.updateSingleBoq(projectId, boqId, boqData));
+        } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
         }
     }

@@ -132,7 +132,7 @@ public class TenderEstimationServiceImpl implements TenderEstimationService {
         List<TenderEstimation> candidates;
 
         if (ResourceNature.SIMPLE.name().equalsIgnoreCase(natureId) && boq != null) {
-            candidates = tenderEstDao.findByBoq_IdAndProject_IdAndResources_Id(boq.getId(), boq.getProject().getId(), resId);
+            candidates = tenderEstDao.findByBoq_IdAndProject_IdAndResources_Id(boq.getId(), convertToUUID(boq.getProjectId()), resId);
         } else if (containerIB != null) {
             candidates = tenderEstDao.findByParentInternalBoq_IdAndResources_IdAndUom_Id(containerIB.getId(), resId, uomId);
             if (parent != null) {
@@ -177,7 +177,7 @@ public class TenderEstimationServiceImpl implements TenderEstimationService {
             syncInternalBoqAndParents(node.getParentInternalBoq());
         } else if (node.getBoq() != null) {
             updateBoq(node.getBoq());
-            updateProject(node.getBoq().getProject());
+            updateProject(node.getBoq().getProjectId().toString());
         }
     }
 
@@ -210,7 +210,7 @@ public class TenderEstimationServiceImpl implements TenderEstimationService {
                 syncInternalBoqAndParents(parent.getParentInternalBoq());
             } else if (parent.getBoq() != null) {
                 updateBoq(parent.getBoq());
-                updateProject(parent.getBoq().getProject());
+                updateProject(parent.getBoq().getProjectId().toString());
             }
         }
     }
@@ -252,11 +252,15 @@ public class TenderEstimationServiceImpl implements TenderEstimationService {
         boqDao.save(boq);
     }
 
-    private void updateProject(Projects project) {
-        List<BOQ> boqList = boqDao.findByProjectId(project.getId());
+    private void updateProject(String projectId) {
+        Projects project = projectDao.findById(convertToUUID(projectId)).orElse(null);
+        List<BOQ> boqList = boqDao.findByProjectId(projectId);
         double total = boqList.stream().mapToDouble(BOQ::getTotalAmount).sum();
-        project.setTotalEstimatedValue(BigDecimal.valueOf(total));
-        projectDao.save(project);
+        if (project != null) {
+            project.setTotalEstimatedValue(BigDecimal.valueOf(total));
+            projectDao.save(project);
+        }
+
     }
 
     private InternalBoq findOrCreateInternalBoq(TenderEstimation est) {
@@ -487,7 +491,7 @@ public class TenderEstimationServiceImpl implements TenderEstimationService {
             propagateCost(parent);
         } else if (boq != null) {
             updateBoq(boq);
-            updateProject(boq.getProject());
+            updateProject(boq.getProjectId().toString());
         }
 
         return messageSource.getMessage("tender.resource.delete.success", null, Locale.ENGLISH);

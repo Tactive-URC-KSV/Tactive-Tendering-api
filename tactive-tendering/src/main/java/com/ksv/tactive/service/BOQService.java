@@ -25,7 +25,7 @@ public interface BOQService {
     String saveBoqFile(MultipartFile boqFile, String projectId);
     String mapBOQData(String projectId, String sheetName, Map<String, List<String>> columnMapping,
                      Map<Long, Long> parentChildMapping, Map<Long, Boolean> lastLevelMapping, Map<Long, Long> levelMapping,
-                     MultipartFile boqFile) throws IOException;
+                     MultipartFile boqFile, String pageBreakWord) throws IOException;
     List<BOQ> getParentBOQ(String projectId);
     List<BOQ> getChildBOQ(String projectId, String parentBoqId);
     List<BOQ> getParentBOQ(List<BOQ> boqList);
@@ -36,12 +36,19 @@ public interface BOQService {
     void deleteBOQ(List<String> boqCode, String projectId);
     BOQ getBoqById(String boqId);
     List<ExcelExtractBOQ> extractBOQData(String sheetName,
-                                                            Map<String, List<String>> columnMapping, MultipartFile boqFile, String search) throws IOException;
+                                                            Map<String, List<String>> columnMapping, MultipartFile boqFile, String search, String pageBreakWord) throws IOException;
     List<BOQ> searchBoq(String projectId, String searchQuery);
     Map<String, Double> getParentBoqTotalMap(String projectId);
     String updateBOQHierarchy(String projectId, Map<String, String> parentChildUpdateMap);
+    String updateBOQDivision(String projectId, Map<String, String> boqDivisionUpdateMap);
     Page<BOQ> getParentBOQs(String projectId, int page, int size);
     String saveTemplate(Template template, Map<String, List<String>> mapping);
     List<Template> getAllTemplate();
     TemplateDto getTemplateById(String templateId);
+    List<BOQ> getAllBOQsByProjectId(String projectId);
+    List<String> getDivisionsByProjectId(String projectId);
+    Page<BOQ> getBOQsByDivision(String projectId, String division, int page, int size);
+    List<BOQ> getBoqsByLevel(String projectId, int level);
+    BOQ createSingleBoq(String projectId, BOQ boqData);
+    BOQ updateSingleBoq(String projectId, String boqId, BOQ boqData);
 }

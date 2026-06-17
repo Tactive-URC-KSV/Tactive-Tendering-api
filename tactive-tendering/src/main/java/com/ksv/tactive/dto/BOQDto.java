@@ -12,4 +12,5 @@ public class BOQDto {
     private double quantity;
     private double rate;
     private double amount;
+    private String division;
 }
