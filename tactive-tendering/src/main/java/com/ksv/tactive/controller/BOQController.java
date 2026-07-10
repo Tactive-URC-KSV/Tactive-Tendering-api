@@ -283,7 +283,11 @@ public class BOQController {
     @GetMapping("project/getAllBoqDetails")
     public ResponseEntity<?> getAllBoqDetails(@RequestParam String projectId) {
         try {
-            return ResponseEntity.status(HttpStatus.OK).body(boqService.getAllBOQsByProjectId(projectId));
+            List<BOQ> boqList = boqService.getAllBOQsByProjectId(projectId);
+            if (boqList == null || boqList.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+            }
+            return ResponseEntity.status(HttpStatus.OK).body(boqList);
         } catch (DataNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NO_CONTENT).body(e.getMessage());
         }
