@@ -164,7 +164,7 @@ public class BOQServiceImpl implements BOQService {
     @Override
     public String mapBOQData(String projectId, String sheetName, Map<String, List<String>> columnMapping,
                              Map<Long, Long> parentChildMapping, Map<Long, Boolean> lastLevelMapping, Map<Long, Long> levelMapping,
-                             MultipartFile boqFile, String pageBreakWord) throws IOException {
+                             List<Long> ignoredSnoList, MultipartFile boqFile, String pageBreakWord) throws IOException {
 //        Projects project = projectDao.findById(convertToUUID(projectId)).orElse(null);
 //        saveBoqFile(boqFile, projectId);
         int startRow = 0;
@@ -185,6 +185,9 @@ public class BOQServiceImpl implements BOQService {
         Map<Long, BOQ> rowToBoqMap = new HashMap<>();
         long currentTime = System.currentTimeMillis();
         for (ExcelExtractBOQ row : extractedRows) {
+            if (ignoredSnoList != null && ignoredSnoList.contains(row.getSno())) {
+                continue;
+            }
             if (!isValidText(row.getBoqCode()) && !isNotEmpty(row.getBoqCode())) {
                 continue;
             }

@@ -103,6 +103,7 @@ public class BOQController {
                                         @RequestParam String parentChildMapping,
                                         @RequestParam String lastLevelMapping,
                                         @RequestParam String levelMapping,
+                                        @RequestParam(required = false) String ignoredSnos,
                                         @RequestParam(required = false) String pageBreakWord) {
         try {
             ObjectMapper mapper = new ObjectMapper();
@@ -110,9 +111,14 @@ public class BOQController {
             Map<Long, Long> parentChildMap = mapper.readValue(parentChildMapping, new TypeReference<Map<Long, Long>>() {});
             Map<Long, Boolean> lastLevelMap = mapper.readValue(lastLevelMapping, new TypeReference<Map<Long, Boolean>>() {});
             Map<Long, Long> levelMap = mapper.readValue(levelMapping, new TypeReference<Map<Long, Long>>() {});
+            
+            List<Long> ignoredSnoList = new ArrayList<>();
+            if (ignoredSnos != null && !ignoredSnos.trim().isEmpty() && !ignoredSnos.equals("[]")) {
+                ignoredSnoList = mapper.readValue(ignoredSnos, new TypeReference<List<Long>>() {});
+            }
 
             return ResponseEntity.status(HttpStatus.OK).body(boqService.mapBOQData(
-                    projectId, sheetName, columnMap, parentChildMap, lastLevelMap, levelMap, boqFile, pageBreakWord
+                    projectId, sheetName, columnMap, parentChildMap, lastLevelMap, levelMap, ignoredSnoList, boqFile, pageBreakWord
             ));
         } catch (IOException | DataNotFoundException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
