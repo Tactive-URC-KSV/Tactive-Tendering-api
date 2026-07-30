@@ -25,7 +25,7 @@ public interface BOQService {
     String saveBoqFile(MultipartFile boqFile, String projectId);
     String mapBOQData(String projectId, String sheetName, Map<String, List<String>> columnMapping,
                      Map<Long, Long> parentChildMapping, Map<Long, Boolean> lastLevelMapping, Map<Long, Long> levelMapping,
-                     MultipartFile boqFile, String pageBreakWord) throws IOException;
+                     List<Long> ignoredSnoList, MultipartFile boqFile, String pageBreakWord) throws IOException;
     List<BOQ> getParentBOQ(String projectId);
     List<BOQ> getChildBOQ(String projectId, String parentBoqId);
     List<BOQ> getParentBOQ(List<BOQ> boqList);

@@ -44,6 +44,9 @@ public class BOQ {
 	@OneToMany(mappedBy = "parentBOQ", cascade = { CascadeType.PERSIST, CascadeType.MERGE })
 	private List<BOQ> children = new ArrayList<>();
 	
+	@org.hibernate.annotations.Formula("(select count(b.id) from boq b where b.parent_boq_id = id and b.archive = false)")
+	private Integer childCount;
+	
 	@Transient
 	private String parentBoqId;
 	private String division;
