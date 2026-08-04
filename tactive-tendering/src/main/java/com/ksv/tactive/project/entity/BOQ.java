@@ -72,6 +72,9 @@ public class BOQ {
 	
 	@Column(columnDefinition = "boolean default false")
 	private boolean notQuotedBoq = false;
+
+	@Column(columnDefinition = "boolean default false")
+	private boolean priceBoq = false;
 	
 	@Column(nullable = false, columnDefinition = "boolean default false")
 	private boolean archive = false;

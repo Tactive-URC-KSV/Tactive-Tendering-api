@@ -708,6 +708,7 @@ public class BOQServiceImpl implements BOQService {
         existingBoq.setRateOnly(boqData.isRateOnly());
         existingBoq.setProvisionalSum(boqData.isProvisionalSum());
         existingBoq.setNotQuotedBoq(boqData.isNotQuotedBoq());
+        existingBoq.setPriceBoq(boqData.isPriceBoq());
         existingBoq.setLastLevel(boqData.isLastLevel());
         
         // Handle level and parent BOQ
