@@ -181,26 +181,33 @@ public class BOQServiceImpl implements BOQService {
         if (extractedRows == null || extractedRows.isEmpty()) {
             throw new DataNotFoundException("No BOQ data extracted from file!");
         }
-        Map<String, BOQ> boqUniqueMap = new java.util.LinkedHashMap<>();
+        Map<String, BOQ> boqUniqueMap = new LinkedHashMap<>();
         Map<Long, BOQ> rowToBoqMap = new HashMap<>();
         long currentTime = System.currentTimeMillis();
         for (ExcelExtractBOQ row : extractedRows) {
             if (ignoredSnoList != null && ignoredSnoList.contains(row.getSno())) {
                 continue;
             }
-            if (!isValidText(row.getBoqCode()) && !isNotEmpty(row.getBoqCode())) {
-                continue;
+            String safeBoqCode = row.getBoqCode() == null ? "" : row.getBoqCode();
+            String safeBoqName = row.getBoqName() == null ? "" : row.getBoqName();
+            String key = (safeBoqCode + "_" + safeBoqName).toLowerCase();
+            if (safeBoqCode.trim().isEmpty() && safeBoqName.trim().isEmpty()) {
+                key += "_" + row.getSno();
             }
-            String key = (row.getBoqCode() + "_" + row.getBoqName()).toLowerCase();
+
             BOQ boq = boqUniqueMap.get(key);
             if (boq == null) {
-                boq = boqDao
-                        .findByProjectIdAndBoqCodeIgnoreCaseAndBoqNameIgnoreCase(
-                                projectId,
-                                row.getBoqCode(),
-                                row.getBoqName()
-                        )
-                        .orElseGet(BOQ::new);
+                if (safeBoqCode.trim().isEmpty() && safeBoqName.trim().isEmpty()) {
+                    boq = new BOQ();
+                } else {
+                    boq = boqDao
+                            .findByProjectIdAndBoqCodeIgnoreCaseAndBoqNameIgnoreCase(
+                                    projectId,
+                                    safeBoqCode,
+                                    safeBoqName
+                            )
+                            .orElseGet(BOQ::new);
+                }
                 if (boq.getId() == null) {
                     boq.setProjectId(projectId);
                 }
