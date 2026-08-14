@@ -184,6 +184,15 @@ public class PdfFileService {
 										boq.setLastLevel(false);
 									}
 								}
+								case "pageNo" -> {
+									try {
+										String cleanedValue = value.replace(",", "").replaceAll("[^0-9.-]", "").trim();
+										if (!cleanedValue.isEmpty()) {
+											boq.setPageNo(Double.valueOf(cleanedValue).longValue());
+											hasValidData = true;
+										}
+									} catch (Exception e) {}
+								}
 							}
 						}
 						if (hasValidData) boqList.add(boq);
@@ -239,10 +248,80 @@ public class PdfFileService {
 		String[] headers = { "S No", "BOQ Code", "BOQ Name", "Uom", "Quantity", "Rate", "Amount", "Parent Code",
 				"Last Level" };
 		float[] colWidths = { 1f, 2f, 4f, 1.5f, 2f, 2f, 3f, 2f, 2f };
+		BaseColor headerBg = new BaseColor(0, 121, 182);
+		Font rowFont = FontFactory.getFont(FontFactory.HELVETICA, 9);
+		Font boldRowFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9);
+		int slNo = 1;
+
+		if (boqList.isEmpty()) {
+			PdfPTable table = createBoqTable(headers, colWidths, headerBg);
+			document.add(table);
+		} else {
+			Map<Long, List<BOQ>> pageWiseBoq = boqList.stream()
+					.filter(boq -> boq.getPageNo() != null)
+					.collect(java.util.stream.Collectors.groupingBy(
+							BOQ::getPageNo,
+							TreeMap::new,
+							java.util.stream.Collectors.toList()
+					));
+
+			boolean firstPage = true;
+			for (Map.Entry<Long, List<BOQ>> entry : pageWiseBoq.entrySet()) {
+				List<BOQ> pageBoqs = entry.getValue();
+
+				if (!firstPage) {
+					document.newPage();
+				}
+				firstPage = false;
+
+				PdfPTable table = createBoqTable(headers, colWidths, headerBg);
+				double pageTotalAmount = 0.0;
+
+				for (BOQ boq : pageBoqs) {
+					pageTotalAmount += boq.getTotalAmount();
+					String[] rowData = { String.valueOf(slNo++), safe(boq.getBoqCode()),
+							safe(boq.getBoqName()), boq.getUom() != null ? getUomCode(boq.getUom().getId().toString()) : "",
+							String.valueOf(boq.getQuantity()), String.valueOf(boq.getTotalRate()),
+							String.valueOf(boq.getTotalAmount()),
+							boq.getParentBOQ() != null ? boq.getParentBOQ().getBoqCode() : "",
+							boq.isLastLevel() ? "Yes" : "No" };
+					for (int i = 0; i < rowData.length; i++) {
+						PdfPCell cell = new PdfPCell(new Phrase(rowData[i], rowFont));
+						cell.setPadding(4);
+						if (i == 3) {
+							cell.setNoWrap(false);
+						} else {
+							cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+						}
+						table.addCell(cell);
+					}
+				}
+
+				PdfPCell totalLabelCell = new PdfPCell(new Phrase("Page Total", boldRowFont));
+				totalLabelCell.setColspan(6);
+				totalLabelCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+				totalLabelCell.setPadding(4);
+				table.addCell(totalLabelCell);
+				
+				PdfPCell totalAmountCell = new PdfPCell(new Phrase(String.format("%.2f", pageTotalAmount), boldRowFont));
+				totalAmountCell.setHorizontalAlignment(Element.ALIGN_CENTER);
+				totalAmountCell.setPadding(4);
+				table.addCell(totalAmountCell);
+				
+				PdfPCell emptyCell = new PdfPCell(new Phrase("", boldRowFont));
+				emptyCell.setColspan(2);
+				table.addCell(emptyCell);
+
+				document.add(table);
+			}
+		}
+		document.close();
+	}
+
+	private PdfPTable createBoqTable(String[] headers, float[] colWidths, BaseColor headerBg) {
 		PdfPTable table = new PdfPTable(colWidths);
 		table.setWidthPercentage(100);
 		table.setHeaderRows(1);
-		BaseColor headerBg = new BaseColor(0, 121, 182);
 		for (String h : headers) {
 			PdfPCell cell = new PdfPCell(new Phrase(h));
 			cell.setBackgroundColor(headerBg);
@@ -251,28 +330,7 @@ public class PdfFileService {
 			cell.setPadding(5);
 			table.addCell(cell);
 		}
-		Font rowFont = FontFactory.getFont(FontFactory.HELVETICA, 9);
-		int slNo = 1;
-		for (BOQ boq : boqList) {
-			String[] rowData = { String.valueOf(slNo++), safe(boq.getBoqCode()),
-					safe(boq.getBoqName()), boq.getUom() != null ? getUomCode(boq.getUom().getId().toString()) : "",
-					String.valueOf(boq.getQuantity()), String.valueOf(boq.getTotalRate()),
-					String.valueOf(boq.getTotalAmount()),
-					boq.getParentBOQ() != null ? boq.getParentBOQ().getBoqCode() : "",
-					boq.isLastLevel() ? "Yes" : "No" };
-			for (int i = 0; i < rowData.length; i++) {
-				PdfPCell cell = new PdfPCell(new Phrase(rowData[i], rowFont));
-				cell.setPadding(4);
-				if (i == 3) {
-					cell.setNoWrap(false);
-				} else {
-					cell.setHorizontalAlignment(Element.ALIGN_CENTER);
-				}
-				table.addCell(cell);
-			}
-		}
-		document.add(table);
-		document.close();
+		return table;
 	}
 	private String getUomCode(String uomId) {
 		Uom uom = masterService.findUomById(uomId);
@@ -574,6 +632,19 @@ public class PdfFileService {
 									if (!uomValue.isBlank()) {
 										boq.setUom(uomValue);
 										hasValidData = true;
+									}
+								}
+
+								case "pageNo" -> {
+									for (String val : values) {
+										try {
+											String cleanedValue = val.replace(",", "").replaceAll("[^0-9.-]", "").trim();
+											if (!cleanedValue.isEmpty()) {
+												boq.setPageNo(Double.valueOf(cleanedValue).longValue());
+												hasValidData = true;
+												break;
+											}
+										} catch (Exception e) {}
 									}
 								}
 							}

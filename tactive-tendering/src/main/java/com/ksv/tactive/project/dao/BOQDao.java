@@ -11,6 +11,8 @@ import com.ksv.tactive.project.entity.BOQ;
 @Repository
 public interface BOQDao extends JpaRepository<BOQ, UUID>{
 	List<BOQ> findByProjectId(String projectId);
+	
+	List<BOQ> findByProjectIdAndSourceFileAndExcelSnoOrderByCreatedAtDesc(String projectId, String sourceFile, Long excelSno);
 	List<BOQ> findByProjectIdOrderByCreatedAtAsc(String projectId);
 	List<BOQ> findByProjectIdAndParentBOQId(String projectId, UUID parentBoqId);
 	List<BOQ> findByProjectIdAndParentBOQIdOrderByCreatedAtAsc(String projectId, UUID parentBoqId);

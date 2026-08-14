@@ -104,6 +104,7 @@ public class BOQController {
                                         @RequestParam String lastLevelMapping,
                                         @RequestParam String levelMapping,
                                         @RequestParam(required = false) String ignoredSnos,
+                                        @RequestParam(required = false) String saveAsNewSnos,
                                         @RequestParam(required = false) String pageBreakWord) {
         try {
             ObjectMapper mapper = new ObjectMapper();
@@ -117,8 +118,13 @@ public class BOQController {
                 ignoredSnoList = mapper.readValue(ignoredSnos, new TypeReference<List<Long>>() {});
             }
 
+            List<Long> saveAsNewSnoList = new ArrayList<>();
+            if (saveAsNewSnos != null && !saveAsNewSnos.trim().isEmpty() && !saveAsNewSnos.equals("[]")) {
+                saveAsNewSnoList = mapper.readValue(saveAsNewSnos, new TypeReference<List<Long>>() {});
+            }
+
             return ResponseEntity.status(HttpStatus.OK).body(boqService.mapBOQData(
-                    projectId, sheetName, columnMap, parentChildMap, lastLevelMap, levelMap, ignoredSnoList, boqFile, pageBreakWord
+                    projectId, sheetName, columnMap, parentChildMap, lastLevelMap, levelMap, ignoredSnoList, saveAsNewSnoList, boqFile, pageBreakWord
             ));
         } catch (IOException | DataNotFoundException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -241,6 +247,11 @@ public class BOQController {
         } catch (DataNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NO_CONTENT).body(e.getMessage());
         }
+    }
+
+    @GetMapping("project/checkFileExists/{projectId}")
+    public ResponseEntity<?> checkFileExists(@PathVariable String projectId, @RequestParam String fileName) {
+        return ResponseEntity.ok(boqService.checkFileExists(projectId, fileName));
     }
 
     @PostMapping("project/saveTemplateMapping")

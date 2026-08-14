@@ -58,6 +58,12 @@ public class BOQ {
 	@Column(columnDefinition = "integer default 1")
 	private Integer version = 1;
 	
+	@Column(name = "source_file")
+	private String sourceFile;
+	
+	@Column(name = "excel_sno")
+	private Long excelSno;
+	
 	private String clientBoqCode;
 	private String boqShortName;
 	

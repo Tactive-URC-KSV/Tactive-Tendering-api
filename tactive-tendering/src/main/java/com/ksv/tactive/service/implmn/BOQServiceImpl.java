@@ -127,11 +127,10 @@ public class BOQServiceImpl implements BOQService {
 
     @Override
     public String saveBoqFile(MultipartFile boqFile, String projectId) {
-        Projects project = projectDao.findById(convertToUUID(projectId))
-                .orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("project.not.found", null, Locale.ENGLISH)));
-        String projectName = project.getProjectName();
+//        Projects project = projectDao.findById(convertToUUID(projectId)).orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("project.not.found", null, Locale.ENGLISH)));
+//        String projectName = project.getProjectName();
         Path directory = Paths
-                .get(uploadDir, projectName.trim()
+                .get(uploadDir, projectId.trim()
                         .replaceAll("\\s+", "_")
                         .replaceAll("[^a-zA-Z0-9-_.]", ""))
                 .toAbsolutePath().normalize().resolve("BOQ");
@@ -162,11 +161,17 @@ public class BOQServiceImpl implements BOQService {
     }
 
     @Override
+    public boolean checkFileExists(String projectId, String fileName) {
+        List<BOQFile> boqFiles = boqFileDao.findByProject(projectId);
+        return boqFiles.stream().anyMatch(b -> b.getFilename().equals(fileName));
+    }
+
+    @Override
     public String mapBOQData(String projectId, String sheetName, Map<String, List<String>> columnMapping,
                              Map<Long, Long> parentChildMapping, Map<Long, Boolean> lastLevelMapping, Map<Long, Long> levelMapping,
-                             List<Long> ignoredSnoList, MultipartFile boqFile, String pageBreakWord) throws IOException {
+                             List<Long> ignoredSnoList, List<Long> saveAsNewSnoList, MultipartFile boqFile, String pageBreakWord) throws IOException {
 //        Projects project = projectDao.findById(convertToUUID(projectId)).orElse(null);
-//        saveBoqFile(boqFile, projectId);
+       saveBoqFile(boqFile, projectId);
         int startRow = 0;
         int endRow = 100000;
         List<ExcelExtractBOQ> extractedRows;
@@ -195,7 +200,20 @@ public class BOQServiceImpl implements BOQService {
                 key += "_" + row.getSno();
             }
 
-            BOQ boq = boqUniqueMap.get(key);
+            BOQ boq = null;
+            if (saveAsNewSnoList != null && saveAsNewSnoList.contains(row.getSno())) {
+                boq = new BOQ();
+                key += "_" + UUID.randomUUID().toString();
+            } else {
+                boq = boqUniqueMap.get(key);
+                if (boq == null && fileName != null) {
+                    List<BOQ> existingByFile = boqDao.findByProjectIdAndSourceFileAndExcelSnoOrderByCreatedAtDesc(projectId, fileName, row.getSno());
+                    if (!existingByFile.isEmpty()) {
+                        boq = existingByFile.get(0);
+                    }
+                }
+            }
+
             if (boq == null) {
                 if (safeBoqCode.trim().isEmpty() && safeBoqName.trim().isEmpty()) {
                     boq = new BOQ();
@@ -208,29 +226,35 @@ public class BOQServiceImpl implements BOQService {
                             )
                             .orElseGet(BOQ::new);
                 }
-                if (boq.getId() == null) {
-                    boq.setProjectId(projectId);
-                }
-                boq.setBoqCode(row.getBoqCode());
-                boq.setBoqName(row.getBoqName());
-                if (row.getUom() != null) {
-                    boq.setUom(findUOM(row.getUom()));
-                    boq.setUomCode(boq.getUom() != null ? boq.getUom().getUomCode() : row.getUom());
-                }
-                if (boq.getCreatedAt() == null) {
-                    boq.setCreatedAt(new java.sql.Timestamp(currentTime++));
-                }
-                boq.setDivision(row.getDivision());
-                boqUniqueMap.put(key, boq);
             }
+            
+            if (boq.getId() == null) {
+                boq.setProjectId(projectId);
+            }
+            boq.setBoqCode(row.getBoqCode());
+            boq.setBoqName(row.getBoqName());
+            if (row.getUom() != null) {
+                boq.setUom(findUOM(row.getUom()));
+                boq.setUomCode(boq.getUom() != null ? boq.getUom().getUomCode() : row.getUom());
+            }
+            if (boq.getCreatedAt() == null) {
+                boq.setCreatedAt(new java.sql.Timestamp(currentTime++));
+            }
+            boq.setDivision(row.getDivision());
+            boqUniqueMap.put(key, boq);
             boq.setQuantity(row.getQuantity() != null ? row.getQuantity() : 0.0);
             Long level = levelMapping.getOrDefault(row.getSno(), 0L);
             boq.setLevel(level.intValue());
             boq.setPageNo(row.getPageNo());
+            boq.setSourceFile(fileName);
+            boq.setExcelSno(row.getSno());
             if (!row.isLastLevel()) {
                 boq.setLastLevel(lastLevelMapping.getOrDefault(row.getSno(), false));
             } else {
                 boq.setLastLevel(row.isLastLevel());
+            }
+            if (boq.isLastLevel()) {
+                boq.setPriceBoq(true);
             }
             rowToBoqMap.put(row.getSno(), boq);
         }
