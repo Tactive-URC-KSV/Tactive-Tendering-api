@@ -133,6 +133,18 @@ public class ExcelFileService {
 								boq.setLastLevel(true);
 								hasData = true;
 							}
+							case "pageNo" -> {
+								for (String val : values) {
+									try {
+										String cleanedValue = val.replace(",", "").replaceAll("[^0-9.-]", "").trim();
+										if (!cleanedValue.isEmpty()) {
+											boq.setPageNo(Double.valueOf(cleanedValue).longValue());
+											hasData = true;
+											break;
+										}
+									} catch (Exception e) {}
+								}
+							}
 						}
 					}
 					if(hasData) {
@@ -460,6 +472,18 @@ public class ExcelFileService {
 					case "uom" -> {
 						boq.setUom(values.get(0)); // Use first non-empty UOM
 						hasData = true;
+					}
+					case "pageNo" -> {
+						for (String val : values) {
+							try {
+								String cleanedValue = val.replace(",", "").replaceAll("[^0-9.-]", "").trim();
+								if (!cleanedValue.isEmpty()) {
+									boq.setPageNo(Double.valueOf(cleanedValue).longValue());
+									hasData = true;
+									break;
+								}
+							} catch (Exception e) {}
+						}
 					}
 				}
 			}
