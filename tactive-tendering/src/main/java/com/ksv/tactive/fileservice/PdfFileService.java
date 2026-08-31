@@ -269,6 +269,13 @@ public class PdfFileService {
 			for (Map.Entry<Long, List<BOQ>> entry : pageWiseBoq.entrySet()) {
 				List<BOQ> pageBoqs = entry.getValue();
 
+				pageBoqs.sort((b1, b2) -> {
+					if (b1.getCreatedAt() == null && b2.getCreatedAt() == null) return 0;
+					if (b1.getCreatedAt() == null) return 1;
+					if (b2.getCreatedAt() == null) return -1;
+					return b1.getCreatedAt().compareTo(b2.getCreatedAt());
+				});
+
 				if (!firstPage) {
 					document.newPage();
 				}

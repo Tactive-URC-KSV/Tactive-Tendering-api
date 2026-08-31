@@ -169,7 +169,7 @@ public class BOQServiceImpl implements BOQService {
     @Override
     public String mapBOQData(String projectId, String sheetName, Map<String, List<String>> columnMapping,
                              Map<Long, Long> parentChildMapping, Map<Long, Boolean> lastLevelMapping, Map<Long, Long> levelMapping,
-                             List<Long> ignoredSnoList, List<Long> saveAsNewSnoList, MultipartFile boqFile, String pageBreakWord) throws IOException {
+                             List<Long> ignoredSnoList, List<Long> saveAsNewSnoList, MultipartFile boqFile, String pageBreakWord, Boolean duplicateHandled) throws IOException {
 //        Projects project = projectDao.findById(convertToUUID(projectId)).orElse(null);
        saveBoqFile(boqFile, projectId);
         int startRow = 0;
@@ -188,6 +188,7 @@ public class BOQServiceImpl implements BOQService {
         }
         Map<String, BOQ> boqUniqueMap = new LinkedHashMap<>();
         Map<Long, BOQ> rowToBoqMap = new HashMap<>();
+        List<Map<String, Object>> duplicates = new ArrayList<>();
         long currentTime = System.currentTimeMillis();
         for (ExcelExtractBOQ row : extractedRows) {
             if (ignoredSnoList != null && ignoredSnoList.contains(row.getSno())) {
@@ -227,6 +228,70 @@ public class BOQServiceImpl implements BOQService {
                             .orElseGet(BOQ::new);
                 }
             }
+
+            if (boq.getId() != null && !Boolean.TRUE.equals(duplicateHandled)) {
+                Map<String, Object> changesObj = new HashMap<>();
+                boolean isDifferent = false;
+
+                String existingCode = boq.getBoqCode();
+                String newCode = row.getBoqCode();
+                if (isDifferentStr(existingCode, newCode)) {
+                    changesObj.put("boqCode", existingCode != null ? existingCode : "");
+                    isDifferent = true;
+                }
+
+                String existingName = boq.getBoqName();
+                String newName = row.getBoqName();
+                if (isDifferentStr(existingName, newName)) {
+                    changesObj.put("boqName", existingName != null ? existingName : "");
+                    isDifferent = true;
+                }
+
+                double existingQty = boq.getQuantity();
+                double newQty = row.getQuantity() != null ? row.getQuantity() : 0.0;
+                if (existingQty != newQty) {
+                    changesObj.put("quantity", existingQty);
+                    isDifferent = true;
+                }
+
+                String existingUom = boq.getUomCode();
+                String newUom = row.getUom();
+                if (isDifferentStr(existingUom, newUom)) {
+                    changesObj.put("uom", existingUom != null ? existingUom : "");
+                    isDifferent = true;
+                }
+
+                String existingDiv = boq.getDivision();
+                String newDiv = row.getDivision();
+                if (isDifferentStr(existingDiv, newDiv)) {
+                    changesObj.put("division", existingDiv != null ? existingDiv : "");
+                    isDifferent = true;
+                }
+
+                Long existingPage = boq.getPageNo() != null ? boq.getPageNo() : 0L;
+                Long newPage = row.getPageNo() != null ? row.getPageNo() : 0L;
+                if (!existingPage.equals(newPage)) {
+                    changesObj.put("pageNo", existingPage);
+                    isDifferent = true;
+                }
+
+                if (isDifferent) {
+                    Map<String, Object> duplicateItem = new HashMap<>();
+                    duplicateItem.put("sno", row.getSno());
+                    duplicateItem.put("boqCode", row.getBoqCode());
+                    duplicateItem.put("boqName", row.getBoqName());
+                    duplicateItem.put("quantity", row.getQuantity());
+                    duplicateItem.put("uom", row.getUom());
+                    duplicateItem.put("division", row.getDivision());
+                    duplicateItem.put("pageNo", row.getPageNo());
+                    duplicateItem.put("level", row.getLevel());
+                    duplicateItem.put("parentSno", row.getParentSno());
+                    duplicateItem.put("lastLevel", row.isLastLevel());
+                    duplicateItem.put("oldData", changesObj);
+
+                    duplicates.add(duplicateItem);
+                }
+            }
             
             if (boq.getId() == null) {
                 boq.setProjectId(projectId);
@@ -258,6 +323,11 @@ public class BOQServiceImpl implements BOQService {
             }
             rowToBoqMap.put(row.getSno(), boq);
         }
+
+        if (!duplicates.isEmpty()) {
+            throw new com.ksv.tactive.exception.DuplicateBOQException("Duplicate BOQs found", duplicates);
+        }
+
         parentChildMapping.forEach((childSno, parentSno) -> {
             BOQ child = rowToBoqMap.get(childSno);
             BOQ parent = rowToBoqMap.get(parentSno);
@@ -291,6 +361,14 @@ public class BOQServiceImpl implements BOQService {
             }
         }
         return null;
+    }
+
+    private boolean isDifferentStr(String existing, String newValue) {
+        if (existing == null) existing = "";
+        if (newValue == null) newValue = "";
+        existing = existing.replaceAll("[\\s\\u00A0\\p{C}]+", "").toLowerCase();
+        newValue = newValue.replaceAll("[\\s\\u00A0\\p{C}]+", "").toLowerCase();
+        return !existing.equals(newValue);
     }
 
     private boolean isValidText(String value) {

@@ -9,6 +9,10 @@ import com.ksv.tactive.dto.ProjectInfoDto;
 import com.ksv.tactive.exception.DataNotFoundException;
 import com.ksv.tactive.project.entity.BOQ;
 import com.ksv.tactive.project.entity.Template;
+import com.ksv.tactive.exception.DataNotFoundException;
+import com.ksv.tactive.exception.DuplicateBOQException;
+import com.ksv.tactive.project.entity.BOQ;
+import com.ksv.tactive.project.entity.Template;
 import com.ksv.tactive.service.BOQService;
 import com.ksv.tactive.service.ProjectService;
 import jakarta.servlet.http.HttpServletResponse;
@@ -105,7 +109,8 @@ public class BOQController {
                                         @RequestParam String levelMapping,
                                         @RequestParam(required = false) String ignoredSnos,
                                         @RequestParam(required = false) String saveAsNewSnos,
-                                        @RequestParam(required = false) String pageBreakWord) {
+                                        @RequestParam(required = false) String pageBreakWord,
+                                        @RequestParam(required = false, defaultValue = "false") Boolean duplicateHandled) {
         try {
             ObjectMapper mapper = new ObjectMapper();
             Map<String, List<String>> columnMap = mapper.readValue(columnMapping, new TypeReference<Map<String, List<String>>>() {});
@@ -124,8 +129,10 @@ public class BOQController {
             }
 
             return ResponseEntity.status(HttpStatus.OK).body(boqService.mapBOQData(
-                    projectId, sheetName, columnMap, parentChildMap, lastLevelMap, levelMap, ignoredSnoList, saveAsNewSnoList, boqFile, pageBreakWord
+                    projectId, sheetName, columnMap, parentChildMap, lastLevelMap, levelMap, ignoredSnoList, saveAsNewSnoList, boqFile, pageBreakWord, duplicateHandled
             ));
+        } catch (DuplicateBOQException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getDuplicates());
         } catch (IOException | DataNotFoundException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error processing the Excel file: " + e.getMessage());

@@ -24,7 +24,7 @@ public interface BOQService {
     List<String> getExcelColumns(MultipartFile boqFile, String sheetName) throws IOException;
     String saveBoqFile(MultipartFile boqFile, String projectId);
     boolean checkFileExists(String projectId, String fileName);
-    String mapBOQData(String projectId, String sheetName, Map<String, List<String>> columnMapping, Map<Long, Long> parentChildMapping, Map<Long, Boolean> lastLevelMapping, Map<Long, Long> levelMapping, List<Long> ignoredSnoList, List<Long> saveAsNewSnoList, MultipartFile boqFile, String pageBreakWord) throws IOException;
+    String mapBOQData(String projectId, String sheetName, Map<String, List<String>> columnMapping, Map<Long, Long> parentChildMapping, Map<Long, Boolean> lastLevelMapping, Map<Long, Long> levelMapping, List<Long> ignoredSnoList, List<Long> saveAsNewSnoList, MultipartFile boqFile, String pageBreakWord, Boolean duplicateHandled) throws IOException;
     List<BOQ> getParentBOQ(String projectId);
     List<BOQ> getChildBOQ(String projectId, String parentBoqId);
     List<BOQ> getParentBOQ(List<BOQ> boqList);
