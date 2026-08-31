@@ -240,8 +240,8 @@ public class PdfFileService {
 		Document document = new Document(PageSize.A4, 20, 20, 20, 20);
 		PdfWriter.getInstance(document, response.getOutputStream());
 		document.open();
-		document.addTitle(projectName + " BOQ Report");
-		Paragraph title = new Paragraph(projectName + " - BOQ Report");
+		document.addTitle("BOQ Report");
+		Paragraph title = new Paragraph("BOQ Report");
 		title.setAlignment(Element.ALIGN_CENTER);
 		document.add(title);
 		document.add(new Paragraph("\n"));
