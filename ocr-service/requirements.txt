@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+paddlepaddle==2.6.2
+paddleocr==2.10.0
+paddleclas
+opencv-python
+python-multipart
+pydantic
+beautifulsoup4
+albumentations==2.0.8

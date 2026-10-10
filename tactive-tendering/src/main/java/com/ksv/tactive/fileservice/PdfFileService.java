@@ -38,6 +38,9 @@ public class PdfFileService {
 	@Autowired
 	private MasterService masterService;
 
+	@Autowired
+	private HybridPdfExtractionEngine hybridPdfExtractionEngine;
+
 	private PageIterator getPages(InputStream boqFile) throws IOException {
 		PDDocument document = PDDocument.load(boqFile);
 		ObjectExtractor oe = new ObjectExtractor(document);
@@ -60,6 +63,8 @@ public class PdfFileService {
 		InputStream inputStream = boqFile.getInputStream();
 		PDDocument document = PDDocument.load(inputStream);
 
+		hybridPdfExtractionEngine.validatePdfDocument(document);
+
 		ObjectExtractor oe = new ObjectExtractor(document);
 		PageIterator iterator = oe.extract();
 
@@ -75,25 +80,23 @@ public class PdfFileService {
 
 			if (page == null) continue;
 
-			SpreadsheetExtractionAlgorithm sea = new SpreadsheetExtractionAlgorithm();
-			List<Table> tables = sea.extract(page);
+			List<List<String>> rows = new ArrayList<>();
+			try {
+				rows = hybridPdfExtractionEngine.extractTableRows(document, page, currentPageNumber);
+			} catch (Exception e) {
+				continue;
+			}
 
-			for (Table table : tables) {
-				List<List<String>> rows = table.getRows().stream()
-						.map(row -> row.stream().map(cell -> cell.getText()).toList())
-						.toList();
+			if (rows.isEmpty()) continue;
 
-				if (rows.isEmpty()) continue;
+			if (headers == null) {
+				headers = rows.get(0);
+			}
 
-				if (headers == null) {
-					headers = rows.get(0);
-				}
+			int startIndex = rows.get(0).equals(headers) ? 1 : 0;
 
-				int startIndex = rows.get(0).equals(headers) ? 1 : 0;
-
-				for (int i = startIndex; i < rows.size(); i++) {
-					allRows.add(rows.get(i));
-				}
+			for (int i = startIndex; i < rows.size(); i++) {
+				allRows.add(rows.get(i));
 			}
 		}
 
@@ -106,6 +109,7 @@ public class PdfFileService {
 		List<BOQ> boqList = new ArrayList<>();
 		PDDocument document = PDDocument.load(inputStream);
 		try {
+			hybridPdfExtractionEngine.validatePdfDocument(document);
 			ObjectExtractor oe = new ObjectExtractor(document);
 			PageIterator iterator = oe.extract();
 			List<String> headers = null;
@@ -115,17 +119,14 @@ public class PdfFileService {
 				currentPageNumber++;
 				if (currentPageNumber < startPage) continue;
 
-				SpreadsheetExtractionAlgorithm sea = new SpreadsheetExtractionAlgorithm();
-				List<Table> tables = sea.extract(page);
-				for (Table table : tables) {
-					List<List<String>> rows = table.getRows().stream()
-							.map(row -> row.stream()
-									.map(cell -> cell.getText() != null
-											? cell.getText().replaceAll("[\\r\\n]+", " ").trim()
-											: "")
-									.toList())
-							.toList();
-					if (rows.isEmpty()) continue;
+				List<List<String>> rows = new ArrayList<>();
+				try {
+					rows = hybridPdfExtractionEngine.extractTableRows(document, page, currentPageNumber);
+				} catch (Exception e) {
+					continue;
+				}
+				rows = rows.stream().map(r -> r.stream().map(c -> c.replaceAll("[\\r\\n]+", " ").trim()).toList()).toList();
+				if (rows.isEmpty()) continue;
 					if (headers == null || headers.isEmpty()) {
 						headers = rows.get(0).stream()
 								.map(String::trim)
@@ -197,7 +198,6 @@ public class PdfFileService {
 						}
 						if (hasValidData) boqList.add(boq);
 					}
-				}
 			}
 		} finally {
 			document.close();
@@ -364,6 +364,8 @@ public class PdfFileService {
 		try (InputStream inputStream = boqFile.getInputStream();
 			 PDDocument document = PDDocument.load(inputStream)) {
 
+			hybridPdfExtractionEngine.validatePdfDocument(document);
+
 			ObjectExtractor oe = new ObjectExtractor(document);
 			PageIterator iterator = oe.extract();
 
@@ -381,57 +383,16 @@ public class PdfFileService {
 					continue;
 				}
 
-				SpreadsheetExtractionAlgorithm sea = new SpreadsheetExtractionAlgorithm();
-				List<Table> tables = sea.extract(page);
-
-				for (Table table : tables) {
-
-					List<List<String>> rows = new ArrayList<>();
-
-					for (var tableRow : table.getRows()) {
-
-						List<String> rawCells = tableRow.stream()
-								.map(cell -> cell.getText() != null
-										? cell.getText().trim()
-										: "")
-								.toList();
-
-						int maxSplit = 1;
-
-						List<List<String>> splitColumns = new ArrayList<>();
-
-						for (String cell : rawCells) {
-
-							List<String> parts = Arrays.stream(cell.split("\\r?\\n"))
-									.map(String::trim)
-									.filter(s -> !s.isBlank())
-									.toList();
-
-							if (parts.isEmpty()) {
-								parts = List.of("");
-							}
-
-							splitColumns.add(parts);
-
-							maxSplit = Math.max(maxSplit, parts.size());
-						}
-
-						for (int i = 0; i < maxSplit; i++) {
-
-							List<String> splitRow = new ArrayList<>();
-
-							for (List<String> columnParts : splitColumns) {
-
-								if (i < columnParts.size()) {
-									splitRow.add(columnParts.get(i));
-								} else {
-									splitRow.add("");
-								}
-							}
-
-							rows.add(splitRow);
-						}
+				List<List<String>> rows = new ArrayList<>();
+				try {
+					rows = hybridPdfExtractionEngine.extractTableRows(document, page, currentPageNumber);
+				} catch (Exception e) {
+					if (e instanceof IllegalArgumentException) {
+						throw new IOException(e.getMessage(), e);
 					}
+					System.err.println("Extraction failed for page " + currentPageNumber + ": " + e.getMessage());
+					continue;
+				}
 
 					if (rows.isEmpty()) {
 						continue;
@@ -672,7 +633,6 @@ public class PdfFileService {
 							currentBoqPageNo++;
 						}
 					}
-				}
 			}
 		}
 
