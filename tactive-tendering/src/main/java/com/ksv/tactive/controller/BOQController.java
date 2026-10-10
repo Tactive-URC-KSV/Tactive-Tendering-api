@@ -110,6 +110,7 @@ public class BOQController {
                                         @RequestParam(required = false) String ignoredSnos,
                                         @RequestParam(required = false) String saveAsNewSnos,
                                         @RequestParam(required = false) String pageBreakWord,
+                                        @RequestParam(required = false) String uomMapping,
                                         @RequestParam(required = false, defaultValue = "false") Boolean duplicateHandled) {
         try {
             ObjectMapper mapper = new ObjectMapper();
@@ -128,8 +129,13 @@ public class BOQController {
                 saveAsNewSnoList = mapper.readValue(saveAsNewSnos, new TypeReference<List<Long>>() {});
             }
 
+            Map<String, String> uomMap = new HashMap<>();
+            if (uomMapping != null && !uomMapping.trim().isEmpty() && !uomMapping.equals("{}")) {
+                uomMap = mapper.readValue(uomMapping, new TypeReference<Map<String, String>>() {});
+            }
+
             return ResponseEntity.status(HttpStatus.OK).body(boqService.mapBOQData(
-                    projectId, sheetName, columnMap, parentChildMap, lastLevelMap, levelMap, ignoredSnoList, saveAsNewSnoList, boqFile, pageBreakWord, duplicateHandled
+                    projectId, sheetName, columnMap, parentChildMap, lastLevelMap, levelMap, ignoredSnoList, saveAsNewSnoList, boqFile, pageBreakWord, duplicateHandled, uomMap
             ));
         } catch (DuplicateBOQException e) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getDuplicates());

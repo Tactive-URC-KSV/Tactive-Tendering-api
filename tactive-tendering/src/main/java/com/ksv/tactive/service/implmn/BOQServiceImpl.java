@@ -169,7 +169,7 @@ public class BOQServiceImpl implements BOQService {
     @Override
     public String mapBOQData(String projectId, String sheetName, Map<String, List<String>> columnMapping,
                              Map<Long, Long> parentChildMapping, Map<Long, Boolean> lastLevelMapping, Map<Long, Long> levelMapping,
-                             List<Long> ignoredSnoList, List<Long> saveAsNewSnoList, MultipartFile boqFile, String pageBreakWord, Boolean duplicateHandled) throws IOException {
+                             List<Long> ignoredSnoList, List<Long> saveAsNewSnoList, MultipartFile boqFile, String pageBreakWord, Boolean duplicateHandled, Map<String, String> uomMapping) throws IOException {
 //        Projects project = projectDao.findById(convertToUUID(projectId)).orElse(null);
        saveBoqFile(boqFile, projectId);
         int startRow = 0;
@@ -298,9 +298,15 @@ public class BOQServiceImpl implements BOQService {
             }
             boq.setBoqCode(row.getBoqCode());
             boq.setBoqName(row.getBoqName());
-            if (row.getUom() != null) {
-                boq.setUom(findUOM(row.getUom()));
-                boq.setUomCode(boq.getUom() != null ? boq.getUom().getUomCode() : row.getUom());
+            String rawUom = row.getUom();
+            if (rawUom != null) {
+                boq.setUomCode(rawUom);
+                if (uomMapping != null && uomMapping.containsKey(rawUom)) {
+                    String mappedUomCode = uomMapping.get(rawUom);
+                    boq.setUom(findUOM(mappedUomCode));
+                } else {
+                    boq.setUom(findUOM(rawUom));
+                }
             }
             if (boq.getCreatedAt() == null) {
                 boq.setCreatedAt(new java.sql.Timestamp(currentTime++));
