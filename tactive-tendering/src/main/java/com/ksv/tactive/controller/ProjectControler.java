@@ -95,6 +95,15 @@ public class ProjectControler {
 		}
 	}
 
+	@PutMapping("project/updateStatus/{projectId}/{statusId}")
+	public ResponseEntity<?> updateProjectStatus(@PathVariable String projectId, @PathVariable String statusId) {
+		try {
+			return ResponseEntity.status(HttpStatus.OK).body(projectService.updateProjectStatusManual(projectId, statusId));
+		} catch (ProjectNotFoundException | DataNotFoundException e) {
+			return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+		}
+	}
+
 	@DeleteMapping("project/deleteProject/{projectId}")
 	public ResponseEntity<String> deleteProject(@PathVariable String projectId) {
 		try {

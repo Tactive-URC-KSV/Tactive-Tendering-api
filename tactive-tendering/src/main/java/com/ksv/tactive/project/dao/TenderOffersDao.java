@@ -10,5 +10,5 @@ import java.util.UUID;
 @Repository
 public interface TenderOffersDao extends JpaRepository<TenderOffers, UUID> {
     List<TenderOffers> findByTenderId(UUID tenderId);
-    Optional<TenderOffers> findByTenderIdAndContractorId(UUID tenderId, UUID contractorId);
+    List<TenderOffers> findByTenderIdAndContractorId(UUID tenderId, UUID contractorId);
 }

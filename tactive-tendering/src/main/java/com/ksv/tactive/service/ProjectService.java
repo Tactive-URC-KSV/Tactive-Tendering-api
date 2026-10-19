@@ -29,6 +29,7 @@ public interface ProjectService {
 	String deleteProject(String projectId);
 	String saveProjectFiles(String projectId, List<MultipartFile> file);
 	void editProject(ProjectInputDTO projectInputDTO, String projectId);
+	String updateProjectStatusManual(String projectId, String statusId);
 	List<ProjectInfoDto> getAllApprovedProjects();
 	List<ProjectInfoDto> getAllCostCodeUpdatedProject();
 	String saveTechFeasibility(TechnicalFeasibility techFeasibility);

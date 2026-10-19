@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 import com.ksv.tactive.dataloader.LocationMemoryEngine;
 import com.ksv.tactive.dto.*;
 import com.ksv.tactive.exception.DuplicateEntryException;
+import com.ksv.tactive.exception.ProjectNotFoundException;
 import com.ksv.tactive.project.dao.*;
 import com.ksv.tactive.project.entity.*;
 import com.ksv.tactive.project.entity.Currency;
@@ -600,6 +601,18 @@ public class ProjectServiceImpl implements ProjectService {
 	private Projects updateProjectStatus(Projects project, ProjectStatus status) {
 		project.setProjectStatus(status);
 		return projectDao.save(project);
+	}
+	@Override
+	public String updateProjectStatusManual(String projectId, String statusId) {
+		Projects project = projectDao.findById(convertToUUID(projectId)).orElseThrow(() -> new ProjectNotFoundException(
+				messageSource.getMessage("project.not.found", null, Locale.ENGLISH)));
+		ProjectStatus status = masterService.findStatusById(statusId);
+		if (status == null) {
+			throw new DataNotFoundException("Project Status not found");
+		}
+		project.setProjectStatus(status);
+		projectDao.save(project);
+		return "Project status updated successfully";
 	}
 	@Override
 	public FeasibilityStudy findFeasibilityStudy(String projectId) {
@@ -1276,7 +1289,10 @@ public class ProjectServiceImpl implements ProjectService {
 			offers = tenderOffersDao.findById(convertToUUID(offerDTO.getId()))
 					.orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("offer.not.found", null, Locale.ENGLISH)));
 			List<OfferQuotation> offerQuotations = offerQuotationDao.findByTenderOffersId(UUID.fromString(offerDTO.getId()));
-			int maxExistingVersion = offerQuotations.size();
+			int maxExistingVersion = offerQuotations.stream()
+					.mapToInt(OfferQuotation::getOfferVersion)
+					.max()
+					.orElse(0);
 			currentVersion = maxExistingVersion + 1;
 			offers.setSubmittedOn(new Date(System.currentTimeMillis()));
 			offers.setOfferStatus(OfferStatus.SUBMITTED);
@@ -1294,7 +1310,24 @@ public class ProjectServiceImpl implements ProjectService {
 			offers.setContractor(contractor);
 			offers.setSubmittedOn(new Date(System.currentTimeMillis()));
 			offers.setOfferStatus(OfferStatus.SUBMITTED);
-			currentVersion = 1;
+
+			List<TenderOffers> existingOffers = tenderOffersDao.findByTenderIdAndContractorId(tender.getId(), contractor.getId());
+			int maxVersion = 0;
+			if (existingOffers != null && !existingOffers.isEmpty()) {
+				for (TenderOffers exOffer : existingOffers) {
+					if (exOffer.getOfferQuotations() != null) {
+						for (OfferQuotation q : exOffer.getOfferQuotations()) {
+							if (q.getOfferVersion() > maxVersion) {
+								maxVersion = q.getOfferVersion();
+							}
+						}
+					}
+				}
+				if (maxVersion < existingOffers.size()) {
+					maxVersion = existingOffers.size();
+				}
+			}
+			currentVersion = maxVersion + 1;
 		}
 
 		List<OfferQuotation> newQuotations = new ArrayList<>();
@@ -1338,7 +1371,50 @@ public class ProjectServiceImpl implements ProjectService {
 
 	@Override
 	public List<TenderOffers> getAllOfferByTenderId(String tenderId) {
-		return tenderOffersDao.findByTenderId(UUID.fromString(tenderId));
+		List<TenderOffers> offers = tenderOffersDao.findByTenderId(UUID.fromString(tenderId));
+		if (offers != null && !offers.isEmpty()) {
+			Map<UUID, List<TenderOffers>> byContractor = offers.stream()
+					.filter(o -> o.getContractor() != null && o.getContractor().getId() != null)
+					.collect(Collectors.groupingBy(o -> o.getContractor().getId()));
+
+			for (List<TenderOffers> contractorOffers : byContractor.values()) {
+				if (contractorOffers.size() > 1) {
+					boolean hasDuplicates = contractorOffers.stream()
+							.filter(o -> o.getOfferQuotations() != null && !o.getOfferQuotations().isEmpty())
+							.map(o -> o.getOfferQuotations().get(0).getOfferVersion())
+							.distinct()
+							.count() < contractorOffers.size();
+
+					if (hasDuplicates) {
+						contractorOffers.sort((a, b) -> {
+							if (a.getSubmittedOn() != null && b.getSubmittedOn() != null) {
+								int cmp = a.getSubmittedOn().compareTo(b.getSubmittedOn());
+								if (cmp != 0) return cmp;
+							}
+							return a.getId().compareTo(b.getId());
+						});
+
+						int seqVersion = 1;
+						List<OfferQuotation> toUpdate = new ArrayList<>();
+						for (TenderOffers o : contractorOffers) {
+							if (o.getOfferQuotations() != null) {
+								for (OfferQuotation q : o.getOfferQuotations()) {
+									if (q.getOfferVersion() != seqVersion) {
+										q.setOfferVersion(seqVersion);
+										toUpdate.add(q);
+									}
+								}
+							}
+							seqVersion++;
+						}
+						if (!toUpdate.isEmpty()) {
+							offerQuotationDao.saveAll(toUpdate);
+						}
+					}
+				}
+			}
+		}
+		return offers;
 	}
 
 	@Override
@@ -1367,12 +1443,16 @@ public class ProjectServiceImpl implements ProjectService {
 
 	@Override
 	public TenderRespDto findOfferByOfferVersion(String tenderId, String contractorId, int offerVersion) {
-		TenderOffers offers = tenderOffersDao.findByTenderIdAndContractorId(UUID.fromString(tenderId),UUID.fromString(contractorId)).
-				orElseThrow(() -> new DataNotFoundException(messageSource.getMessage("tender.offer.not.found",null,Locale.ENGLISH)));
-		List<OfferQuotation> quote = offers.getOfferQuotations().stream()
+		List<TenderOffers> offersList = tenderOffersDao.findByTenderIdAndContractorId(UUID.fromString(tenderId), UUID.fromString(contractorId));
+		if (offersList.isEmpty()) {
+			throw new DataNotFoundException(messageSource.getMessage("tender.offer.not.found", null, Locale.ENGLISH));
+		}
+		List<OfferQuotation> quote = offersList.stream()
+				.filter(o -> o.getOfferQuotations() != null)
+				.flatMap(o -> o.getOfferQuotations().stream())
 				.filter(offer -> offer.getOfferVersion() == offerVersion)
 				.toList();
-		Tender tender = offers.getTender();
+		Tender tender = offersList.get(0).getTender();
 		TenderRespDto tenderResponse = new TenderRespDto();
 		tenderResponse.setId(tender.getId().toString());
 		tenderResponse.setTenderName(tender.getTenderName());
