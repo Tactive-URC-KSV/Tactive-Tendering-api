@@ -13,7 +13,7 @@ A lightweight FastAPI service for extracting tables from images (e.g. rendered P
 ## Running the Service
 
 ```bash
-uvicorn app:app --host 0.0.0.0 --port 8000
+uvicorn app:app --host 0.0.0.0 --port 2088
 ```
 
 ## API Endpoint

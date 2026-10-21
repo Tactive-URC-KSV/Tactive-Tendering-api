@@ -21,7 +21,7 @@ import java.util.Collections;
 @Service
 public class OcrClientService {
 
-    @Value("${ocr.service.url:http://localhost:8000}")
+    @Value("${ocr.service.url:http://localhost:2088}")
     private String ocrServiceUrl;
 
     private final RestTemplate restTemplate;
