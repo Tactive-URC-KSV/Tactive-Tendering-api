@@ -9,6 +9,7 @@ import com.ksv.tactive.fileservice.ExcelFileService;
 import com.ksv.tactive.fileservice.PdfFileService;
 import com.ksv.tactive.project.dao.BOQDao;
 import com.ksv.tactive.project.dao.BOQFileDao;
+import com.ksv.tactive.project.dao.BoqUomMappingDao;
 import com.ksv.tactive.project.dao.ProjectDao;
 import com.ksv.tactive.project.dao.TemplateDao;
 import com.ksv.tactive.project.dao.TemplateMappingDao;
@@ -51,6 +52,9 @@ public class BOQServiceImpl implements BOQService {
 
     @Autowired
     private BOQFileDao boqFileDao;
+
+    @Autowired
+    private BoqUomMappingDao boqUomMappingDao;
 
     @Autowired
     private ExcelFileService excelService;
@@ -167,11 +171,23 @@ public class BOQServiceImpl implements BOQService {
     }
 
     @Override
+    @Transactional
     public String mapBOQData(String projectId, String sheetName, Map<String, List<String>> columnMapping,
                              Map<Long, Long> parentChildMapping, Map<Long, Boolean> lastLevelMapping, Map<Long, Long> levelMapping,
                              List<Long> ignoredSnoList, List<Long> saveAsNewSnoList, MultipartFile boqFile, String pageBreakWord, Boolean duplicateHandled, Map<String, String> uomMapping) throws IOException {
 //        Projects project = projectDao.findById(convertToUUID(projectId)).orElse(null);
        saveBoqFile(boqFile, projectId);
+        Map<String, String> effectiveUomMappings = new HashMap<>();
+        for (BoqUomMapping savedMapping : getBoqUomMappings(projectId)) {
+            effectiveUomMappings.put(normalizeUomMappingKey(savedMapping.getClientUom()), savedMapping.getMasterUomCode());
+        }
+        if (uomMapping != null) {
+            uomMapping.forEach((clientUom, masterUomCode) -> {
+                if (clientUom != null && masterUomCode != null) {
+                    effectiveUomMappings.put(normalizeUomMappingKey(clientUom), masterUomCode.trim());
+                }
+            });
+        }
         int startRow = 0;
         int endRow = 100000;
         List<ExcelExtractBOQ> extractedRows;
@@ -301,8 +317,8 @@ public class BOQServiceImpl implements BOQService {
             String rawUom = row.getUom();
             if (rawUom != null) {
                 boq.setUomCode(rawUom);
-                if (uomMapping != null && uomMapping.containsKey(rawUom)) {
-                    String mappedUomCode = uomMapping.get(rawUom);
+                String mappedUomCode = effectiveUomMappings.get(normalizeUomMappingKey(rawUom));
+                if (mappedUomCode != null) {
                     boq.setUom(findUOM(mappedUomCode));
                 } else {
                     boq.setUom(findUOM(rawUom));
@@ -355,7 +371,36 @@ public class BOQServiceImpl implements BOQService {
             }
         }
         boqDao.saveAll(new ArrayList<>(boqUniqueMap.values()));
+        saveBoqUomMappings(projectId, uomMapping);
         return "BOQ Mapping Successfully Stored for Project " + projectId;
+    }
+
+    @Override
+    public List<BoqUomMapping> getBoqUomMappings(String projectId) {
+        return boqUomMappingDao.findByProjectIdOrderByClientUomAsc(projectId);
+    }
+
+    private void saveBoqUomMappings(String projectId, Map<String, String> uomMappings) {
+        if (uomMappings == null || uomMappings.isEmpty()) {
+            return;
+        }
+        uomMappings.forEach((clientUom, masterUomCode) -> {
+            if (clientUom == null || clientUom.isBlank() || masterUomCode == null || masterUomCode.isBlank()) {
+                return;
+            }
+            String normalizedClientUom = clientUom.trim();
+            BoqUomMapping mapping = boqUomMappingDao
+                    .findByProjectIdAndClientUomIgnoreCase(projectId, normalizedClientUom)
+                    .orElseGet(BoqUomMapping::new);
+            mapping.setProjectId(projectId);
+            mapping.setClientUom(normalizedClientUom);
+            mapping.setMasterUomCode(masterUomCode.trim());
+            boqUomMappingDao.save(mapping);
+        });
+    }
+
+    private String normalizeUomMappingKey(String value) {
+        return value.trim().replaceAll("[., /]", "").toLowerCase(Locale.ROOT);
     }
 
     protected Uom findUOM(String value) {

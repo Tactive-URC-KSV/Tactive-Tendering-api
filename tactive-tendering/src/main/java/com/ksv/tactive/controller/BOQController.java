@@ -145,6 +145,11 @@ public class BOQController {
         }
     }
 
+    @GetMapping("project/uom-mappings/{projectId}")
+    public ResponseEntity<?> getBoqUomMappings(@PathVariable String projectId) {
+        return ResponseEntity.ok(boqService.getBoqUomMappings(projectId));
+    }
+
     @GetMapping("getParentBoq/{projectId}")
     public ResponseEntity<?> getParentBOQ(@PathVariable String projectId) {
         try {
