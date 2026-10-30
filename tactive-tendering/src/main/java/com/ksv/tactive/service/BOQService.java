@@ -4,6 +4,7 @@ import com.ksv.tactive.dto.ExcelExtractBOQ;
 import com.ksv.tactive.dto.PaginatedResponse;
 import com.ksv.tactive.dto.ProjectInfoDto;
 import com.ksv.tactive.project.entity.BOQ;
+import com.ksv.tactive.project.entity.BoqUomMapping;
 import com.ksv.tactive.project.entity.Template;
 import com.ksv.tactive.dto.TemplateDto;
 import jakarta.servlet.http.HttpServletResponse;
@@ -25,6 +26,7 @@ public interface BOQService {
     String saveBoqFile(MultipartFile boqFile, String projectId);
     boolean checkFileExists(String projectId, String fileName);
     String mapBOQData(String projectId, String sheetName, Map<String, List<String>> columnMapping, Map<Long, Long> parentChildMapping, Map<Long, Boolean> lastLevelMapping, Map<Long, Long> levelMapping, List<Long> ignoredSnoList, List<Long> saveAsNewSnoList, MultipartFile boqFile, String pageBreakWord, Boolean duplicateHandled, Map<String, String> uomMapping) throws IOException;
+    List<BoqUomMapping> getBoqUomMappings(String projectId);
     List<BOQ> getParentBOQ(String projectId);
     List<BOQ> getChildBOQ(String projectId, String parentBoqId);
     List<BOQ> getParentBOQ(List<BOQ> boqList);
