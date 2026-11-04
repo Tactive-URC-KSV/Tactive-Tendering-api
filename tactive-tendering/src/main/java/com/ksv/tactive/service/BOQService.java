@@ -21,11 +21,11 @@ public interface BOQService {
     List<ProjectInfoDto> getAllBoqUploadedProject();
     List<String> getExcelSheets(MultipartFile boqFile) throws IOException;
     List<String> getPdfPages(MultipartFile boqFile) throws IOException;
-    List<String> getPdfColumns(MultipartFile boqFile, int startPage) throws IOException;
+    List<String> getPdfColumns(MultipartFile boqFile, int startPage, Integer endPage) throws IOException;
     List<String> getExcelColumns(MultipartFile boqFile, String sheetName) throws IOException;
     String saveBoqFile(MultipartFile boqFile, String projectId);
     boolean checkFileExists(String projectId, String fileName);
-    String mapBOQData(String projectId, String sheetName, Map<String, List<String>> columnMapping, Map<Long, Long> parentChildMapping, Map<Long, Boolean> lastLevelMapping, Map<Long, Long> levelMapping, List<Long> ignoredSnoList, List<Long> saveAsNewSnoList, MultipartFile boqFile, String pageBreakWord, Boolean duplicateHandled, Map<String, String> uomMapping) throws IOException;
+    String mapBOQData(String projectId, String sheetName, Integer endPage, Map<String, List<String>> columnMapping, Map<Long, Long> parentChildMapping, Map<Long, Boolean> lastLevelMapping, Map<Long, Long> levelMapping, List<Long> ignoredSnoList, List<Long> saveAsNewSnoList, MultipartFile boqFile, String pageBreakWord, Boolean duplicateHandled, Map<String, String> uomMapping, Boolean persistUomMappings) throws IOException;
     List<BoqUomMapping> getBoqUomMappings(String projectId);
     List<BOQ> getParentBOQ(String projectId);
     List<BOQ> getChildBOQ(String projectId, String parentBoqId);
@@ -37,7 +37,7 @@ public interface BOQService {
     void deleteBOQ(List<String> boqCode, String projectId);
     BOQ getBoqById(String boqId);
     List<ExcelExtractBOQ> extractBOQData(String sheetName,
-                                                            Map<String, List<String>> columnMapping, MultipartFile boqFile, String search, String pageBreakWord) throws IOException;
+                                                            Integer endPage, Map<String, List<String>> columnMapping, MultipartFile boqFile, String search, String pageBreakWord) throws IOException;
     List<BOQ> searchBoq(String projectId, String searchQuery);
     Map<String, Double> getParentBoqTotalMap(String projectId);
     String updateBOQHierarchy(String projectId, Map<String, String> parentChildUpdateMap);
@@ -47,6 +47,7 @@ public interface BOQService {
     List<Template> getAllTemplate();
     TemplateDto getTemplateById(String templateId);
     List<BOQ> getAllBOQsByProjectId(String projectId);
+  
     List<String> getDivisionsByProjectId(String projectId);
     Page<BOQ> getBOQsByDivision(String projectId, String division, int page, int size);
     List<BOQ> getBoqsByLevel(String projectId, int level);

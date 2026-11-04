@@ -1,14 +1,13 @@
 package com.ksv.tactive.controller;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.itextpdf.text.DocumentException;
 import com.ksv.tactive.dto.ExcelExtractBOQ;
 import com.ksv.tactive.dto.PaginatedResponse;
 import com.ksv.tactive.dto.ProjectInfoDto;
-import com.ksv.tactive.exception.DataNotFoundException;
-import com.ksv.tactive.project.entity.BOQ;
-import com.ksv.tactive.project.entity.Template;
 import com.ksv.tactive.exception.DataNotFoundException;
 import com.ksv.tactive.exception.DuplicateBOQException;
 import com.ksv.tactive.project.entity.BOQ;
@@ -41,6 +40,9 @@ public class BOQController {
     @Autowired
     private MessageSource messageSource;
 
+    @Autowired
+    private ObjectMapper objectMapper;
+
     @PostMapping("/project/excel/getSheets")
     public ResponseEntity<?> getBOQFileData(@RequestParam("file") MultipartFile boqFile) {
         try {
@@ -59,12 +61,21 @@ public class BOQController {
     }
 
     @PostMapping("/project/excel/getColumns/{sheetName}")
-    public ResponseEntity<?> getColumns(@RequestParam("file") MultipartFile boqFile, @PathVariable String sheetName) {
+    public ResponseEntity<?> getColumns(@RequestParam("file") MultipartFile boqFile,
+                                        @PathVariable String sheetName,
+                                        @RequestParam(required = false) Integer endPage) {
         try {
+            String fileName = boqFile.getOriginalFilename();
+            if (fileName != null && fileName.toLowerCase(Locale.ROOT).endsWith(".pdf")) {
+                int startPage = Integer.parseInt(sheetName);
+                return ResponseEntity.ok(boqService.getPdfColumns(boqFile, startPage, endPage));
+            }
             return ResponseEntity.status(HttpStatus.OK).body(boqService.getExcelColumns(boqFile, sheetName));
+        } catch (NumberFormatException e) {
+            return ResponseEntity.badRequest().body("Start page must be a valid page number.");
         } catch (IOException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error reading the Excel file: " + e.getMessage());
+                    .body("Error reading the BOQ file: " + e.getMessage());
         }
     }
 
@@ -73,10 +84,11 @@ public class BOQController {
                                                  @RequestParam("sheetName") String sheetName,
                                                  @RequestPart("columnMapping") Map<String, List<String>> columnMapping, 
                                                  @RequestParam(required = false) String search,
-                                                 @RequestParam(required = false) String pageBreakWord) {
+                                                 @RequestParam(required = false) String pageBreakWord,
+                                                 @RequestParam(required = false) Integer endPage) {
         try {
             List<ExcelExtractBOQ> response = boqService.extractBOQData(sheetName,
-                    columnMapping, boqFile, search, pageBreakWord);
+                    endPage, columnMapping, boqFile, search, pageBreakWord);
             return ResponseEntity.ok(response);
         } catch (IOException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -111,6 +123,8 @@ public class BOQController {
                                         @RequestParam(required = false) String saveAsNewSnos,
                                         @RequestParam(required = false) String pageBreakWord,
                                         @RequestParam(required = false) String uomMapping,
+                                        @RequestParam(required = false) Integer endPage,
+                                        @RequestParam(required = false, defaultValue = "false") Boolean persistUomMappings,
                                         @RequestParam(required = false, defaultValue = "false") Boolean duplicateHandled) {
         try {
             ObjectMapper mapper = new ObjectMapper();
@@ -135,7 +149,7 @@ public class BOQController {
             }
 
             return ResponseEntity.status(HttpStatus.OK).body(boqService.mapBOQData(
-                    projectId, sheetName, columnMap, parentChildMap, lastLevelMap, levelMap, ignoredSnoList, saveAsNewSnoList, boqFile, pageBreakWord, duplicateHandled, uomMap
+                    projectId, sheetName, endPage, columnMap, parentChildMap, lastLevelMap, levelMap, ignoredSnoList, saveAsNewSnoList, boqFile, pageBreakWord, duplicateHandled, uomMap, persistUomMappings
             ));
         } catch (DuplicateBOQException e) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getDuplicates());
@@ -322,7 +336,9 @@ public class BOQController {
             if (boqList == null || boqList.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
             }
-            return ResponseEntity.status(HttpStatus.OK).body(boqList);
+            ArrayNode response = objectMapper.valueToTree(boqList);
+            response.forEach(boq -> ((ObjectNode) boq).remove("clientBoqCode"));
+            return ResponseEntity.status(HttpStatus.OK).body(response);
         } catch (DataNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NO_CONTENT).body(e.getMessage());
         }

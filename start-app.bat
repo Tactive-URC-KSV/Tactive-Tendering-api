@@ -2,7 +2,7 @@
 setlocal
 
 REM -------------------------------------------------------------
-REM Tactive Backend Startup Script (Spring Boot + FastAPI OCR)
+REM Tactive Backend Startup Script (Spring Boot + Java OCR)
 REM -------------------------------------------------------------
 
 :: Determine Root Directory
@@ -18,19 +18,10 @@ SET "JAR_PATH=%APP_DIR%\tactive.jar"
 SET "CONFIG_PATH=%APP_DIR%\config\application-uat.properties"
 SET "LOG_DIR=%APP_DIR%\logs"
 SET "SPRING_LOG=%LOG_DIR%\app.log"
-SET "OCR_LOG=%LOG_DIR%\ocr.log"
-SET "OCR_DIR=%APP_DIR%\ocr-service"
 
+if not defined OCR_TESSDATA_PATH if exist "%APP_DIR%\tessdata\eng.traineddata" SET "OCR_TESSDATA_PATH=%APP_DIR%\tessdata"
 :: Create logs folder if missing
 if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"
-
-:: Locate Python for FastAPI
-SET "PYTHON_EXE=python"
-if exist "%OCR_DIR%\venv\Scripts\python.exe" (
-    SET "PYTHON_EXE=%OCR_DIR%\venv\Scripts\python.exe"
-) else if exist "%APP_DIR%\venv\Scripts\python.exe" (
-    SET "PYTHON_EXE=%APP_DIR%\venv\Scripts\python.exe"
-)
 
 echo Starting Tactive Backend Services from %APP_DIR%...
 
@@ -38,23 +29,12 @@ echo Starting Tactive Backend Services from %APP_DIR%...
 echo Starting Spring Boot application on port 2087...
 SET "EXTRA_CONFIG="
 if exist "%CONFIG_PATH%" SET "EXTRA_CONFIG=--spring.config.additional-location=file:%CONFIG_PATH%"
-start "Tactive-SpringBoot" /B cmd /c ""java" -jar "%JAR_PATH%" --server.port=2087 --ocr.service.url=http://localhost:2088 %EXTRA_CONFIG% >> "%SPRING_LOG%" 2>&1"
-
-:: 2. Start FastAPI OCR Service in Background
-if exist "%OCR_DIR%\app.py" (
-    echo Starting FastAPI OCR Service on port 2088...
-    cd /d "%OCR_DIR%"
-    start "Tactive-FastAPI" /B cmd /c ""%PYTHON_EXE%" -m uvicorn app:app --host 0.0.0.0 --port 2088 >> "%OCR_LOG%" 2>&1"
-    cd /d "%APP_DIR%"
-) else (
-    echo [WARNING] OCR service not found at %OCR_DIR%. Skipping FastAPI startup.
-)
+start "Tactive-SpringBoot" /B cmd /c ""java" -jar "%JAR_PATH%" --server.port=2087 %EXTRA_CONFIG% >> "%SPRING_LOG%" 2>&1"
 
 echo.
 echo =========================================================
-echo Both services started in the background!
+echo Spring Boot started in the background!
 echo   Spring Boot Log: %SPRING_LOG%
-echo   FastAPI OCR Log: %OCR_LOG%
 echo =========================================================
 
 exit /b 0

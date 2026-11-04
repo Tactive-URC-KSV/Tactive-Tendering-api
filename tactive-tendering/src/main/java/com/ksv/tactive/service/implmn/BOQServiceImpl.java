@@ -110,8 +110,8 @@ public class BOQServiceImpl implements BOQService {
     }
 
     @Override
-    public List<String> getPdfColumns(MultipartFile boqFile, int startPage) throws IOException {
-        return pdfService.getColumnsHeaders(boqFile, startPage);
+    public List<String> getPdfColumns(MultipartFile boqFile, int startPage, Integer endPage) throws IOException {
+        return pdfService.getColumnsHeaders(boqFile, startPage, endPage);
     }
 
     @Override
@@ -124,7 +124,7 @@ public class BOQServiceImpl implements BOQService {
             try {
                 startPage = Integer.parseInt(sheetName);
             } catch (NumberFormatException ignored) {}
-            return getPdfColumns(boqFile, startPage);
+            return getPdfColumns(boqFile, startPage, null);
         }
         return null;
     }
@@ -172,14 +172,16 @@ public class BOQServiceImpl implements BOQService {
 
     @Override
     @Transactional
-    public String mapBOQData(String projectId, String sheetName, Map<String, List<String>> columnMapping,
+    public String mapBOQData(String projectId, String sheetName, Integer endPdfPage, Map<String, List<String>> columnMapping,
                              Map<Long, Long> parentChildMapping, Map<Long, Boolean> lastLevelMapping, Map<Long, Long> levelMapping,
-                             List<Long> ignoredSnoList, List<Long> saveAsNewSnoList, MultipartFile boqFile, String pageBreakWord, Boolean duplicateHandled, Map<String, String> uomMapping) throws IOException {
+                             List<Long> ignoredSnoList, List<Long> saveAsNewSnoList, MultipartFile boqFile, String pageBreakWord, Boolean duplicateHandled, Map<String, String> uomMapping, Boolean persistUomMappings) throws IOException {
 //        Projects project = projectDao.findById(convertToUUID(projectId)).orElse(null);
        saveBoqFile(boqFile, projectId);
         Map<String, String> effectiveUomMappings = new HashMap<>();
-        for (BoqUomMapping savedMapping : getBoqUomMappings(projectId)) {
-            effectiveUomMappings.put(normalizeUomMappingKey(savedMapping.getClientUom()), savedMapping.getMasterUomCode());
+        if (Boolean.TRUE.equals(persistUomMappings)) {
+            for (BoqUomMapping savedMapping : getBoqUomMappings(projectId)) {
+                effectiveUomMappings.put(normalizeUomMappingKey(savedMapping.getClientUom()), savedMapping.getMasterUomCode());
+            }
         }
         if (uomMapping != null) {
             uomMapping.forEach((clientUom, masterUomCode) -> {
@@ -192,12 +194,13 @@ public class BOQServiceImpl implements BOQService {
         int endRow = 100000;
         List<ExcelExtractBOQ> extractedRows;
         String fileName = boqFile.getOriginalFilename();
+        boolean pdfImport = fileName != null && fileName.toLowerCase(Locale.ROOT).endsWith(".pdf");
         if (fileName != null && (fileName.endsWith(".xlsx") || fileName.endsWith(".xls"))) {
             extractedRows = excelService.getExtractedData(boqFile, sheetName, columnMapping, startRow, endRow, pageBreakWord);
         } else {
             int startPdfPage = 1;
             try { startPdfPage = Integer.parseInt(sheetName); } catch (Exception e) {}
-            extractedRows = pdfService.getExtractedData(boqFile, columnMapping, startRow, endRow, startPdfPage, pageBreakWord);
+            extractedRows = pdfService.getExtractedData(boqFile, columnMapping, startRow, endRow, startPdfPage, endPdfPage, pageBreakWord);
         }
         if (extractedRows == null || extractedRows.isEmpty()) {
             throw new DataNotFoundException("No BOQ data extracted from file!");
@@ -213,7 +216,8 @@ public class BOQServiceImpl implements BOQService {
             String safeBoqCode = row.getBoqCode() == null ? "" : row.getBoqCode();
             String safeBoqName = row.getBoqName() == null ? "" : row.getBoqName();
             String key = (safeBoqCode + "_" + safeBoqName).toLowerCase();
-            if (safeBoqCode.trim().isEmpty() && safeBoqName.trim().isEmpty()) {
+            if (safeBoqCode.trim().isEmpty()
+                    && (pdfImport || safeBoqName.trim().isEmpty())) {
                 key += "_" + row.getSno();
             }
 
@@ -232,7 +236,8 @@ public class BOQServiceImpl implements BOQService {
             }
 
             if (boq == null) {
-                if (safeBoqCode.trim().isEmpty() && safeBoqName.trim().isEmpty()) {
+                if (safeBoqCode.trim().isEmpty()
+                        && (pdfImport || safeBoqName.trim().isEmpty())) {
                     boq = new BOQ();
                 } else {
                     boq = boqDao
@@ -371,7 +376,9 @@ public class BOQServiceImpl implements BOQService {
             }
         }
         boqDao.saveAll(new ArrayList<>(boqUniqueMap.values()));
-        saveBoqUomMappings(projectId, uomMapping);
+        if (Boolean.TRUE.equals(persistUomMappings)) {
+            saveBoqUomMappings(projectId, uomMapping);
+        }
         return "BOQ Mapping Successfully Stored for Project " + projectId;
     }
 
@@ -440,7 +447,7 @@ public class BOQServiceImpl implements BOQService {
 
     @Override
     public List<BOQ> getParentBOQ(String projectId) {
-        List<BOQ> boqList = boqDao.findByProjectIdOrderByCreatedAtAsc(projectId);
+        List<BOQ> boqList = boqDao.findByProjectIdOrderByExcelSnoAscCreatedAtAsc(projectId);
         if (boqList.isEmpty()) {
             return null;
         }
@@ -451,7 +458,8 @@ public class BOQServiceImpl implements BOQService {
 
     @Override
     public List<BOQ> getChildBOQ(String projectId, String parentBoqId) {
-        List<BOQ> boqList = boqDao.findByProjectIdAndParentBOQIdOrderByCreatedAtAsc(projectId, UUID.fromString(parentBoqId));
+        List<BOQ> boqList = boqDao.findByProjectIdAndParentBOQIdOrderByExcelSnoAscCreatedAtAsc(
+                projectId, UUID.fromString(parentBoqId));
         if (boqList.isEmpty()) {
             return null;
         }
@@ -467,7 +475,7 @@ public class BOQServiceImpl implements BOQService {
 
     @Override
     public Map<String, Integer> getBOQCount(String projectId) {
-        List<BOQ> boqList = boqDao.findByProjectIdOrderByCreatedAtAsc(projectId);
+        List<BOQ> boqList = boqDao.findByProjectIdOrderByExcelSnoAscCreatedAtAsc(projectId);
         Map<String, Integer> boqCountMap = new HashMap<>();
         int boqcount = boqList.size();
         int lastLevelCount = (int) boqList.stream()
@@ -496,14 +504,14 @@ public class BOQServiceImpl implements BOQService {
     @Override
     public void generateBoqExcel(String projectId, HttpServletResponse response) throws IOException, DataNotFoundException {
         response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-        List<BOQ> boqList = boqDao.findByProjectIdOrderByCreatedAtAsc(projectId);
+        List<BOQ> boqList = boqDao.findByProjectIdOrderByExcelSnoAscCreatedAtAsc(projectId);
         excelService.generateBoqFile(boqList, response);
     }
 
     @Override
     public void generateBoqPdf(String projectId, HttpServletResponse response) throws IOException, DocumentException, DataNotFoundException {
         response.setContentType("application/pdf");
-        List<BOQ> boqList = boqDao.findByProjectIdOrderByCreatedAtAsc(projectId);
+        List<BOQ> boqList = boqDao.findByProjectIdOrderByExcelSnoAscCreatedAtAsc(projectId);
         pdfService.generateBoqPdf(boqList, response);
     }
 
@@ -536,7 +544,7 @@ public class BOQServiceImpl implements BOQService {
     }
 
     @Override
-    public List<ExcelExtractBOQ> extractBOQData(String sheetName, Map<String, List<String>> columnMapping, MultipartFile boqFile, String search, String pageBreakWord) throws IOException {
+    public List<ExcelExtractBOQ> extractBOQData(String sheetName, Integer endPdfPage, Map<String, List<String>> columnMapping, MultipartFile boqFile, String search, String pageBreakWord) throws IOException {
         List<ExcelExtractBOQ> allRows;
         int startRow = 0;
         int endRow = 100000;
@@ -546,7 +554,7 @@ public class BOQServiceImpl implements BOQService {
         } else {
             int startPdfPage = 1;
             try { startPdfPage = Integer.parseInt(sheetName); } catch (Exception e) {}
-            allRows = pdfService.getExtractedData(boqFile, columnMapping, startRow, endRow, startPdfPage, pageBreakWord);
+            allRows = pdfService.getExtractedData(boqFile, columnMapping, startRow, endRow, startPdfPage, endPdfPage, pageBreakWord);
         }
         if (search != null && !search.isBlank()) {
             String lower = search.toLowerCase();
@@ -563,7 +571,7 @@ public class BOQServiceImpl implements BOQService {
     @Override
     public List<BOQ> searchBoq(String projectId, String searchQuery) {
         UUID uuid = UUID.fromString(projectId);
-        List<BOQ> boqList = boqDao.findByProjectIdOrderByCreatedAtAsc(uuid.toString());
+        List<BOQ> boqList = boqDao.findByProjectIdOrderByExcelSnoAscCreatedAtAsc(uuid.toString());
         if (searchQuery == null || searchQuery.trim().isEmpty()) {
             return boqList;
         }
@@ -578,7 +586,7 @@ public class BOQServiceImpl implements BOQService {
 
     @Override
     public Map<String, Double> getParentBoqTotalMap(String projectId) {
-        List<BOQ> boqList = boqDao.findByProjectIdOrderByCreatedAtAsc(projectId);
+        List<BOQ> boqList = boqDao.findByProjectIdOrderByExcelSnoAscCreatedAtAsc(projectId);
         if (boqList == null || boqList.isEmpty()) {
             throw new DataNotFoundException("No BOQ found for project");
         }
@@ -645,7 +653,7 @@ public class BOQServiceImpl implements BOQService {
     @Override
     public String updateBOQHierarchy(String projectId, Map<String, String> parentChildUpdateMap) {
         UUID projId = convertToUUID(projectId);
-        List<BOQ> boqList = boqDao.findByProjectIdOrderByCreatedAtAsc(projId.toString());
+        List<BOQ> boqList = boqDao.findByProjectIdOrderByExcelSnoAscCreatedAtAsc(projId.toString());
         if (boqList == null || boqList.isEmpty()) {
             throw new DataNotFoundException("No BOQs found for project");
         }
@@ -697,7 +705,7 @@ public class BOQServiceImpl implements BOQService {
     @Override
     public String updateBOQDivision(String projectId, Map<String, String> boqDivisionUpdateMap) {
         UUID projId = convertToUUID(projectId);
-        List<BOQ> boqList = boqDao.findByProjectIdOrderByCreatedAtAsc(projId.toString());
+        List<BOQ> boqList = boqDao.findByProjectIdOrderByExcelSnoAscCreatedAtAsc(projId.toString());
         if (boqList == null || boqList.isEmpty()) {
             throw new DataNotFoundException("No BOQs found for project");
         }
@@ -728,7 +736,8 @@ public class BOQServiceImpl implements BOQService {
 
     @Override
     public Page<BOQ> getParentBOQs(String projectId, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").ascending());
+        Pageable pageable = PageRequest.of(page, size, Sort.by("excelSno").ascending()
+                .and(Sort.by("createdAt").ascending()));
         Page<BOQ> boqPage = boqDao.findByProjectIdAndParentBOQIsNull(projectId, pageable);
         if (boqPage.isEmpty()) {
             throw new DataNotFoundException("No BOQ data found");
@@ -780,7 +789,7 @@ public class BOQServiceImpl implements BOQService {
 
     @Override
     public List<BOQ> getAllBOQsByProjectId(String projectId) {
-        List<BOQ> boqList = boqDao.findByProjectIdOrderByCreatedAtAsc(projectId);
+        List<BOQ> boqList = boqDao.findByProjectIdOrderByExcelSnoAscCreatedAtAsc(projectId);
         if (boqList == null || boqList.isEmpty()) {
             throw new DataNotFoundException(messageSource.getMessage("boq.not.found", null, Locale.ENGLISH));
         }
@@ -799,16 +808,17 @@ public class BOQServiceImpl implements BOQService {
 
     @Override
     public Page<BOQ> getBOQsByDivision(String projectId, String division, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").ascending());
+        Pageable pageable = PageRequest.of(page, size);
         if (division == null || division.trim().isEmpty() || division.equalsIgnoreCase("Non-Categorized")) {
             return boqDao.findByProjectIdAndNoDivision(projectId, pageable);
         }
-        return boqDao.findByProjectIdAndDivisionOrderByCreatedAtAsc(projectId, division, pageable);
+        return boqDao.findByProjectIdAndDivisionOrderByExcelSnoAscCreatedAtAsc(
+                projectId, division, pageable);
     }
 
     @Override
     public List<BOQ> getBoqsByLevel(String projectId, int level) {
-        return boqDao.findByProjectIdAndLevel(projectId, level);
+        return boqDao.findByProjectIdAndLevelOrderByExcelSnoAscCreatedAtAsc(projectId, level);
     }
 
     @Override

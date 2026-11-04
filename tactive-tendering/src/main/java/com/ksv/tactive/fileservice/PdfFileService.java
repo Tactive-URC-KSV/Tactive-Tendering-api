@@ -27,6 +27,7 @@ import com.ksv.tactive.project.entity.BOQ;
 import com.ksv.tactive.service.MasterService;
 
 import jakarta.servlet.http.HttpServletResponse;
+import org.apache.pdfbox.text.PDFTextStripper;
 import technology.tabula.ObjectExtractor;
 import technology.tabula.Page;
 import technology.tabula.PageIterator;
@@ -59,51 +60,64 @@ public class PdfFileService {
 		return pages;
 	}
 
-	public List<String> getColumnsHeaders(MultipartFile boqFile, int startPage) throws IOException {
-		InputStream inputStream = boqFile.getInputStream();
-		PDDocument document = PDDocument.load(inputStream);
+	public List<String> getColumnsHeaders(MultipartFile boqFile, int startPage, Integer requestedEndPage) throws IOException {
+		try (InputStream inputStream = boqFile.getInputStream();
+			 PDDocument document = PDDocument.load(inputStream)) {
+			hybridPdfExtractionEngine.validatePdfDocument(document);
+			int endPage = validatePageRange(document, startPage, requestedEndPage);
 
-		hybridPdfExtractionEngine.validatePdfDocument(document);
+			PageIterator iterator = new ObjectExtractor(document).extract();
+			List<String> headers = null;
+			int currentPageNumber = 0;
 
-		ObjectExtractor oe = new ObjectExtractor(document);
-		PageIterator iterator = oe.extract();
+			while (iterator.hasNext()) {
+				Page page = iterator.next();
+				currentPageNumber++;
+				if (currentPageNumber < startPage) continue;
+				if (currentPageNumber > endPage) break;
+				if (page == null) continue;
 
-		List<List<String>> allRows = new ArrayList<>();
-		List<String> headers = null;
-		int currentPageNumber = 0;
-
-		while (iterator.hasNext()) {
-			Page page = iterator.next();
-			currentPageNumber++;
-
-			if (currentPageNumber < startPage) continue;
-
-			if (page == null) continue;
-
-			List<List<String>> rows = new ArrayList<>();
-			try {
-				rows = hybridPdfExtractionEngine.extractTableRows(document, page, currentPageNumber);
-			} catch (Exception e) {
-				continue;
+				try {
+					List<List<String>> rows = hybridPdfExtractionEngine.extractTableRows(document, page, currentPageNumber);
+					List<List<String>> tableRows = rowsFromBoqHeader(rows);
+					if (!tableRows.isEmpty()) {
+						headers = tableRows.get(0);
+						break;
+					}
+				} catch (Exception e) {
+					throw new IOException("Failed to extract BOQ table headers from PDF page "
+							+ currentPageNumber + ".", e);
+				}
 			}
+			return headers == null ? List.of() : headers;
+		}
+	}
 
-			if (rows.isEmpty()) continue;
+	static List<List<String>> nonEmptyRows(List<List<String>> rows) {
+		return rows.stream()
+				.filter(row -> row.stream().anyMatch(cell -> cell != null && !cell.isBlank()))
+				.toList();
+	}
 
-			if (headers == null) {
-				headers = rows.get(0);
-			}
-
-			int startIndex = rows.get(0).equals(headers) ? 1 : 0;
-
-			for (int i = startIndex; i < rows.size(); i++) {
-				allRows.add(rows.get(i));
+	static List<List<String>> rowsFromBoqHeader(List<List<String>> rows) {
+		List<List<String>> populatedRows = nonEmptyRows(rows);
+		for (int i = 0; i < populatedRows.size(); i++) {
+			String headerText = populatedRows.get(i).stream()
+					.filter(Objects::nonNull)
+					.map(value -> value.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]", ""))
+					.reduce("", String::concat);
+			boolean hasQuantity = headerText.contains("qty") || headerText.contains("quantity");
+			if (headerText.contains("description")
+					&& hasQuantity
+					&& headerText.contains("unit")
+					&& headerText.contains("rate")
+					&& headerText.contains("amount")) {
+				return populatedRows.subList(i, populatedRows.size());
 			}
 		}
-
-		document.close();
-
-		return headers;
+		return List.of();
 	}
+
 	public List<BOQ> mapBOQData(Map<String, String> columnMapping, InputStream inputStream, int startPage)
 			throws IOException, DataNotFoundException {
 		List<BOQ> boqList = new ArrayList<>();
@@ -270,6 +284,14 @@ public class PdfFileService {
 				List<BOQ> pageBoqs = entry.getValue();
 
 				pageBoqs.sort((b1, b2) -> {
+					if (b1.getExcelSno() != null && b2.getExcelSno() != null) {
+						int excelSnoOrder = b1.getExcelSno().compareTo(b2.getExcelSno());
+						if (excelSnoOrder != 0) return excelSnoOrder;
+					} else if (b1.getExcelSno() == null && b2.getExcelSno() != null) {
+						return 1;
+					} else if (b1.getExcelSno() != null) {
+						return -1;
+					}
 					if (b1.getCreatedAt() == null && b2.getCreatedAt() == null) return 0;
 					if (b1.getCreatedAt() == null) return 1;
 					if (b2.getCreatedAt() == null) return -1;
@@ -355,6 +377,7 @@ public class PdfFileService {
 												  int startRow,
 												  int endRow,
 												  int startPage,
+												  Integer requestedEndPage,
 												  String pageBreakWord) throws IOException {
 
 		List<ExcelExtractBOQ> boqList = new ArrayList<>();
@@ -365,6 +388,7 @@ public class PdfFileService {
 			 PDDocument document = PDDocument.load(inputStream)) {
 
 			hybridPdfExtractionEngine.validatePdfDocument(document);
+			int endPage = validatePageRange(document, startPage, requestedEndPage);
 
 			ObjectExtractor oe = new ObjectExtractor(document);
 			PageIterator iterator = oe.extract();
@@ -382,19 +406,24 @@ public class PdfFileService {
 				if (currentPageNumber < startPage) {
 					continue;
 				}
+				if (currentPageNumber > endPage) {
+					break;
+				}
 
+				boolean pageBreakFound = containsPageBreakWord(document, currentPageNumber, pageBreakWord);
 				List<List<String>> rows = new ArrayList<>();
 				try {
 					rows = hybridPdfExtractionEngine.extractTableRows(document, page, currentPageNumber);
 				} catch (Exception e) {
-					if (e instanceof IllegalArgumentException) {
-						throw new IOException(e.getMessage(), e);
-					}
-					System.err.println("Extraction failed for page " + currentPageNumber + ": " + e.getMessage());
-					continue;
+					throw new IOException("Failed to extract BOQ data from PDF page "
+							+ currentPageNumber + ".", e);
 				}
+				rows = rowsFromBoqHeader(rows);
 
 					if (rows.isEmpty()) {
+						if (pageBreakFound) {
+							currentBoqPageNo++;
+						}
 						continue;
 					}
 
@@ -439,21 +468,7 @@ public class PdfFileService {
 						}
 					}
 
-					int startIndex = 0;
-
-					List<String> currentRowNormalized = rows.get(0).stream()
-							.map(h -> h.toLowerCase().replaceAll("[^a-z0-9]", ""))
-							.toList();
-
-					long matchCount = currentRowNormalized.stream()
-							.filter(normalizedHeaders::contains)
-							.count();
-
-					if (matchCount >= 2) {
-						startIndex = 1;
-					}
-
-					for (int i = startIndex; i < rows.size(); i++) {
+					for (int i = 1; i < rows.size(); i++) {
 
 						List<String> row = rows.get(i);
 
@@ -503,31 +518,6 @@ public class PdfFileService {
 
 						if (joinedRow.contains("total")
 								|| joinedRow.contains("grand total")) {
-							continue;
-						}
-
-						boolean pageBreakFound = false;
-						boolean hasOtherText = false;
-						if (pageBreakWord != null && !pageBreakWord.trim().isEmpty()) {
-							String lowerBreakWord = pageBreakWord.toLowerCase().trim();
-							for (String cellValue : row) {
-								if (cellValue != null && !cellValue.trim().isEmpty()) {
-									String lowerCell = cellValue.toLowerCase().trim();
-									if (lowerCell.contains(lowerBreakWord)) {
-										pageBreakFound = true;
-										String remaining = lowerCell.replace(lowerBreakWord, "").trim();
-										if (!remaining.isEmpty()) {
-											hasOtherText = true;
-										}
-									} else {
-										hasOtherText = true;
-									}
-								}
-							}
-						}
-
-						if (pageBreakFound && !hasOtherText) {
-							currentBoqPageNo++;
 							continue;
 						}
 
@@ -618,24 +608,56 @@ public class PdfFileService {
 							}
 						}
 
-						boq.setLastLevel(
-								(boq.getQuantity() != null && boq.getQuantity() > 0)
-										|| (boq.getUom() != null
-										&& !boq.getUom().isBlank())
-						);
+						boq.setPageNo(resolveBoqPageNumber(
+								currentPageNumber, currentBoqPageNo, pageBreakWord));
+						boq.setLastLevel(true);
 
 						if (hasValidData) {
 							boqList.add(boq);
 							serialNumber++;
 						}
 
-						if (pageBreakFound) {
-							currentBoqPageNo++;
-						}
 					}
+				if (pageBreakFound) {
+					currentBoqPageNo++;
+				}
 			}
 		}
 
 		return boqList;
+	}
+
+	static boolean containsPageBreakWord(PDDocument document, int pageNumber, String pageBreakWord)
+			throws IOException {
+		if (pageBreakWord == null || pageBreakWord.isBlank()) {
+			return false;
+		}
+		PDFTextStripper stripper = new PDFTextStripper();
+		stripper.setStartPage(pageNumber);
+		stripper.setEndPage(pageNumber);
+		String pageText = stripper.getText(document);
+		String normalizedMarker = normalizePageBreakText(pageBreakWord);
+		return !normalizedMarker.isEmpty()
+				&& normalizePageBreakText(pageText).contains(normalizedMarker);
+	}
+
+	private static String normalizePageBreakText(String text) {
+		return text == null ? "" : text.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]", "");
+	}
+
+	static long resolveBoqPageNumber(int pdfPageNumber, long currentBoqPageNumber, String pageBreakWord) {
+		return pageBreakWord == null || pageBreakWord.isBlank()
+				? pdfPageNumber
+				: currentBoqPageNumber;
+	}
+
+	int validatePageRange(PDDocument document, int startPage, Integer requestedEndPage) throws IOException {
+		int pageCount = document.getNumberOfPages();
+		int endPage = requestedEndPage == null ? pageCount : requestedEndPage;
+		if (startPage < 1 || startPage > pageCount || endPage < startPage || endPage > pageCount) {
+			throw new IOException("Invalid PDF page range. Select pages from 1 to " + pageCount
+					+ " with the end page greater than or equal to the start page.");
+		}
+		return endPage;
 	}
 }

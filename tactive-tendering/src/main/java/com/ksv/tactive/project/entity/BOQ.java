@@ -7,6 +7,7 @@ import org.hibernate.annotations.SQLRestriction;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import jakarta.persistence.*;
 import lombok.Data;
@@ -34,6 +35,10 @@ public class BOQ {
 	private boolean lastLevel;
 	@Column(nullable = true)
 	private String uomCode;
+	@JsonProperty("clientUom")
+	public String getClientUom() {
+		return uomCode;
+	}
 	private String projectId;
 	@JsonIgnore
 	@ManyToOne(cascade = CascadeType.DETACH)
@@ -49,6 +54,7 @@ public class BOQ {
 	
 	@Transient
 	private String parentBoqId;
+	@JsonProperty("division")
 	private String division;
 	private Long pageNo;
 	
@@ -64,6 +70,7 @@ public class BOQ {
 	@Column(name = "excel_sno")
 	private Long excelSno;
 	
+	@JsonProperty("clientBoqCode")
 	private String clientBoqCode;
 	private String boqShortName;
 	
@@ -89,4 +96,3 @@ public class BOQ {
 	@Column(name = "created_at", updatable = false)
 	private java.sql.Timestamp createdAt;
 }
-
