@@ -140,7 +140,7 @@ public class MasterServiceImpl implements MasterService{
 	}
 	@Override
 	public String addUom(Uom uom) {
-		if(uomDao.findByUomCodeIgnoreCaseAndUomNameIgnoreCase(uom.getUomCode(),uom.getUomName()) != null){
+		if(!uomDao.findByUomCodeIgnoreCaseAndUomNameIgnoreCase(uom.getUomCode(),uom.getUomName()).isEmpty()){
 			throw new  DuplicateEntryException(messageSource.getMessage("data.duplicate", null, Locale.ENGLISH));
 		}
 		uomDao.save(uom);
@@ -155,22 +155,20 @@ public class MasterServiceImpl implements MasterService{
 		if (uom.isActive() &&
 				!existingUom.getUomName().equalsIgnoreCase(uom.getUomName())
 		) {
-			uomDao.findByUomNameIgnoreCaseAndActiveTrue(uom.getUomName())
-					.ifPresent(u -> {
-						throw new DuplicateEntryException(
-								messageSource.getMessage("data.duplicate", null, Locale.ENGLISH)
-						);
-					});
+			if (!uomDao.findByUomNameIgnoreCaseAndActiveTrue(uom.getUomName()).isEmpty()) {
+				throw new DuplicateEntryException(
+						messageSource.getMessage("data.duplicate", null, Locale.ENGLISH)
+				);
+			}
 		}
 		if (uom.isActive() &&
 				!existingUom.getUomCode().equalsIgnoreCase(uom.getUomCode())
 		) {
-			uomDao.findByUomCodeIgnoreCaseAndActiveTrue(uom.getUomCode())
-					.ifPresent(u -> {
-						throw new DuplicateEntryException(
-								messageSource.getMessage("data.duplicate", null, Locale.ENGLISH)
-						);
-					});
+			if (!uomDao.findByUomCodeIgnoreCaseAndActiveTrue(uom.getUomCode()).isEmpty()) {
+				throw new DuplicateEntryException(
+						messageSource.getMessage("data.duplicate", null, Locale.ENGLISH)
+				);
+			}
 		}
 		existingUom.setUomName(uom.getUomName());
 		existingUom.setUomCode(uom.getUomCode());
@@ -305,7 +303,7 @@ public class MasterServiceImpl implements MasterService{
 	}
 	@Override
 	public Uom findUomByCode(String uomCode) {
-		return uomDao.findByUomCode(uomCode);
+		return uomDao.findAllByUomCode(uomCode).stream().findFirst().orElse(null);
 	}
 	@Override
 	public Uom findUomById(String uomId) {

@@ -2,6 +2,8 @@ package com.ksv.tactive.project.entity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,6 +20,8 @@ public class Uom {
 	private String uomCode;
 	private boolean active;
 	@JsonIgnore
+	@ToString.Exclude
+	@EqualsAndHashCode.Exclude
 	@OneToMany(mappedBy = "baseUom", cascade = CascadeType.ALL)
 	private List<UomConversion> conversions = new ArrayList<>();
 }

@@ -2,6 +2,7 @@ package com.ksv.tactive.dataloader;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import com.ksv.tactive.project.dao.UomConversionDao;
@@ -62,9 +63,9 @@ public class UomDataLoader implements MasterDataLoader<Uom> {
         }
     }
     private Uom saveOrGetUom(String code, String name, String category) {
-        Uom existing = uomDao.findByUomCode(code);
-        if (existing != null) {
-            return existing;
+        List<Uom> existing = uomDao.findAllByUomCode(code);
+        if (!existing.isEmpty()) {
+            return existing.stream().filter(Uom::isActive).findFirst().orElse(existing.get(0));
         }
         Uom uom = new Uom();
         uom.setUomCode(code);
