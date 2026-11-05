@@ -1,6 +1,5 @@
 package com.ksv.tactive.dataloader;
 
-import com.ksv.tactive.project.dao.ResourceAttributeGroupDao;
 import com.ksv.tactive.project.dao.ResourceDao;
 import com.ksv.tactive.project.dao.UomDao;
 import com.ksv.tactive.project.entity.Resources;
@@ -21,8 +20,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
-
 @Component
 public class ResourceMaterialMasterLoader implements MasterDataLoader<Resources> {
     @Autowired
@@ -41,12 +38,8 @@ public class ResourceMaterialMasterLoader implements MasterDataLoader<Resources>
         ClassPathResource resource = new ClassPathResource("data/Machinery_Formwork.xls");
         Workbook workbook = new HSSFWorkbook(resource.getInputStream());
         Sheet sheet = workbook.getSheetAt(0);
-        Map<String, Uom> uomCache = uomDao.findAll()
-                .stream()
-                .collect(Collectors.toMap(Uom::getUomCode, u -> u));
-        Map<String, Resources> resourceCache = resourceDao.findAll()
-                .stream()
-                .collect(Collectors.toMap(Resources::getResourceCode, r -> r));
+        Map<String, Uom> uomCache = loadUomCache();
+        Map<String, Resources> resourceCache = loadResourceCache();
         Map<Integer, Map<String, Resources>> levelMap = new HashMap<>();
         List<Resources> batch = new ArrayList<>();
         int batchSize = 500;
@@ -112,12 +105,8 @@ public class ResourceMaterialMasterLoader implements MasterDataLoader<Resources>
         ClassPathResource resource = new ClassPathResource("data/Material_Master V1.0.xls");
         Workbook workbook = new HSSFWorkbook(resource.getInputStream());
         Sheet sheet = workbook.getSheetAt(0);
-        Map<String, Uom> uomCache = uomDao.findAll()
-                .stream()
-                .collect(Collectors.toMap(Uom::getUomCode, u -> u));
-        Map<String, Resources> resourceCache = resourceDao.findAll()
-                .stream()
-                .collect(Collectors.toMap(Resources::getResourceCode, r -> r));
+        Map<String, Uom> uomCache = loadUomCache();
+        Map<String, Resources> resourceCache = loadResourceCache();
         Map<Integer, Map<String, Resources>> levelMap = new HashMap<>();
         List<Resources> batch = new ArrayList<>();
         int batchSize = 500;
@@ -174,6 +163,28 @@ public class ResourceMaterialMasterLoader implements MasterDataLoader<Resources>
             resourceDao.saveAll(batch);
         }
         workbook.close();
+    }
+
+    private Map<String, Uom> loadUomCache() {
+        Map<String, Uom> uomCache = new HashMap<>();
+        for (Uom uom : uomDao.findAll()) {
+            if (isEmpty(uom.getUomCode())) {
+                continue;
+            }
+            uomCache.putIfAbsent(uom.getUomCode(), uom);
+        }
+        return uomCache;
+    }
+
+    private Map<String, Resources> loadResourceCache() {
+        Map<String, Resources> resourceCache = new HashMap<>();
+        for (Resources resource : resourceDao.findAll()) {
+            if (isEmpty(resource.getResourceCode())) {
+                continue;
+            }
+            resourceCache.putIfAbsent(resource.getResourceCode(), resource);
+        }
+        return resourceCache;
     }
 
     private String getCellValue(Cell cell) {

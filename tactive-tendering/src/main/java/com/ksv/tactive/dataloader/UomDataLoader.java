@@ -2,6 +2,7 @@ package com.ksv.tactive.dataloader;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import com.ksv.tactive.project.dao.UomConversionDao;
@@ -19,6 +20,7 @@ import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ksv.tactive.project.dao.UomDao;
+import com.ksv.tactive.service.MasterService;
 
 @Component
 public class UomDataLoader implements MasterDataLoader<Uom> {
@@ -29,8 +31,12 @@ public class UomDataLoader implements MasterDataLoader<Uom> {
     @Autowired
     private UomConversionDao conversionDao;
 
+    @Autowired
+    private MasterService masterService;
+
     @Override
     public void loadData() throws IOException {
+        masterService.removeDuplicateUoms();
 
         ClassPathResource resource = new ClassPathResource("data/UOM.xlsx");
         Workbook workbook = new XSSFWorkbook(resource.getInputStream());
@@ -62,9 +68,9 @@ public class UomDataLoader implements MasterDataLoader<Uom> {
         }
     }
     private Uom saveOrGetUom(String code, String name, String category) {
-        Uom existing = uomDao.findByUomCode(code);
-        if (existing != null) {
-            return existing;
+        List<Uom> existing = uomDao.findAllByUomCode(code);
+        if (!existing.isEmpty()) {
+            return existing.stream().filter(Uom::isActive).findFirst().orElse(existing.get(0));
         }
         Uom uom = new Uom();
         uom.setUomCode(code);
