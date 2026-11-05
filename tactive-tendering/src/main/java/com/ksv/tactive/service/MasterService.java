@@ -30,6 +30,7 @@ public interface MasterService {
 	Uom findUomById(String uomId);
 	List<Uom> getAllUOMs();
 	Uom findUomByCode(String uomCode);
+	int removeDuplicateUoms();
 	void editUom(Uom uom);
 	List<ProjectStatus> getAllProjectStatus();
 	ProjectStatus findStatusById(String projectStatusId);

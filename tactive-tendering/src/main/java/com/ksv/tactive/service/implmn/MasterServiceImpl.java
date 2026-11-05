@@ -21,7 +21,13 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.ksv.tactive.project.dao.CurrencyDao;
 import com.ksv.tactive.project.entity.Currency;
@@ -31,6 +37,7 @@ import com.ksv.tactive.dto.Country;
 import com.ksv.tactive.service.MasterService;
 @Service
 public class MasterServiceImpl implements MasterService{
+    private static final Logger logger = LoggerFactory.getLogger(MasterServiceImpl.class);
 
     @Autowired
     private LocationMemoryEngine memoryEngine;
@@ -76,6 +83,8 @@ public class MasterServiceImpl implements MasterService{
 	private DesignationDao designationDao;
 	@Autowired
 	private CurrencyConversionDao currencyConversionDao;
+	@PersistenceContext(unitName = "project")
+	private EntityManager entityManager;
 
 	private UUID convertToUUID(String value){
 		return UUID.fromString(value);
@@ -304,6 +313,119 @@ public class MasterServiceImpl implements MasterService{
 	@Override
 	public Uom findUomByCode(String uomCode) {
 		return uomDao.findAllByUomCode(uomCode).stream().findFirst().orElse(null);
+	}
+	@Override
+	@Transactional(transactionManager = "projectTransactionManager", propagation = Propagation.REQUIRES_NEW)
+	public int removeDuplicateUoms() {
+		Map<String, List<Uom>> grouped = uomDao.findAll().stream()
+				.filter(uom -> uom.getUomCode() != null && !uom.getUomCode().isBlank())
+				.collect(Collectors.groupingBy(Uom::getUomCode));
+		int removed = 0;
+		for (List<Uom> matches : grouped.values()) {
+			if (matches.size() < 2) {
+				continue;
+			}
+			List<Uom> ordered = new ArrayList<>(matches);
+			ordered.sort(Comparator.comparing(Uom::isActive).reversed().thenComparing(Uom::getId));
+			Uom keep = ordered.get(0);
+			for (int i = 1; i < ordered.size(); i++) {
+				repointAndDeleteDuplicateUom(keep.getId(), ordered.get(i).getId());
+				removed++;
+				logger.info("Removed duplicate UOM code {} id {}, kept {}", keep.getUomCode(), ordered.get(i).getId(), keep.getId());
+			}
+		}
+		entityManager.flush();
+		entityManager.clear();
+		if (removed == 0) {
+			logger.info("No duplicate UOM rows found");
+		}
+		return removed;
+	}
+	private void repointAndDeleteDuplicateUom(UUID keepId, UUID duplicateId) {
+		executeUomUpdate("""
+				DELETE FROM uom_conversion c
+				WHERE c.id IN (
+				    SELECT c2.id
+				    FROM uom_conversion c2
+				    WHERE (c2.base_uom_id = :dup OR c2.conversion_uom_id = :dup)
+				      AND EXISTS (
+				          SELECT 1 FROM uom_conversion existing
+				          WHERE existing.id <> c2.id
+				            AND existing.base_uom_id = CASE WHEN c2.base_uom_id = :dup THEN :keep ELSE c2.base_uom_id END
+				            AND existing.conversion_uom_id = CASE WHEN c2.conversion_uom_id = :dup THEN :keep ELSE c2.conversion_uom_id END
+				      )
+				)
+				""", keepId, duplicateId);
+		executeUomUpdate("""
+				DELETE FROM tender_estimation_attribute
+				WHERE tender_estimation_id IN (
+				    SELECT te.id
+				    FROM tender_estimation te
+				    WHERE te.uom_id = :dup
+				      AND EXISTS (
+				          SELECT 1 FROM tender_estimation kept
+				          WHERE kept.uom_id = :keep
+				            AND kept.resources_id IS NOT DISTINCT FROM te.resources_id
+				            AND kept.parent_resource IS NOT DISTINCT FROM te.parent_resource
+				      )
+				)
+				""", keepId, duplicateId);
+		executeUomUpdate("""
+				DELETE FROM tender_formula_element
+				WHERE tender_estimation_id IN (
+				    SELECT te.id
+				    FROM tender_estimation te
+				    WHERE te.uom_id = :dup
+				      AND EXISTS (
+				          SELECT 1 FROM tender_estimation kept
+				          WHERE kept.uom_id = :keep
+				            AND kept.resources_id IS NOT DISTINCT FROM te.resources_id
+				            AND kept.parent_resource IS NOT DISTINCT FROM te.parent_resource
+				      )
+				)
+				""", keepId, duplicateId);
+		executeUomUpdate("""
+				UPDATE tender_estimation child
+				SET parent_resource = kept.id
+				FROM tender_estimation doomed
+				JOIN tender_estimation kept
+				  ON kept.uom_id = :keep
+				 AND kept.resources_id IS NOT DISTINCT FROM doomed.resources_id
+				 AND kept.parent_resource IS NOT DISTINCT FROM doomed.parent_resource
+				WHERE child.parent_resource = doomed.id
+				  AND doomed.uom_id = :dup
+				""", keepId, duplicateId);
+		executeUomUpdate("""
+				DELETE FROM tender_estimation doomed
+				USING tender_estimation kept
+				WHERE doomed.uom_id = :dup
+				  AND kept.uom_id = :keep
+				  AND kept.resources_id IS NOT DISTINCT FROM doomed.resources_id
+				  AND kept.parent_resource IS NOT DISTINCT FROM doomed.parent_resource
+				""", keepId, duplicateId);
+		for (String sql : List.of(
+				"UPDATE resources SET uom_id = :keep WHERE uom_id = :dup",
+				"UPDATE boq SET uom = :keep WHERE uom = :dup",
+				"UPDATE tender_estimation SET uom_id = :keep WHERE uom_id = :dup",
+				"UPDATE internal_boq SET uom_id = :keep WHERE uom_id = :dup",
+				"UPDATE project_info SET uom = :keep WHERE uom = :dup",
+				"UPDATE cost_code_activity SET uom = :keep WHERE uom = :dup",
+				"UPDATE uom_conversion SET base_uom_id = :keep WHERE base_uom_id = :dup",
+				"UPDATE uom_conversion SET conversion_uom_id = :keep WHERE conversion_uom_id = :dup"
+		)) {
+			executeUomUpdate(sql, keepId, duplicateId);
+		}
+		executeUomUpdate("DELETE FROM uom WHERE id = :dup", keepId, duplicateId);
+	}
+	private void executeUomUpdate(String sql, UUID keepId, UUID duplicateId) {
+		var query = entityManager.createNativeQuery(sql);
+		if (sql.contains(":keep")) {
+			query.setParameter("keep", keepId);
+		}
+		if (sql.contains(":dup")) {
+			query.setParameter("dup", duplicateId);
+		}
+		query.executeUpdate();
 	}
 	@Override
 	public Uom findUomById(String uomId) {
