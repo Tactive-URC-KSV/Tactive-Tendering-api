@@ -18,9 +18,13 @@ import java.awt.Rectangle;
 public class HybridPdfExtractionEngine {
 
     private final JavaOcrTableService javaOcrTableService;
+    private final FormattedBoqPdfExtractor formattedBoqPdfExtractor;
 
-    public HybridPdfExtractionEngine(JavaOcrTableService javaOcrTableService) {
+    public HybridPdfExtractionEngine(
+            JavaOcrTableService javaOcrTableService,
+            FormattedBoqPdfExtractor formattedBoqPdfExtractor) {
         this.javaOcrTableService = javaOcrTableService;
+        this.formattedBoqPdfExtractor = formattedBoqPdfExtractor;
     }
 
     /**
@@ -57,6 +61,11 @@ public class HybridPdfExtractionEngine {
 
         // If the page has sufficient text, try Tabula
         if (pageText != null && pageText.trim().length() >= 50) {
+            List<List<String>> formattedRows = formattedBoqPdfExtractor.extractRows(document, pageIndex);
+            if (formattedRows.size() > 1) {
+                return formattedRows;
+            }
+
             List<JavaOcrTableService.OcrWord> positionedWords =
                     extractPositionedWords(document, pageIndex);
             List<List<String>> positionedRows = javaOcrTableService.toBoqRows(
