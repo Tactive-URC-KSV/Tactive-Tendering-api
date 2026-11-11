@@ -337,7 +337,10 @@ public class BOQController {
                 return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
             }
             ArrayNode response = objectMapper.valueToTree(boqList);
-            response.forEach(boq -> ((ObjectNode) boq).remove("clientBoqCode"));
+            response.forEach(boq -> {
+                ((ObjectNode) boq).remove("clientBoqCode");
+                ((ObjectNode) boq).remove("uom");
+            });
             return ResponseEntity.status(HttpStatus.OK).body(response);
         } catch (DataNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NO_CONTENT).body(e.getMessage());
