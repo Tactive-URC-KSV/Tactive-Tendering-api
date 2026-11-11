@@ -205,6 +205,18 @@ public class BOQServiceImpl implements BOQService {
         if (extractedRows == null || extractedRows.isEmpty()) {
             throw new DataNotFoundException("No BOQ data extracted from file!");
         }
+        long serialOffset = 0;
+        if (pdfImport) {
+            serialOffset = boqDao.findMaxExcelSnoByProjectIdAndSourceFile(projectId, fileName);
+            if (pageBreakWord != null && !pageBreakWord.isBlank()) {
+                long pageOffset = boqDao.findMaxPageNoByProjectIdAndSourceFile(projectId, fileName);
+                for (ExcelExtractBOQ row : extractedRows) {
+                    if (row.getPageNo() != null) {
+                        row.setPageNo(row.getPageNo() + pageOffset);
+                    }
+                }
+            }
+        }
         Map<String, BOQ> boqUniqueMap = new LinkedHashMap<>();
         Map<Long, BOQ> rowToBoqMap = new HashMap<>();
         List<Map<String, Object>> duplicates = new ArrayList<>();
@@ -222,13 +234,14 @@ public class BOQServiceImpl implements BOQService {
             }
 
             BOQ boq = null;
+            long persistedSno = row.getSno() + serialOffset;
             if (saveAsNewSnoList != null && saveAsNewSnoList.contains(row.getSno())) {
                 boq = new BOQ();
                 key += "_" + UUID.randomUUID().toString();
             } else {
                 boq = boqUniqueMap.get(key);
                 if (boq == null && fileName != null) {
-                    List<BOQ> existingByFile = boqDao.findByProjectIdAndSourceFileAndExcelSnoOrderByCreatedAtDesc(projectId, fileName, row.getSno());
+                    List<BOQ> existingByFile = boqDao.findByProjectIdAndSourceFileAndExcelSnoOrderByCreatedAtDesc(projectId, fileName, persistedSno);
                     if (!existingByFile.isEmpty()) {
                         boq = existingByFile.get(0);
                     }
@@ -339,7 +352,7 @@ public class BOQServiceImpl implements BOQService {
             boq.setLevel(level.intValue());
             boq.setPageNo(row.getPageNo());
             boq.setSourceFile(fileName);
-            boq.setExcelSno(row.getSno());
+            boq.setExcelSno(persistedSno);
             if (!row.isLastLevel()) {
                 boq.setLastLevel(lastLevelMapping.getOrDefault(row.getSno(), false));
             } else {

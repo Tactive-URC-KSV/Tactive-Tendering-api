@@ -46,7 +46,7 @@ public class FormattedBoqPdfExtractor {
                 lines, rectangles, headerBottom, pageHeight, boundaries);
         addWrappedUnderlineLines(lines, underlinedLines, headerBottom, pageHeight, boundaries);
         List<List<String>> rows = new ArrayList<>();
-        rows.add(List.of("S.R. NO.", "ITEM DESCRIPTION", "QTY.", "UNIT", "RATE", "AMOUNT"));
+        rows.add(extractHeaderCells(lines, boundaries));
 
         List<TextLine> normalLines = new ArrayList<>();
         BoqRow currentRow = null;
@@ -313,16 +313,7 @@ public class FormattedBoqPdfExtractor {
     }
 
     private double findBoqHeaderBottom(List<TextLine> lines) {
-        TextLine itemHeader = null;
-        for (TextLine line : lines) {
-            String normalized = normalize(line.text());
-            if (normalized.contains("itemdescription")
-                    && normalized.contains("qty")
-                    && normalized.contains("unit")) {
-                itemHeader = line;
-                break;
-            }
-        }
+        TextLine itemHeader = findBoqHeaderLine(lines);
         if (itemHeader == null) {
             return -1;
         }
@@ -332,6 +323,43 @@ public class FormattedBoqPdfExtractor {
                 .mapToDouble(TextLine::bottomY)
                 .max()
                 .orElse(itemHeader.bottomY());
+    }
+
+    private List<String> extractHeaderCells(List<TextLine> lines, double[] boundaries) {
+        TextLine headerLine = findBoqHeaderLine(lines);
+        if (headerLine == null) {
+            return List.of("S.R. NO.", "ITEM DESCRIPTION", "QTY.", "UNIT", "RATE", "AMOUNT");
+        }
+
+        double headerCenter = headerLine.centerY();
+        String[] headerCells = {"", "", "", "", "", ""};
+        lines.stream()
+                .filter(line -> Math.abs(line.centerY() - headerCenter) <= 16)
+                .sorted(Comparator.comparingDouble(TextLine::centerY))
+                .forEach(line -> {
+                    List<String> cells = line.cells(boundaries);
+                    for (int i = 0; i < headerCells.length; i++) {
+                        if (!cells.get(i).isBlank()) {
+                            headerCells[i] = headerCells[i].isBlank()
+                                    ? cells.get(i)
+                                    : headerCells[i] + " " + cells.get(i);
+                        }
+                    }
+                });
+        return List.of(headerCells);
+    }
+
+    private TextLine findBoqHeaderLine(List<TextLine> lines) {
+        for (TextLine line : lines) {
+            String header = normalize(line.text());
+            if (!header.contains("itemdescription")
+                    || !(header.contains("qty") || header.contains("quantity"))
+                    || !header.contains("unit")) {
+                continue;
+            }
+            return line;
+        }
+        return null;
     }
 
     private double[] columnBoundaries(PDPage page, List<PdfRect> rectangles) {

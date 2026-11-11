@@ -13,6 +13,14 @@ public interface BOQDao extends JpaRepository<BOQ, UUID>{
 	List<BOQ> findByProjectId(String projectId);
 	
 	List<BOQ> findByProjectIdAndSourceFileAndExcelSnoOrderByCreatedAtDesc(String projectId, String sourceFile, Long excelSno);
+	@org.springframework.data.jpa.repository.Query("SELECT COALESCE(MAX(b.pageNo), 0) FROM BOQ b WHERE b.projectId = :projectId AND b.sourceFile = :sourceFile")
+	Long findMaxPageNoByProjectIdAndSourceFile(
+			@org.springframework.data.repository.query.Param("projectId") String projectId,
+			@org.springframework.data.repository.query.Param("sourceFile") String sourceFile);
+	@org.springframework.data.jpa.repository.Query("SELECT COALESCE(MAX(b.excelSno), 0) FROM BOQ b WHERE b.projectId = :projectId AND b.sourceFile = :sourceFile")
+	Long findMaxExcelSnoByProjectIdAndSourceFile(
+			@org.springframework.data.repository.query.Param("projectId") String projectId,
+			@org.springframework.data.repository.query.Param("sourceFile") String sourceFile);
 	List<BOQ> findByProjectIdOrderByExcelSnoAscCreatedAtAsc(String projectId);
 	List<BOQ> findByProjectIdAndParentBOQId(String projectId, UUID parentBoqId);
 	List<BOQ> findByProjectIdAndParentBOQIdOrderByExcelSnoAscCreatedAtAsc(String projectId, UUID parentBoqId);

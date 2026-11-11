@@ -427,42 +427,40 @@ public class PdfFileService {
 						continue;
 					}
 
-					if (normalizedHeaders == null || normalizedHeaders.isEmpty()) {
+					normalizedHeaders = rows.get(0).stream()
+							.map(h -> h.toLowerCase().replaceAll("[^a-z0-9]", ""))
+							.toList();
+					mappedColumnIndexes.clear();
 
-						normalizedHeaders = rows.get(0).stream()
-								.map(h -> h.toLowerCase().replaceAll("[^a-z0-9]", ""))
-								.toList();
+					for (Map.Entry<String, List<String>> mapping : columnMapping.entrySet()) {
 
-						for (Map.Entry<String, List<String>> mapping : columnMapping.entrySet()) {
+						String internalKey = mapping.getKey();
+						List<String> expectedHeaders = mapping.getValue();
 
-							String internalKey = mapping.getKey();
-							List<String> expectedHeaders = mapping.getValue();
+						for (String expectedHeader : expectedHeaders) {
 
-							for (String expectedHeader : expectedHeaders) {
+							String normalizedExpected = expectedHeader
+									.toLowerCase()
+									.replaceAll("[^a-z0-9]", "");
 
-								String normalizedExpected = expectedHeader
-										.toLowerCase()
-										.replaceAll("[^a-z0-9]", "");
+							for (int i = 0; i < normalizedHeaders.size(); i++) {
 
-								for (int i = 0; i < normalizedHeaders.size(); i++) {
+								String actualHeader = normalizedHeaders.get(i);
 
-									String actualHeader = normalizedHeaders.get(i);
+								if (!actualHeader.isEmpty()
+										&& (actualHeader.contains(normalizedExpected)
+										|| normalizedExpected.contains(actualHeader))) {
 
-									if (!actualHeader.isEmpty()
-											&& (actualHeader.contains(normalizedExpected)
-											|| normalizedExpected.contains(actualHeader))) {
+									List<Integer> indices =
+											mappedColumnIndexes.computeIfAbsent(
+													internalKey,
+													k -> new ArrayList<>());
 
-										List<Integer> indices =
-												mappedColumnIndexes.computeIfAbsent(
-														internalKey,
-														k -> new ArrayList<>());
-
-										if (!indices.contains(i)) {
-											indices.add(i);
-										}
-
-										break;
+									if (!indices.contains(i)) {
+										indices.add(i);
 									}
+
+									break;
 								}
 							}
 						}

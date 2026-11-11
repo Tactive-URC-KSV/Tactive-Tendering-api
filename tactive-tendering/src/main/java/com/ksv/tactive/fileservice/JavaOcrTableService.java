@@ -13,6 +13,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
@@ -21,8 +22,6 @@ import java.util.regex.Pattern;
 @Service
 public class JavaOcrTableService {
 
-    private static final List<String> BOQ_HEADERS =
-            List.of("S.R. NO.", "ITEM DESCRIPTION", "QTY.", "UNIT", "RATE", "AMOUNT");
     private static final Pattern SERIAL_TOKEN = Pattern.compile("^(?:sr|no)$");
 
     private final String configuredTessdataPath;
@@ -109,7 +108,7 @@ public class JavaOcrTableService {
         }
         double[] boundaries = columnBoundaries(headerWords, imageWidth);
         List<List<String>> rows = new ArrayList<>();
-        rows.add(BOQ_HEADERS);
+        rows.add(extractHeaderCells(headerWords, boundaries));
 
         boolean headerAtTop = headerLine.centerY() < imageHeight / 2.0;
         WordLine previousDataLine = null;
@@ -133,7 +132,6 @@ public class JavaOcrTableService {
                 int column = columnFor(word.centerX(), boundaries);
                 row.set(column, append(row.get(column), word.text));
             }
-
             if (row.stream().allMatch(String::isBlank)) {
                 continue;
             }
@@ -224,7 +222,6 @@ public class JavaOcrTableService {
                 imageWidth * 0.08, imageWidth * 0.37, imageWidth * 0.67,
                 imageWidth * 0.77, imageWidth * 0.87, imageWidth * 0.96
         };
-        double[] centers = fallbackCenters.clone();
         double descriptionCenter = anchor(headerWords, "description", -1);
         double quantityCenter = anchor(headerWords, "qty", anchor(headerWords, "quantity", -1));
         double unitCenter = anchor(headerWords, "unit", -1);
@@ -232,21 +229,16 @@ public class JavaOcrTableService {
         double amountCenter = anchor(headerWords, "amount", -1);
         double serialCenter = serialAnchor(headerWords, descriptionCenter);
 
-        double[] detected = {
+        double[] centers = {
                 serialCenter, descriptionCenter, quantityCenter, unitCenter, rateCenter, amountCenter
         };
-        for (int i = 0; i < detected.length; i++) {
-            if (detected[i] >= 0 && detected[i] < imageWidth) {
-                centers[i] = detected[i];
-            }
-        }
-
-        for (int i = 1; i < centers.length; i++) {
-            if (centers[i] <= centers[i - 1]) {
-                centers = fallbackCenters;
+        for (int i = 0; i < centers.length; i++) {
+            if (centers[i] < 0 || centers[i] >= imageWidth) {
+                centers = fallbackCenters.clone();
                 break;
             }
         }
+        Arrays.sort(centers);
 
         double[] boundaries = new double[centers.length - 1];
         for (int i = 0; i < boundaries.length; i++) {
@@ -261,19 +253,32 @@ public class JavaOcrTableService {
             boundaries[0] = Math.min(imageWidth - 1,
                     serialRightEdge + Math.max(2, imageWidth * 0.01));
         }
-        double quantityLeftEdge = headerWords.stream()
+        double firstNonDescriptionLeftEdge = headerWords.stream()
                 .filter(word -> {
                     String text = normalized(word.text);
-                    return text.equals("qty") || text.equals("quantity");
+                    return !text.contains("description")
+                            && !SERIAL_TOKEN.matcher(text).matches()
+                            && (text.contains("qty") || text.contains("quantity")
+                            || text.contains("unit") || text.contains("rate")
+                            || text.contains("amount"));
                 })
                 .mapToDouble(word -> word.box.getMinX())
-                .findFirst()
+                .min()
                 .orElse(-1);
-        if (quantityLeftEdge >= 0) {
+        if (firstNonDescriptionLeftEdge >= 0) {
             boundaries[1] = Math.max(boundaries[0] + 1,
-                    quantityLeftEdge - Math.max(2, imageWidth * 0.01));
+                    firstNonDescriptionLeftEdge - Math.max(2, imageWidth * 0.01));
         }
         return boundaries;
+    }
+
+    private List<String> extractHeaderCells(List<OcrWord> headerWords, double[] boundaries) {
+        List<String> headers = emptyCells();
+        for (OcrWord word : headerWords) {
+            int column = columnFor(word.centerX(), boundaries);
+            headers.set(column, append(headers.get(column), word.text));
+        }
+        return headers;
     }
 
     private double anchor(List<OcrWord> headerWords, String token, double fallback) {
@@ -321,7 +326,7 @@ public class JavaOcrTableService {
             return false;
         }
         List<String> previous = rows.get(rows.size() - 1);
-        if (previous.equals(BOQ_HEADERS)
+        if (previous.equals(rows.get(0))
                 || previous.get(1).isBlank()) {
             return false;
         }
