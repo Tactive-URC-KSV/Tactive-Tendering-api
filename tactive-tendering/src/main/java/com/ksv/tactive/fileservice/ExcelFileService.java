@@ -455,6 +455,27 @@ public class ExcelFileService {
 						boq.setDivision(String.join(" -- ", values));
 						hasData = true;
 					}
+					case "rateOnly" -> {
+						Boolean value = parseBooleanFlag(values.get(0));
+						if (value != null) {
+							boq.setRateOnly(value);
+							hasData = true;
+						}
+					}
+					case "provisionalSum" -> {
+						Boolean value = parseBooleanFlag(values.get(0));
+						if (value != null) {
+							boq.setProvisionalSum(value);
+							hasData = true;
+						}
+					}
+					case "notQuotedBoq" -> {
+						Boolean value = parseBooleanFlag(values.get(0));
+						if (value != null) {
+							boq.setNotQuotedBoq(value);
+							hasData = true;
+						}
+					}
 					case "quantity" -> {
 						for (String val : values) {
 							try {
@@ -505,6 +526,17 @@ public class ExcelFileService {
 		}
 		workbook.close();
 		return extractedData;
+	}
+
+	private Boolean parseBooleanFlag(String value) {
+		if (value == null || value.isBlank()) {
+			return null;
+		}
+		String normalized = value.trim().toLowerCase(Locale.ROOT);
+		if (normalized.equals("-")) {
+			return null;
+		}
+		return !Set.of("false", "no", "n", "0", "0.0").contains(normalized);
 	}
 
 	public byte[] generateQuoteAttachement(Set<BOQDto> boqDtos) {

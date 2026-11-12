@@ -15,5 +15,8 @@ public class ExcelExtractBOQ {
 	private boolean lastLevel;
 	private String division;
 	private Long pageNo;
+	private Boolean rateOnly;
+	private Boolean provisionalSum;
+	private Boolean notQuotedBoq;
 	
 }

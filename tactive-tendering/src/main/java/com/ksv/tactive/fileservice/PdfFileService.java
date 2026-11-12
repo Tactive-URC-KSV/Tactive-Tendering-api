@@ -218,6 +218,18 @@ public class PdfFileService {
 		}
 		return boqList;
 	}
+
+	private Boolean parseBooleanFlag(String value) {
+		if (value == null || value.isBlank()) {
+			return null;
+		}
+		String normalized = value.trim().toLowerCase(Locale.ROOT);
+		if (normalized.equals("-")) {
+			return null;
+		}
+		return !Set.of("false", "no", "n", "0", "0.0").contains(normalized);
+	}
+
 	private Double parseQuantity(String value) {
 		if (value == null || value.isBlank()) {
 			return null;
@@ -567,6 +579,30 @@ public class PdfFileService {
 									hasValidData = true;
 								}
 
+								case "rateOnly" -> {
+									Boolean value = parseBooleanFlag(values.get(0));
+									if (value != null) {
+										boq.setRateOnly(value);
+										hasValidData = true;
+									}
+								}
+
+								case "provisionalSum" -> {
+									Boolean value = parseBooleanFlag(values.get(0));
+									if (value != null) {
+										boq.setProvisionalSum(value);
+										hasValidData = true;
+									}
+								}
+
+                                 case "notQuotedBoq" -> {
+									Boolean value = parseBooleanFlag(values.get(0));
+									if (value != null) {
+										boq.setNotQuotedBoq(value);
+										hasValidData = true;
+									}
+								}
+ 
 								case "quantity" -> {
 
 									for (String val : values) {

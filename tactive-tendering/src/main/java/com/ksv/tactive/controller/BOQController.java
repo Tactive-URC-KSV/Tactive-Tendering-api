@@ -1,10 +1,9 @@
 package com.ksv.tactive.controller;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.itextpdf.text.DocumentException;
+import com.ksv.tactive.dto.BOQDetailsResponseDto;
 import com.ksv.tactive.dto.ExcelExtractBOQ;
 import com.ksv.tactive.dto.PaginatedResponse;
 import com.ksv.tactive.dto.ProjectInfoDto;
@@ -39,9 +38,6 @@ public class BOQController {
 
     @Autowired
     private MessageSource messageSource;
-
-    @Autowired
-    private ObjectMapper objectMapper;
 
     @PostMapping("/project/excel/getSheets")
     public ResponseEntity<?> getBOQFileData(@RequestParam("file") MultipartFile boqFile) {
@@ -336,11 +332,9 @@ public class BOQController {
             if (boqList == null || boqList.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
             }
-            ArrayNode response = objectMapper.valueToTree(boqList);
-            response.forEach(boq -> {
-                ((ObjectNode) boq).remove("clientBoqCode");
-                ((ObjectNode) boq).remove("uom");
-            });
+            List<BOQDetailsResponseDto> response = boqList.stream()
+                    .map(BOQDetailsResponseDto::from)
+                    .toList();
             return ResponseEntity.status(HttpStatus.OK).body(response);
         } catch (DataNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NO_CONTENT).body(e.getMessage());

@@ -302,6 +302,22 @@ public class BOQServiceImpl implements BOQService {
                     isDifferent = true;
                 }
 
+                if (isColumnMapped(columnMapping, "rateOnly")
+                        && boq.isRateOnly() != Boolean.TRUE.equals(row.getRateOnly())) {
+                    changesObj.put("rateOnly", boq.isRateOnly());
+                    isDifferent = true;
+                }
+
+                if (isColumnMapped(columnMapping, "provisionalSum")
+                        && boq.isProvisionalSum() != Boolean.TRUE.equals(row.getProvisionalSum())) {
+                    changesObj.put("provisionalSum", boq.isProvisionalSum());
+                    isDifferent = true;
+                }
+  if (isColumnMapped(columnMapping, "notQuotedBoq")
+                        && boq.isNotQuotedBoq() != Boolean.TRUE.equals(row.getNotQuotedBoq())) {
+                    changesObj.put("notQuotedBoq", boq.isNotQuotedBoq());
+                    isDifferent = true;
+                }
                 Long existingPage = boq.getPageNo() != null ? boq.getPageNo() : 0L;
                 Long newPage = row.getPageNo() != null ? row.getPageNo() : 0L;
                 if (!existingPage.equals(newPage)) {
@@ -317,6 +333,9 @@ public class BOQServiceImpl implements BOQService {
                     duplicateItem.put("quantity", row.getQuantity());
                     duplicateItem.put("uom", row.getUom());
                     duplicateItem.put("division", row.getDivision());
+                    duplicateItem.put("rateOnly", row.getRateOnly());
+                    duplicateItem.put("provisionalSum", row.getProvisionalSum());
+                    duplicateItem.put("notQuotedBoq", row.getNotQuotedBoq());
                     duplicateItem.put("pageNo", row.getPageNo());
                     duplicateItem.put("level", row.getLevel());
                     duplicateItem.put("parentSno", row.getParentSno());
@@ -346,6 +365,15 @@ public class BOQServiceImpl implements BOQService {
                 boq.setCreatedAt(new java.sql.Timestamp(currentTime++));
             }
             boq.setDivision(row.getDivision());
+            if (isColumnMapped(columnMapping, "rateOnly")) {
+                boq.setRateOnly(Boolean.TRUE.equals(row.getRateOnly()));
+            }
+            if (isColumnMapped(columnMapping, "provisionalSum")) {
+                boq.setProvisionalSum(Boolean.TRUE.equals(row.getProvisionalSum()));
+            }
+            if (isColumnMapped(columnMapping, "notQuotedBoq")) {
+                boq.setNotQuotedBoq(Boolean.TRUE.equals(row.getNotQuotedBoq()));
+            }
             boqUniqueMap.put(key, boq);
             boq.setQuantity(row.getQuantity() != null ? row.getQuantity() : 0.0);
             Long level = levelMapping.getOrDefault(row.getSno(), 0L);
@@ -393,6 +421,12 @@ public class BOQServiceImpl implements BOQService {
             saveBoqUomMappings(projectId, uomMapping);
         }
         return "BOQ Mapping Successfully Stored for Project " + projectId;
+    }
+
+    private boolean isColumnMapped(Map<String, List<String>> columnMapping, String field) {
+        return columnMapping != null
+                && columnMapping.get(field) != null
+                && !columnMapping.get(field).isEmpty();
     }
 
     @Override
