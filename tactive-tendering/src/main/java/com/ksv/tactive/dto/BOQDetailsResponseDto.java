@@ -25,11 +25,9 @@ public class BOQDetailsResponseDto {
     private Long pageNo;
     private Double enqSlNo;
     private Integer version;
-    private String sourceFile;
     private Long excelSno;
     private String boqShortName;
     private String description;
-  //  private boolean notQuotedBoq;
     private boolean priceBoq;
     private boolean archive;
     private Timestamp createdAt;
@@ -53,11 +51,9 @@ public class BOQDetailsResponseDto {
         dto.setPageNo(boq.getPageNo());
         dto.setEnqSlNo(boq.getEnqSlNo());
         dto.setVersion(boq.getVersion());
-        dto.setSourceFile(boq.getSourceFile());
         dto.setExcelSno(boq.getExcelSno());
         dto.setBoqShortName(boq.getBoqShortName());
         dto.setDescription(boq.getDescription());
-     //   dto.setNotQuotedBoq(boq.isNotQuotedBoq());
         dto.setPriceBoq(boq.isPriceBoq());
         dto.setArchive(boq.isArchive());
         dto.setCreatedAt(boq.getCreatedAt());
