@@ -30,6 +30,9 @@ public class BOQDetailsResponseDto {
     private String description;
     private boolean priceBoq;
     private boolean archive;
+    private boolean rateOnly;
+    private boolean provisionalSum;
+    private boolean notQuotedBoq;
     private Timestamp createdAt;
 
     public static BOQDetailsResponseDto from(BOQ boq) {
@@ -56,6 +59,9 @@ public class BOQDetailsResponseDto {
         dto.setDescription(boq.getDescription());
         dto.setPriceBoq(boq.isPriceBoq());
         dto.setArchive(boq.isArchive());
+        dto.setRateOnly(boq.isRateOnly());
+        dto.setProvisionalSum(boq.isProvisionalSum());
+        dto.setNotQuotedBoq(boq.isNotQuotedBoq());
         dto.setCreatedAt(boq.getCreatedAt());
         return dto;
     }
