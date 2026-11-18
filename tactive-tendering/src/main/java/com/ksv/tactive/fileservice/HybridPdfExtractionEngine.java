@@ -198,10 +198,104 @@ public class HybridPdfExtractionEngine {
                 List<String> rawCells = tableRow.stream()
                         .map(cell -> cell.getText() != null ? cell.getText().trim() : "")
                         .toList();
-                rows.add(normalizeTabulaRow(rawCells));
+                List<List<String>> splitRows = splitTabulaRowIfMultipleItems(rawCells);
+                for (List<String> r : splitRows) {
+                    rows.add(normalizeTabulaRow(r));
+                }
             }
         }
         return rows;
+    }
+
+    private List<List<String>> splitTabulaRowIfMultipleItems(List<String> rawCells) {
+        if (rawCells.size() < 2 || rawCells.get(1) == null) {
+            return List.of(rawCells);
+        }
+        String descCell = rawCells.get(1);
+        if (!descCell.contains("\n") && !descCell.contains("\r")) {
+            return List.of(rawCells);
+        }
+
+        String[] descLines = descCell.split("\\r?\\n");
+        java.util.regex.Pattern lineCodePattern = java.util.regex.Pattern.compile(
+                "(?i)^([A-Za-z]|\\d+(?:\\.\\d+)*)[.)\\s]+([A-Za-z].*)$");
+
+        List<Integer> itemLineIndices = new ArrayList<>();
+        for (int i = 0; i < descLines.length; i++) {
+            if (lineCodePattern.matcher(descLines[i].trim()).matches()) {
+                itemLineIndices.add(i);
+            }
+        }
+
+        if (itemLineIndices.size() < 2) {
+            return List.of(rawCells);
+        }
+
+        List<List<String>> result = new ArrayList<>();
+        int firstItemIndex = itemLineIndices.get(0);
+        if (firstItemIndex > 0) {
+            StringBuilder preamble = new StringBuilder();
+            for (int i = 0; i < firstItemIndex; i++) {
+                if (!preamble.isEmpty()) preamble.append(" ");
+                preamble.append(descLines[i].trim());
+            }
+            List<String> preambleRow = new ArrayList<>(rawCells);
+            preambleRow.set(0, "");
+            preambleRow.set(1, preamble.toString());
+            for (int c = 2; c < preambleRow.size(); c++) {
+                preambleRow.set(c, "");
+            }
+            result.add(preambleRow);
+        }
+
+        String[] uomLines = rawCells.size() > 3 && rawCells.get(3) != null
+                ? rawCells.get(3).split("\\r?\\n")
+                : new String[0];
+        String[] qtyLines = rawCells.size() > 2 && rawCells.get(2) != null
+                ? rawCells.get(2).split("\\r?\\n")
+                : new String[0];
+        String[] rateLines = rawCells.size() > 4 && rawCells.get(4) != null
+                ? rawCells.get(4).split("\\r?\\n")
+                : new String[0];
+        String[] amountLines = rawCells.size() > 5 && rawCells.get(5) != null
+                ? rawCells.get(5).split("\\r?\\n")
+                : new String[0];
+
+        for (int k = 0; k < itemLineIndices.size(); k++) {
+            int lineIdx = itemLineIndices.get(k);
+            int nextLineIdx = (k + 1 < itemLineIndices.size()) ? itemLineIndices.get(k + 1) : descLines.length;
+            StringBuilder itemDesc = new StringBuilder(descLines[lineIdx].trim());
+            for (int j = lineIdx + 1; j < nextLineIdx; j++) {
+                itemDesc.append(" ").append(descLines[j].trim());
+            }
+
+            java.util.regex.Matcher m = lineCodePattern.matcher(itemDesc.toString());
+            String code = "";
+            String cleanDesc = itemDesc.toString();
+            if (m.matches()) {
+                code = m.group(1).toUpperCase(java.util.Locale.ROOT);
+                cleanDesc = m.group(2).trim();
+            }
+
+            List<String> subRow = new ArrayList<>(rawCells);
+            subRow.set(0, code);
+            subRow.set(1, cleanDesc);
+            if (subRow.size() > 2) {
+                subRow.set(2, k < qtyLines.length ? qtyLines[k].trim() : (qtyLines.length == 1 ? qtyLines[0].trim() : ""));
+            }
+            if (subRow.size() > 3) {
+                subRow.set(3, k < uomLines.length ? uomLines[k].trim() : (uomLines.length == 1 ? uomLines[0].trim() : ""));
+            }
+            if (subRow.size() > 4) {
+                subRow.set(4, k < rateLines.length ? rateLines[k].trim() : (rateLines.length == 1 ? rateLines[0].trim() : ""));
+            }
+            if (subRow.size() > 5) {
+                subRow.set(5, k < amountLines.length ? amountLines[k].trim() : (amountLines.length == 1 ? amountLines[0].trim() : ""));
+            }
+            result.add(subRow);
+        }
+
+        return result;
     }
 
     static List<String> normalizeTabulaRow(List<String> cells) {

@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import java.awt.geom.Point2D;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Collections;
 import java.util.IdentityHashMap;
@@ -30,8 +31,8 @@ public class FormattedBoqPdfExtractor {
     public List<List<String>> extractRows(PDDocument document, int pageIndex) throws IOException {
         PDPage page = document.getPage(pageIndex - 1);
         List<PdfRect> rectangles = new RectangleCollector().collect(page);
-        double[] boundaries = columnBoundaries(page, rectangles);
         List<TextLine> lines = extractLines(document, pageIndex);
+        double[] boundaries = columnBoundaries(page, rectangles, lines);
         double headerBottom = findBoqHeaderBottom(lines);
         if (headerBottom < 0) {
             return List.of();
@@ -73,8 +74,9 @@ public class FormattedBoqPdfExtractor {
                 appendNormalRows(normalLines, boundaries, rows);
                 normalLines.clear();
                 RowKind kind = bold ? RowKind.BOLD_UNDERLINE : RowKind.UNDERLINE;
-                if (currentRow == null || currentRow.kind != kind
-                        || line.centerY() - previousLineY > 21) {
+                boolean startsNewRow = shouldStartNewUnderlineRow(
+                        currentRow, kind, description, line.centerY(), previousLineY);
+                if (startsNewRow) {
                     if (currentRow != null) {
                         rows.add(currentRow.toCells());
                     }
@@ -95,7 +97,171 @@ public class FormattedBoqPdfExtractor {
         if (currentRow != null) {
             rows.add(currentRow.toCells());
         }
-        return foundFormattedText && rows.size() > 1 ? rows : List.of();
+        boolean hasBoqItems = rows.stream().skip(1).anyMatch(r ->
+                (r.get(0) != null && !r.get(0).isBlank())
+                || (r.get(2) != null && !r.get(2).isBlank())
+                || (r.get(3) != null && !r.get(3).isBlank()));
+        return (foundFormattedText || !underlinedLines.isEmpty() || hasBoqItems) && rows.size() > 1
+                ? rows : List.of();
+    }
+
+    private static final Set<String> CONTINUATION_WORDS = Set.of(
+            "and", "or", "to", "for", "the", "of", "in", "with", "as", "by",
+            "that", "which", "at", "from", "be", "under", "between", "during",
+            "on", "into", "onto", "including", "such", "an", "a"
+    );
+
+    private static boolean endsInContinuationConnector(String text) {
+        if (text == null || text.isBlank()) {
+            return false;
+        }
+        String trimmed = text.trim();
+        if (trimmed.endsWith(",") || trimmed.endsWith("-") || trimmed.endsWith("–") || trimmed.endsWith("/")) {
+            return true;
+        }
+        String[] words = trimmed.split("\\s+");
+        if (words.length > 0) {
+            String lastWord = words[words.length - 1].toLowerCase(Locale.ROOT).replaceAll("[^a-z]", "");
+            return CONTINUATION_WORDS.contains(lastWord);
+        }
+        return false;
+    }
+
+    private static boolean shouldStartNewUnderlineRow(
+            BoqRow currentRow,
+            RowKind currentKind,
+            String description,
+            double centerY,
+            double previousLineY) {
+        if (currentRow == null) {
+            return true;
+        }
+        if (currentRow.kind != currentKind) {
+            return true;
+        }
+        double gap = (previousLineY > 0) ? (centerY - previousLineY) : 0;
+        if (gap > 22.0) {
+            return true;
+        }
+        String prevDesc = currentRow.cells[1] != null ? currentRow.cells[1].trim() : "";
+        if (prevDesc.isBlank()) {
+            return false;
+        }
+        String currDesc = description != null ? description.trim() : "";
+        if (currDesc.isBlank()) {
+            return false;
+        }
+
+        // 1. Lowercase continuation: if current line starts with lowercase, it is a continuation
+        if (Character.isLowerCase(currDesc.charAt(0))) {
+            return false;
+        }
+
+        // 2. Connector continuation: if previous line ended with connecting word or punctuation
+        if (endsInContinuationConnector(prevDesc)) {
+            return false;
+        }
+
+        // 3. Sentence terminator: if previous line ended with period, colon, or semicolon
+        if (prevDesc.endsWith(".") || prevDesc.endsWith(":") || prevDesc.endsWith(";")) {
+            return true;
+        }
+
+        // 4. Standalone heading titles vs prose
+        boolean prevIsHeading = isHeadingTitle(prevDesc);
+        boolean currIsHeading = isHeadingTitle(currDesc);
+
+        if (prevIsHeading && currIsHeading) {
+            return true;
+        }
+        if (prevIsHeading != currIsHeading) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private static boolean isHeadingTitle(String text) {
+        if (text == null || text.isBlank()) {
+            return false;
+        }
+        String trimmed = text.trim();
+        String lower = trimmed.toLowerCase(Locale.ROOT);
+        if (lower.startsWith("bill no") || lower.contains("schedule")
+                || lower.equals("labour") || lower.equals("materials") || lower.equals("plant")
+                || lower.contains("specification") || lower.contains("shop drawings")
+                || lower.contains("insurances") || lower.contains("security")) {
+            return true;
+        }
+        if (trimmed.endsWith(".") || trimmed.endsWith(":") || trimmed.endsWith(",")) {
+            return false;
+        }
+        if (lower.startsWith("the ") || lower.startsWith("allow ") || lower.startsWith("provide ")
+                || lower.startsWith("to ") || lower.startsWith("for ") || lower.startsWith("all ")) {
+            return false;
+        }
+        String[] words = trimmed.split("\\s+");
+        return words.length <= 10;
+    }
+
+    private static final Pattern CODE_IN_DESC = Pattern.compile(
+            "(?i)^([a-z]{1,3}|\\d+(?:\\.\\d+)*)[.)\\s]+(.*)$");
+
+    private static boolean isValidExtractedCode(
+            String code, String restDesc, String uom, String qty, String rate) {
+        if (code == null || code.isBlank() || restDesc == null || restDesc.isBlank()) {
+            return false;
+        }
+        String cleanCode = code.trim();
+        boolean hasData = (!uom.isBlank() && !uom.matches("[-–—]+"))
+                || (!qty.isBlank() && !qty.matches("[-–—]+"))
+                || (!rate.isBlank() && !rate.matches("[-–—]+"));
+        if (cleanCode.matches("^\\d+(\\.\\d+)*$")) {
+            if (cleanCode.contains(".")) {
+                return true;
+            }
+            if (!hasData) {
+                return false;
+            }
+            String lowerRest = restDesc.toLowerCase(Locale.ROOT);
+            if (lowerRest.matches("^(?:mm|cm|m|m2|m3|gauge|guage|coat|coats|layer|layers|set|sets|nos|no|times|inch|inches|dia|diameter|thick|ply|micron|microns|bar|bars)\\b.*")) {
+                return false;
+            }
+            try {
+                if (Long.parseLong(cleanCode) > 999) {
+                    return false;
+                }
+            } catch (Exception ignored) {}
+            return true;
+        }
+        if (cleanCode.matches("^[B-Zb-z]$")) {
+            return true;
+        }
+        if (cleanCode.equalsIgnoreCase("A")) {
+            boolean startsWithCapital = restDesc.matches("^[A-Z].*");
+            return hasData || startsWithCapital;
+        }
+        return false;
+    }
+
+    private static final class ParsedBoqLine {
+        final String code;
+        final String desc;
+        final String qty;
+        final String uom;
+        final String rate;
+        final String amount;
+        final double centerY;
+
+        ParsedBoqLine(String code, String desc, String qty, String uom, String rate, String amount, double centerY) {
+            this.code = code;
+            this.desc = desc;
+            this.qty = qty;
+            this.uom = uom;
+            this.rate = rate;
+            this.amount = amount;
+            this.centerY = centerY;
+        }
     }
 
     private void appendNormalRows(
@@ -104,36 +270,141 @@ public class FormattedBoqPdfExtractor {
             return;
         }
 
-        List<TextLine> itemLines = lines.stream()
-                .filter(line -> ITEM_CODE.matcher(line.cells(boundaries).get(0).trim()).matches())
-                .toList();
-        if (itemLines.isEmpty()) {
-            BoqRow row = new BoqRow(RowKind.NORMAL);
-            lines.forEach(line -> row.appendCells(line.cells(boundaries), 1));
-            rows.add(row.toCells());
-            return;
-        }
-
-        List<BoqRow> itemRows = itemLines.stream()
-                .map(line -> {
-                    BoqRow row = new BoqRow(RowKind.NORMAL);
-                    row.append(0, line.cells(boundaries).get(0));
-                    return row;
-                })
-                .toList();
-        for (TextLine line : lines) {
-            int nearestItem = 0;
-            double nearestDistance = Double.POSITIVE_INFINITY;
-            for (int i = 0; i < itemLines.size(); i++) {
-                double distance = Math.abs(line.centerY() - itemLines.get(i).centerY());
-                if (distance < nearestDistance) {
-                    nearestDistance = distance;
-                    nearestItem = i;
+        int qtyCol = 2;
+        int uomCol = 3;
+        int rateCol = 4;
+        int amountCol = 5;
+        if (!rows.isEmpty()) {
+            List<String> headers = rows.get(0);
+            for (int i = 0; i < headers.size(); i++) {
+                String h = normalize(headers.get(i));
+                if (h.contains("qty") || h.contains("quant")) {
+                    qtyCol = i;
+                } else if (h.contains("unit") || h.contains("uom")) {
+                    uomCol = i;
+                } else if (h.contains("rate") || h.contains("price")) {
+                    rateCol = i;
+                } else if (h.contains("amount") || h.contains("total")) {
+                    amountCol = i;
                 }
             }
-            itemRows.get(nearestItem).appendCells(line.cells(boundaries), 1);
         }
-        itemRows.forEach(row -> rows.add(row.toCells()));
+
+        List<ParsedBoqLine> parsedLines = new ArrayList<>();
+        for (TextLine line : lines) {
+            List<String> cells = line.cells(boundaries);
+            String col0 = cells.get(0).trim();
+            String col1 = cells.get(1).trim();
+            String qty  = cells.size() > qtyCol ? cells.get(qtyCol).trim() : "";
+            String uom  = cells.size() > uomCol ? cells.get(uomCol).trim() : "";
+            String rate = cells.size() > rateCol ? cells.get(rateCol).trim() : "";
+            String amount = cells.size() > amountCol ? cells.get(amountCol).trim() : "";
+
+            if (!qty.isBlank() && !isNumericOrDash(qty)) {
+                col1 = col1.isBlank() ? qty : col1 + " " + qty;
+                qty = "";
+            }
+
+            // Split merged "unit number" in the uom cell.
+            // e.g. "litre 10", "m2 50", "m3 25" → uom keeps unit text, rate/qty gets the number.
+            if (!uom.isBlank() && !isNumericOrDash(uom)) {
+                String[] uomParts = uom.trim().split("\\s+");
+                if (uomParts.length >= 2) {
+                    String lastToken = uomParts[uomParts.length - 1];
+                    if (lastToken.matches("\\d+(?:[,.]\\d+)?")) {
+                        if (qty.isBlank()) {
+                            qty = lastToken;
+                        } else if (!rate.matches(".*\\d.*")) {
+                            rate = lastToken;
+                        }
+                        uom = uom.substring(0, uom.trim().lastIndexOf(lastToken)).trim();
+                    }
+                }
+            }
+            // Normalize: clear non-numeric rate/amount
+            rate   = isNumericOrDash(rate)   ? rate   : "";
+            amount = isNumericOrDash(amount) ? amount : "";
+
+            if (col0.isBlank() && !col1.isBlank()) {
+                java.util.regex.Matcher m = CODE_IN_DESC.matcher(col1);
+                if (m.matches()) {
+                    String possibleCode = m.group(1);
+                    String restDesc = m.group(2).trim();
+                    if (isValidExtractedCode(possibleCode, restDesc, uom, qty, rate)) {
+                        col0 = possibleCode.toUpperCase(Locale.ROOT);
+                        col1 = restDesc;
+                    }
+                } else if (col1.matches("(?i)[a-z]")
+                        && (!uom.isBlank() || !qty.isBlank() || !rate.isBlank())) {
+                    col0 = col1.toUpperCase(Locale.ROOT);
+                    col1 = "";
+                } else if (!uom.isBlank() || !qty.isBlank() || !rate.isBlank()) {
+                    java.util.regex.Matcher endMatcher = Pattern.compile("^(.*?)\\s+([B-Zb-z])$").matcher(col1);
+                    if (endMatcher.matches()) {
+                        col0 = endMatcher.group(2).toUpperCase(Locale.ROOT);
+                        col1 = endMatcher.group(1).trim();
+                    }
+                }
+            } else if (!col0.isBlank() && !col1.isBlank()) {
+                if (!isValidExtractedCode(col0, col1, uom, qty, rate)) {
+                    col1 = col0 + " " + col1;
+                    col0 = "";
+                }
+            }
+
+            parsedLines.add(new ParsedBoqLine(col0, col1, qty, uom, rate, amount, line.centerY()));
+        }
+
+        BoqRow currentRow = null;
+        double previousLineY = -1;
+
+        for (ParsedBoqLine pl : parsedLines) {
+            // hasData = true only when there is a REAL number or meaningful unit
+            boolean hasData = hasMeaningfulUnit(pl.uom)
+                    || isActualNumber(pl.qty)
+                    || isActualNumber(pl.rate)
+                    || isActualNumber(pl.amount);
+            boolean hasCode = !pl.code.isBlank();
+            double gap = (previousLineY > 0) ? (pl.centerY - previousLineY) : 0;
+
+            boolean bothHaveCode = (currentRow != null && !currentRow.cells[0].isBlank() && hasCode);
+            boolean bothHaveData = (currentRow != null && currentRow.hasData() && hasData);
+            boolean gapAfterData = (currentRow != null && currentRow.hasData() && gap > 21.0);
+            // A description-only continuation followed by a large gap → new row
+            boolean gapBetweenDescOnly = (currentRow != null && !currentRow.hasData() && !hasData && gap > 21.0);
+
+            boolean startsNewRow = (currentRow == null) || bothHaveCode || bothHaveData
+                    || gapAfterData || gapBetweenDescOnly;
+
+            if (startsNewRow) {
+                if (currentRow != null) {
+                    rows.add(currentRow.toCells());
+                }
+                currentRow = new BoqRow(RowKind.NORMAL);
+                if (hasCode) {
+                    currentRow.append(0, pl.code);
+                }
+                currentRow.append(1, pl.desc);
+                if (!pl.qty.isBlank()) currentRow.append(qtyCol, pl.qty);
+                if (!pl.uom.isBlank()) currentRow.append(uomCol, pl.uom);
+                if (!pl.rate.isBlank()) currentRow.append(rateCol, pl.rate);
+                if (!pl.amount.isBlank()) currentRow.append(amountCol, pl.amount);
+            } else {
+                if (hasCode && currentRow.cells[0].isBlank()) {
+                    currentRow.append(0, pl.code);
+                }
+                currentRow.append(1, pl.desc);
+                if (!pl.qty.isBlank() && currentRow.cells[qtyCol].isBlank()) currentRow.append(qtyCol, pl.qty);
+                if (!pl.uom.isBlank() && currentRow.cells[uomCol].isBlank()) currentRow.append(uomCol, pl.uom);
+                if (!pl.rate.isBlank() && currentRow.cells[rateCol].isBlank()) currentRow.append(rateCol, pl.rate);
+                if (!pl.amount.isBlank() && currentRow.cells[amountCol].isBlank()) currentRow.append(amountCol, pl.amount);
+            }
+            previousLineY = pl.centerY;
+        }
+
+        if (currentRow != null) {
+            rows.add(currentRow.toCells());
+        }
     }
 
     private Set<TextLine> findUnderlinedLines(
@@ -147,9 +418,6 @@ public class FormattedBoqPdfExtractor {
                 .filter(PdfRect::isHorizontalRule)
                 .toList();
         for (TextLine line : lines) {
-            if (line.centerY() <= headerBottom + 3 || line.centerY() >= pageHeight - 60) {
-                continue;
-            }
             String description = line.textBetween(boundaries[0], boundaries[1]);
             if (description.isBlank()) {
                 continue;
@@ -197,7 +465,7 @@ public class FormattedBoqPdfExtractor {
             }
             List<String> cells = line.cells(boundaries);
             if (cells.get(0).isBlank() && cells.subList(2, cells.size()).stream().allMatch(String::isBlank)
-                    && !cells.get(1).isBlank()) {
+                    && !cells.get(1).isBlank() && isHeadingTitle(cells.get(1))) {
                 boolean adjacentMatch = hasAdjacentUnderlineLine(lines, underlinedLines, i - 1,
                         line, boundaries)
                         || hasAdjacentUnderlineLine(lines, underlinedLines, i + 1, line, boundaries);
@@ -325,20 +593,32 @@ public class FormattedBoqPdfExtractor {
                 .orElse(itemHeader.bottomY());
     }
 
+    private static final List<String> HEADER_KEYWORDS = List.of(
+            "description", "desc", "item", "particular", "scope", "work",
+            "qty", "quantity", "unit", "uom", "rate", "price", "amount",
+            "total", "cost", "code", "no", "srno", "sno"
+    );
+
     private List<String> extractHeaderCells(List<TextLine> lines, double[] boundaries) {
+        int numColumns = boundaries.length + 1;
         TextLine headerLine = findBoqHeaderLine(lines);
         if (headerLine == null) {
-            return List.of("S.R. NO.", "ITEM DESCRIPTION", "QTY.", "UNIT", "RATE", "AMOUNT");
+            List<String> defaultHeaders = new ArrayList<>();
+            for (int i = 1; i <= numColumns; i++) {
+                defaultHeaders.add("Column " + i);
+            }
+            return defaultHeaders;
         }
 
         double headerCenter = headerLine.centerY();
-        String[] headerCells = {"", "", "", "", "", ""};
+        String[] headerCells = new String[numColumns];
+        Arrays.fill(headerCells, "");
         lines.stream()
                 .filter(line -> Math.abs(line.centerY() - headerCenter) <= 16)
                 .sorted(Comparator.comparingDouble(TextLine::centerY))
                 .forEach(line -> {
                     List<String> cells = line.cells(boundaries);
-                    for (int i = 0; i < headerCells.length; i++) {
+                    for (int i = 0; i < Math.min(headerCells.length, cells.size()); i++) {
                         if (!cells.get(i).isBlank()) {
                             headerCells[i] = headerCells[i].isBlank()
                                     ? cells.get(i)
@@ -346,23 +626,43 @@ public class FormattedBoqPdfExtractor {
                         }
                     }
                 });
-        return List.of(headerCells);
+
+        List<String> result = new ArrayList<>();
+        for (int i = 0; i < headerCells.length; i++) {
+            String val = headerCells[i].trim();
+            result.add(val.isEmpty() ? "Column " + (i + 1) : val);
+        }
+        return result;
     }
 
     private TextLine findBoqHeaderLine(List<TextLine> lines) {
+        TextLine bestKeywordLine = null;
+        int maxKeywords = 0;
         for (TextLine line : lines) {
             String header = normalize(line.text());
-            if (!header.contains("itemdescription")
-                    || !(header.contains("qty") || header.contains("quantity"))
-                    || !header.contains("unit")) {
-                continue;
+            int count = 0;
+            for (String kw : HEADER_KEYWORDS) {
+                if (header.contains(kw)) {
+                    count++;
+                }
             }
-            return line;
+            if (count > maxKeywords) {
+                maxKeywords = count;
+                bestKeywordLine = line;
+            }
+        }
+        if (bestKeywordLine != null && maxKeywords >= 1) {
+            return bestKeywordLine;
+        }
+        for (TextLine line : lines) {
+            if (line.centerY() > 40 && line.text().trim().split("\\s+").length >= 3) {
+                return line;
+            }
         }
         return null;
     }
 
-    private double[] columnBoundaries(PDPage page, List<PdfRect> rectangles) {
+    private double[] columnBoundaries(PDPage page, List<PdfRect> rectangles, List<TextLine> lines) {
         double minimumDividerHeight = page.getMediaBox().getHeight() * 0.4;
         List<Double> verticalLines = rectangles.stream()
                 .filter(PdfRect::isVerticalRule)
@@ -377,26 +677,74 @@ public class FormattedBoqPdfExtractor {
         if (verticalLines.size() >= 7) {
             double[] boundaries = verticalLines.subList(1, 6)
                     .stream().mapToDouble(Double::doubleValue).toArray();
-            boundaries[0] += 5;
-            boundaries[1] += 5;
-            return boundaries;
+            return alignSerialNumberBoundary(lines, boundaries);
         }
 
         double width = page.getCropBox().getWidth();
-        return new double[] {
-                width * 0.152,
+        return alignSerialNumberBoundary(lines, new double[] {
+                width * 0.165,
                 width * 0.534,
                 width * 0.59,
                 width * 0.644,
                 width * 0.732
-        };
+        });
+    }
+
+    private double[] alignSerialNumberBoundary(List<TextLine> lines, double[] boundaries) {
+        List<String> headers = extractHeaderCells(lines, boundaries);
+        if (headers.size() < 2) {
+            return boundaries;
+        }
+        String firstHeader = normalize(headers.get(0));
+        String secondHeader = normalize(headers.get(1));
+        boolean hasSerialHeader = secondHeader.contains("sr")
+                || (secondHeader.startsWith("no")
+                        && (secondHeader.contains("item") || secondHeader.contains("description")));
+        if (firstHeader.contains("sr") || firstHeader.equals("no") || !hasSerialHeader
+                || !(secondHeader.contains("item") || secondHeader.contains("description"))) {
+            return boundaries;
+        }
+
+        TextLine headerLine = findBoqHeaderLine(lines);
+        if (headerLine == null) {
+            return boundaries;
+        }
+        double headerCenter = headerLine.centerY();
+        double serialCenter = lines.stream()
+                .filter(line -> Math.abs(line.centerY() - headerCenter) <= 16)
+                .flatMap(line -> line.orderedRuns().stream())
+                .filter(run -> normalize(run.text).equals("sr") || normalize(run.text).equals("no"))
+                .mapToDouble(TextRun::centerX)
+                .findFirst()
+                .orElse(Double.NaN);
+        double descriptionCenter = lines.stream()
+                .filter(line -> Math.abs(line.centerY() - headerCenter) <= 16)
+                .flatMap(line -> line.orderedRuns().stream())
+                .filter(run -> normalize(run.text).contains("item")
+                        || normalize(run.text).contains("description"))
+                .mapToDouble(TextRun::centerX)
+                .min()
+                .orElse(Double.NaN);
+        if (Double.isFinite(serialCenter) && Double.isFinite(descriptionCenter)
+                && serialCenter < descriptionCenter && serialCenter < boundaries[1]) {
+            boundaries[0] = Math.max(boundaries[0], serialCenter + 0.1);
+        }
+        return boundaries;
     }
 
     private boolean isTotalOrPageFooter(String text) {
         String normalized = normalize(text);
+        if (normalized.startsWith("billno") || normalized.contains("schedule")
+                || normalized.contains("material") || normalized.contains("labour") || normalized.contains("plant")) {
+            return false;
+        }
         return normalized.contains("totalcarried")
                 || normalized.contains("grandtotal")
                 || normalized.contains("carriedtosummary")
+                || normalized.contains("carriedtocollection")
+                || normalized.equals("contd")
+                || normalized.equals("continued")
+                || normalized.equals("contd.")
                 || normalized.matches(".*page[billno]*\\d+.*");
     }
 
@@ -413,6 +761,19 @@ public class FormattedBoqPdfExtractor {
         return value.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]", "");
     }
 
+    private static boolean hasMeaningfulUnit(String value) {
+        return value != null && !value.isBlank() && !value.matches("[-–—]");
+    }
+
+    private static boolean isNumericOrDash(String value) {
+        return value != null && value.trim().matches("[-–—]|-?(?:\\d[\\d,]*(?:\\.\\d+)?|\\.\\d+)");
+    }
+
+    // Stricter check: real number only, not a placeholder dash
+    private static boolean isActualNumber(String value) {
+        return value != null && value.trim().matches("-?(?:\\d[\\d,]*(?:\\.\\d+)?|\\.\\d+)");
+    }
+
     private enum RowKind {
         NORMAL,
         UNDERLINE,
@@ -425,6 +786,13 @@ public class FormattedBoqPdfExtractor {
 
         private BoqRow(RowKind kind) {
             this.kind = kind;
+        }
+
+        private boolean hasData() {
+            return hasMeaningfulUnit(cells[3])
+                    || isActualNumber(cells[2])
+                    || isActualNumber(cells[4])
+                    || isActualNumber(cells[5]);
         }
 
         private void appendCells(List<String> values, int firstCell) {
@@ -448,7 +816,7 @@ public class FormattedBoqPdfExtractor {
 
     }
 
-    private static final class TextLine {
+    static final class TextLine {
         private final List<TextRun> runs = new ArrayList<>();
 
         private void add(TextRun run) {
@@ -566,20 +934,20 @@ public class FormattedBoqPdfExtractor {
         }
     }
 
-    private record PdfRect(double minX, double minY, double maxX, double maxY) {
-        private boolean isHorizontalRule() {
+    record PdfRect(double minX, double minY, double maxX, double maxY) {
+        boolean isHorizontalRule() {
             return maxX - minX > 10 && maxY - minY <= 0.5;
         }
 
-        private boolean isVerticalRule() {
+        boolean isVerticalRule() {
             return maxX - minX <= 1.5 && maxY - minY > 100;
         }
     }
 
-    private static final class RectangleCollector extends PDFStreamEngine {
+    static final class RectangleCollector extends PDFStreamEngine {
         private final List<PdfRect> rectangles = new ArrayList<>();
 
-        private List<PdfRect> collect(PDPage page) throws IOException {
+        List<PdfRect> collect(PDPage page) throws IOException {
             processPage(page);
             return rectangles;
         }

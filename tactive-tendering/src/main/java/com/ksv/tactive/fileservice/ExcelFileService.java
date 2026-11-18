@@ -41,18 +41,69 @@ public class ExcelFileService {
 	}
 
 	public List<String> getSheetNames(MultipartFile file) throws IOException {
-		Workbook workbook = file.getOriginalFilename().endsWith(".xlsx") ? readXlsxFile(file) : readXlsFile(file);
-		List<String> sheets = new ArrayList<>();
-		for (int i = 0; i < workbook.getNumberOfSheets(); i++) {
-			sheets.add(workbook.getSheetName(i));
+		try (Workbook workbook = file.getOriginalFilename().endsWith(".xlsx") ? readXlsxFile(file) : readXlsFile(file)) {
+			List<String> sheets = new ArrayList<>();
+			for (int i = 0; i < workbook.getNumberOfSheets(); i++) {
+				if (!workbook.isSheetHidden(i) && !workbook.isSheetVeryHidden(i)) {
+					sheets.add(workbook.getSheetName(i));
+				}
+			}
+			return sheets;
 		}
-		return sheets;
+	}
+
+	List<String> resolveTargetSheets(Workbook workbook, String sheetName) {
+		List<String> targetSheets = new ArrayList<>();
+		if (sheetName == null || sheetName.isBlank()
+				|| sheetName.equalsIgnoreCase("__ALL__")
+				|| sheetName.equalsIgnoreCase("All Sheets")
+				|| sheetName.equals("*")) {
+			for (int i = 0; i < workbook.getNumberOfSheets(); i++) {
+				if (!workbook.isSheetHidden(i) && !workbook.isSheetVeryHidden(i)) {
+					targetSheets.add(workbook.getSheetName(i));
+				}
+			}
+		} else if (sheetName.contains(",")) {
+			String[] names = sheetName.split(",");
+			for (String name : names) {
+				String trimmed = name.trim();
+				if (!trimmed.isEmpty() && workbook.getSheet(trimmed) != null) {
+					targetSheets.add(trimmed);
+				}
+			}
+		} else {
+			Sheet single = workbook.getSheet(sheetName.trim());
+			if (single != null) {
+				targetSheets.add(sheetName.trim());
+			}
+		}
+		return targetSheets;
 	}
 
 	public List<String> getColumns(MultipartFile boqFile, String sheetName) throws IOException {
-		Workbook workbook = boqFile.getOriginalFilename().endsWith(".xlsx") ? readXlsxFile(boqFile) : readXlsFile(boqFile);
-		Sheet sheet = workbook.getSheet(sheetName);
-		return getColumnHeader(sheet);
+		try (Workbook workbook = boqFile.getOriginalFilename().endsWith(".xlsx") ? readXlsxFile(boqFile) : readXlsFile(boqFile)) {
+			List<String> targetSheets = resolveTargetSheets(workbook, sheetName);
+			if (targetSheets.isEmpty()) {
+				if (workbook.getNumberOfSheets() > 0) {
+					return getColumnHeader(workbook.getSheetAt(0));
+				}
+				return List.of();
+			}
+			List<String> combinedColumns = new ArrayList<>();
+			Set<String> seenNormalized = new HashSet<>();
+			for (String targetSheet : targetSheets) {
+				Sheet sheet = workbook.getSheet(targetSheet);
+				if (sheet == null) continue;
+				List<String> headers = getColumnHeader(sheet);
+				for (String header : headers) {
+					String norm = header.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]", "");
+					if (!norm.isBlank() && seenNormalized.add(norm)) {
+						combinedColumns.add(header);
+					}
+				}
+			}
+			return combinedColumns;
+		}
 	}
 
 	private List<String> getColumnHeader(Sheet sheet) {
@@ -372,160 +423,170 @@ public class ExcelFileService {
 	public List<ExcelExtractBOQ> getExtractedData(
 			MultipartFile boqFile, String sheetName, Map<String, List<String>> columnMapping, int startRow, int endRow, String pageBreakWord) throws IOException {
 
-		Workbook workbook = boqFile.getOriginalFilename().endsWith(".xlsx") ? readXlsxFile(boqFile) : readXlsFile(boqFile);
-		Sheet sheet = workbook.getSheet(sheetName);
-		if (sheet == null) return new ArrayList<>();
-		Map<String, List<Integer>> columnIndex = findColumnIndexMap(sheet, columnMapping);
-		if (columnIndex.isEmpty()) return new ArrayList<>();
+		try (Workbook workbook = boqFile.getOriginalFilename().endsWith(".xlsx") ? readXlsxFile(boqFile) : readXlsFile(boqFile)) {
+			List<String> targetSheets = resolveTargetSheets(workbook, sheetName);
+			if (targetSheets.isEmpty()) return new ArrayList<>();
 
-		FormulaEvaluator evaluator = workbook.getCreationHelper().createFormulaEvaluator();
-		int lastRowNum = sheet.getLastRowNum();
-		int detectedStart = (startRow == 0) ? findRowNumber(sheet, columnMapping) : startRow;
-		int finalStartRow = Math.max(detectedStart, 0);
-		int finalEndRow = (endRow == 0) ? lastRowNum : Math.min(endRow, lastRowNum);
+			FormulaEvaluator evaluator = workbook.getCreationHelper().createFormulaEvaluator();
+			List<ExcelExtractBOQ> extractedData = new ArrayList<>();
+			int serialNumber = 1;
+			long currentPageNo = 1L;
+			boolean isMultiSheet = targetSheets.size() > 1;
 
-		List<ExcelExtractBOQ> extractedData = new ArrayList<>();
-		int serialNumber = 1;
-		long currentPageNo = 1L;
+			for (String currentSheetName : targetSheets) {
+				Sheet sheet = workbook.getSheet(currentSheetName);
+				if (sheet == null) continue;
 
-		for (int rowNum = finalStartRow; rowNum <= finalEndRow; rowNum++) {
-			Row row = sheet.getRow(rowNum);
+				Map<String, List<Integer>> columnIndex = findColumnIndexMap(sheet, columnMapping);
+				if (columnIndex.isEmpty()) continue;
 
-			// SANITIZATION: Skip null rows and hidden rows
-			if (row == null || row.getZeroHeight()) continue;
+				int lastRowNum = sheet.getLastRowNum();
+				int detectedStart = (startRow == 0) ? findRowNumber(sheet, columnMapping) : startRow;
+				int finalStartRow = Math.max(detectedStart, 0);
+				int finalEndRow = (endRow == 0) ? lastRowNum : Math.min(endRow, lastRowNum);
 
-			boolean pageBreakFound = false;
-			boolean hasOtherText = false;
-			if (pageBreakWord != null && !pageBreakWord.trim().isEmpty()) {
-				String lowerBreakWord = pageBreakWord.toLowerCase().trim();
-				for (int i = 0; i < row.getLastCellNum(); i++) {
-					Cell cell = row.getCell(i);
-					String cellValue = getCellValueAsString(cell, evaluator);
-					if (cellValue != null && !cellValue.trim().isEmpty()) {
-						String lowerCell = cellValue.toLowerCase().trim();
-						if (lowerCell.contains(lowerBreakWord)) {
-							pageBreakFound = true;
-							String remaining = lowerCell.replace(lowerBreakWord, "").trim();
-							if (!remaining.isEmpty()) {
-								hasOtherText = true;
-							}
-						} else {
-							hasOtherText = true;
-						}
-					}
-				}
-			}
+				for (int rowNum = finalStartRow; rowNum <= finalEndRow; rowNum++) {
+					Row row = sheet.getRow(rowNum);
 
-			if (pageBreakFound && !hasOtherText) {
-				currentPageNo++;
-				continue;
-			}
+					// SANITIZATION: Skip null rows and hidden rows
+					if (row == null || row.getZeroHeight()) continue;
 
-			ExcelExtractBOQ boq = new ExcelExtractBOQ();
-			boq.setSno(serialNumber++);
-			boq.setPageNo(currentPageNo);
-			boolean hasData = false;
-
-			for (Map.Entry<String, List<Integer>> entry : columnIndex.entrySet()) {
-				String internalField = entry.getKey();
-				List<Integer> colIndices = entry.getValue();
-
-				// Collect all non-null values from mapped columns
-				List<String> values = new ArrayList<>();
-				for (Integer colIdx : colIndices) {
-					Cell cell = row.getCell(colIdx);
-					String rawValue = getCellValueAsString(cell, evaluator);
-					if (rawValue != null) {
-						values.add(rawValue);
-					}
-				}
-
-				if (values.isEmpty()) continue;
-
-				switch (internalField) {
-					case "boqCode" -> {
-						boq.setBoqCode(String.join(" -- ", values));
-						hasData = true;
-					}
-					case "boqName" -> {
-						boq.setBoqName(String.join(" -- ", values));
-						hasData = true;
-					}
-					case "division" -> {
-						boq.setDivision(String.join(" -- ", values));
-						hasData = true;
-					}
-					case "rateOnly" -> {
-						Boolean value = parseBooleanFlag(values.get(0));
-						if (value != null) {
-							boq.setRateOnly(value);
-							hasData = true;
-						}
-					}
-					case "provisionalSum" -> {
-						Boolean value = parseBooleanFlag(values.get(0));
-						if (value != null) {
-							boq.setProvisionalSum(value);
-							hasData = true;
-						}
-					}
-					case "notQuotedBoq" -> {
-						Boolean value = parseBooleanFlag(values.get(0));
-						if (value != null) {
-							boq.setNotQuotedBoq(value);
-							hasData = true;
-						}
-					}
-					case "quantity" -> {
-						for (String val : values) {
-							try {
-								String cleanedValue = val.replace(",", "").replaceAll("[^0-9.-]", "").trim();
-								if (!cleanedValue.isEmpty()) {
-									boq.setQuantity(Double.parseDouble(cleanedValue));
-									hasData = true;
-									break; // Use first valid numeric value
+					boolean pageBreakFound = false;
+					boolean hasOtherText = false;
+					if (pageBreakWord != null && !pageBreakWord.trim().isEmpty()) {
+						String lowerBreakWord = pageBreakWord.toLowerCase().trim();
+						for (int i = 0; i < row.getLastCellNum(); i++) {
+							Cell cell = row.getCell(i);
+							String cellValue = getCellValueAsString(cell, evaluator);
+							if (cellValue != null && !cellValue.trim().isEmpty()) {
+								String lowerCell = cellValue.toLowerCase().trim();
+								if (lowerCell.contains(lowerBreakWord)) {
+									pageBreakFound = true;
+									String remaining = lowerCell.replace(lowerBreakWord, "").trim();
+									if (!remaining.isEmpty()) {
+										hasOtherText = true;
+									}
+								} else {
+									hasOtherText = true;
 								}
-							} catch (Exception e) {
-								// Try next column
 							}
 						}
 					}
-					case "uom" -> {
-						boq.setUom(values.get(0)); // Use first non-empty UOM
-						hasData = true;
+
+					if (pageBreakFound && !hasOtherText) {
+						currentPageNo++;
+						continue;
 					}
-					case "pageNo" -> {
-						for (String val : values) {
-							try {
-								String cleanedValue = val.replace(",", "").replaceAll("[^0-9.-]", "").trim();
-								if (!cleanedValue.isEmpty()) {
-									boq.setPageNo(Double.valueOf(cleanedValue).longValue());
+
+					ExcelExtractBOQ boq = new ExcelExtractBOQ();
+					boq.setSno(serialNumber++);
+					boq.setPageNo(currentPageNo);
+					boolean hasData = false;
+
+					for (Map.Entry<String, List<Integer>> entry : columnIndex.entrySet()) {
+						String internalField = entry.getKey();
+						List<Integer> colIndices = entry.getValue();
+
+						// Collect all non-null values from mapped columns
+						List<String> values = new ArrayList<>();
+						for (Integer colIdx : colIndices) {
+							Cell cell = row.getCell(colIdx);
+							String rawValue = getCellValueAsString(cell, evaluator);
+							if (rawValue != null) {
+								values.add(rawValue);
+							}
+						}
+
+						if (values.isEmpty()) continue;
+
+						switch (internalField) {
+							case "boqCode" -> {
+								boq.setBoqCode(String.join(" -- ", values));
+								hasData = true;
+							}
+							case "boqName" -> {
+								boq.setBoqName(String.join(" -- ", values));
+								hasData = true;
+							}
+							case "division" -> {
+								boq.setDivision(String.join(" -- ", values));
+								hasData = true;
+							}
+							case "rateOnly" -> {
+								Boolean value = parseBooleanFlag(values.get(0));
+								if (value != null) {
+									boq.setRateOnly(value);
 									hasData = true;
-									break;
 								}
-							} catch (Exception e) {}
+							}
+							case "provisionalSum" -> {
+								Boolean value = parseBooleanFlag(values.get(0));
+								if (value != null) {
+									boq.setProvisionalSum(value);
+									hasData = true;
+								}
+							}
+							case "notQuotedBoq" -> {
+								Boolean value = parseBooleanFlag(values.get(0));
+								if (value != null) {
+									boq.setNotQuotedBoq(value);
+									hasData = true;
+								}
+							}
+							case "quantity" -> {
+								for (String val : values) {
+									try {
+										String cleanedValue = val.replace(",", "").replaceAll("[^0-9.-]", "").trim();
+										if (!cleanedValue.isEmpty()) {
+											boq.setQuantity(Double.parseDouble(cleanedValue));
+											hasData = true;
+											break; // Use first valid numeric value
+										}
+									} catch (Exception e) {
+										// Try next column
+									}
+								}
+							}
+							case "uom" -> {
+								boq.setUom(values.get(0)); // Use first non-empty UOM
+								hasData = true;
+							}
+							case "pageNo" -> {
+								for (String val : values) {
+									try {
+										String cleanedValue = val.replace(",", "").replaceAll("[^0-9.-]", "").trim();
+										if (!cleanedValue.isEmpty()) {
+											boq.setPageNo(Double.valueOf(cleanedValue).longValue());
+											hasData = true;
+											break;
+										}
+									} catch (Exception e) {}
+								}
+							}
 						}
 					}
+
+					boq.setLastLevel(BoqExtractionUtils.isLastLevel(
+							boq.getQuantity(), boq.getUom()));
+
+					if (hasData) {
+						extractedData.add(boq);
+					} else {
+						serialNumber--; // Revert serial number if row was empty
+					}
+
+					if (pageBreakFound) {
+						currentPageNo++;
+					}
+				}
+
+				if (isMultiSheet) {
+					currentPageNo++;
 				}
 			}
 
-			boq.setLastLevel(
-					(boq.getQuantity() != null && boq.getQuantity() > 0)
-							|| (boq.getUom() != null && !boq.getUom().isBlank())
-			);
-
-			if (hasData) {
-				extractedData.add(boq);
-			} else {
-				serialNumber--; // Revert serial number if row was empty
-			}
-
-			if (pageBreakFound) {
-				currentPageNo++;
-			}
+			return extractedData;
 		}
-		workbook.close();
-		return extractedData;
 	}
 
 	private Boolean parseBooleanFlag(String value) {

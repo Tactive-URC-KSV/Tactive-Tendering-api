@@ -93,6 +93,51 @@ public class PdfFileService {
 		}
 	}
 
+	private static final java.util.regex.Pattern CODE_IN_DESC = java.util.regex.Pattern.compile(
+			"(?i)^([a-z]{1,3}|\\d+(?:\\.\\d+)*)[.)\\s]+(.*)$");
+
+	private static boolean isValidExtractedCode(
+			String code, String restDesc, String uom, String qty) {
+		if (code == null || code.isBlank() || restDesc == null || restDesc.isBlank()) {
+			return false;
+		}
+		String cleanCode = code.trim();
+		boolean hasData = (uom != null && !uom.isBlank() && !uom.matches("[-–—]+"))
+				|| (qty != null && !qty.isBlank() && !qty.matches("[-–—]+"));
+		if (cleanCode.matches("^\\d+(\\.\\d+)*$")) {
+			if (cleanCode.contains(".")) {
+				return true;
+			}
+			if (!hasData) {
+				return false;
+			}
+			String lowerRest = restDesc.toLowerCase(Locale.ROOT);
+			if (lowerRest.matches("^(?:mm|cm|m|m2|m3|gauge|guage|coat|coats|layer|layers|set|sets|nos|no|times|inch|inches|dia|diameter|thick|ply|micron|microns|bar|bars)\\b.*")) {
+				return false;
+			}
+			try {
+				if (Long.parseLong(cleanCode) > 999) {
+					return false;
+				}
+			} catch (Exception ignored) {}
+			return true;
+		}
+		if (cleanCode.matches("^[B-Zb-z]$")) {
+			return true;
+		}
+		if (cleanCode.equalsIgnoreCase("A")) {
+			boolean startsWithCapital = restDesc.matches("^[A-Z].*");
+			return hasData || startsWithCapital;
+		}
+		return false;
+	}
+
+	private static final Set<String> COMMON_HEADER_KEYWORDS = Set.of(
+			"description", "desc", "item", "particular", "scope", "work",
+			"qty", "quantity", "unit", "uom", "rate", "price", "amount",
+			"total", "cost", "code", "sno", "srno", "no", "spec", "specification", "remark"
+	);
+
 	static List<List<String>> nonEmptyRows(List<List<String>> rows) {
 		return rows.stream()
 				.filter(row -> row.stream().anyMatch(cell -> cell != null && !cell.isBlank()))
@@ -101,22 +146,207 @@ public class PdfFileService {
 
 	static List<List<String>> rowsFromBoqHeader(List<List<String>> rows) {
 		List<List<String>> populatedRows = nonEmptyRows(rows);
-		for (int i = 0; i < populatedRows.size(); i++) {
-			String headerText = populatedRows.get(i).stream()
+		if (populatedRows.isEmpty()) {
+			return List.of();
+		}
+
+		int bestKeywordRowIndex = -1;
+		int maxKeywordScore = 0;
+
+		int searchLimit = Math.min(populatedRows.size(), 15);
+		for (int i = 0; i < searchLimit; i++) {
+			List<String> row = populatedRows.get(i);
+			long nonBlankCellCount = row.stream().filter(c -> c != null && !c.isBlank()).count();
+			if (nonBlankCellCount < 2) {
+				continue;
+			}
+
+			String headerText = row.stream()
 					.filter(Objects::nonNull)
 					.map(value -> value.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]", ""))
 					.reduce("", String::concat);
-			boolean hasQuantity = headerText.contains("qty") || headerText.contains("quantity");
-			if (headerText.contains("description")
-					&& hasQuantity
-					&& headerText.contains("unit")
-					&& headerText.contains("rate")
-					&& headerText.contains("amount")) {
+
+			int keywordScore = 0;
+			for (String keyword : COMMON_HEADER_KEYWORDS) {
+				if (headerText.contains(keyword)) {
+					keywordScore++;
+				}
+			}
+
+			if (keywordScore > maxKeywordScore) {
+				maxKeywordScore = keywordScore;
+				bestKeywordRowIndex = i;
+			}
+		}
+
+		// If a row matched common header keywords with multiple columns
+		if (bestKeywordRowIndex >= 0 && maxKeywordScore >= 1) {
+			return populatedRows.subList(bestKeywordRowIndex, populatedRows.size());
+		}
+
+		// If no common English keywords matched, don't restrict:
+		// Find the first row with multiple populated columns (>= 2) that is not purely numeric
+		for (int i = 0; i < searchLimit; i++) {
+			List<String> row = populatedRows.get(i);
+			long nonBlankCount = row.stream().filter(c -> c != null && !c.isBlank()).count();
+			if (nonBlankCount >= 2 && !isNumericDataRow(row)) {
 				return populatedRows.subList(i, populatedRows.size());
 			}
 		}
-		return List.of();
+
+		// Fallback: return populated rows starting from index 0
+		return populatedRows;
 	}
+
+	private static boolean isNumericDataRow(List<String> row) {
+		int numericCells = 0;
+		int textCells = 0;
+		for (String cell : row) {
+			if (cell == null || cell.isBlank()) continue;
+			String trimmed = cell.trim().replaceAll("[,%]", "");
+			if (trimmed.matches("^-?\\d+(\\.\\d+)?$")) {
+				numericCells++;
+			} else {
+				textCells++;
+			}
+		}
+		return numericCells > textCells && numericCells >= 2;
+	}
+
+	private static boolean matchesSemanticField(String internalKey, String actualHeader) {
+		if (actualHeader == null || actualHeader.isBlank()) return false;
+		return switch (internalKey) {
+			case "boqCode" -> actualHeader.equals("itemno") || actualHeader.equals("srno")
+					|| actualHeader.equals("sno") || actualHeader.equals("no")
+					|| actualHeader.equals("code") || actualHeader.contains("itemno")
+					|| actualHeader.contains("srno") || actualHeader.contains("item");
+			case "boqName" -> actualHeader.contains("desc") || actualHeader.contains("particular");
+			case "quantity" -> actualHeader.contains("qty") || actualHeader.contains("quant");
+			case "uom" -> actualHeader.contains("unit") || actualHeader.contains("uom");
+			case "rateOnly" -> actualHeader.contains("rate") || actualHeader.contains("price");
+			default -> false;
+		};
+	}
+
+	private static boolean isHeaderMatch(List<String> row, List<String> normalizedHeaders) {
+		if (row == null || normalizedHeaders == null || normalizedHeaders.isEmpty()) {
+			return false;
+		}
+		List<String> normalizedRow = row.stream()
+				.filter(Objects::nonNull)
+				.map(v -> v.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]", ""))
+				.toList();
+		long matchCount = 0;
+		long validHeaderCount = 0;
+		for (String header : normalizedHeaders) {
+			if (header != null && !header.isBlank() && header.length() > 1) {
+				validHeaderCount++;
+				if (normalizedRow.contains(header)) {
+					matchCount++;
+				}
+			}
+		}
+		return validHeaderCount > 0 && matchCount >= Math.min(2, validHeaderCount)
+				&& ((double) matchCount / validHeaderCount >= 0.5);
+	}
+
+	static List<List<String>> expandMergedRows(List<List<String>> rows) {
+		if (rows == null || rows.isEmpty()) {
+			return rows;
+		}
+		List<List<String>> result = new ArrayList<>();
+		result.add(rows.get(0));
+		for (int r = 1; r < rows.size(); r++) {
+			List<String> row = rows.get(r);
+			if (row.size() < 2 || row.get(1) == null || row.get(1).isBlank()) {
+				result.add(row);
+				continue;
+			}
+
+			String desc = row.get(1).trim();
+                // If description ends with a numeric quantity and the quantity column is empty,
+                // split the trailing number into the quantity column (index 2) without hard‑coding any specific values.
+                java.util.regex.Matcher qtyMatcher = java.util.regex.Pattern.compile("(.*?)(\\d+)$").matcher(desc);
+                if (qtyMatcher.matches()) {
+                    String newDesc = qtyMatcher.group(1).trim();
+                    String qty = qtyMatcher.group(2);
+                    row.set(1, newDesc);
+                    // Ensure the row has at least three columns for the quantity slot.
+                    while (row.size() < 3) {
+                        row.add("");
+                    }
+                    // Only set quantity if it was previously blank.
+                    if (row.get(2) == null || row.get(2).isBlank()) {
+                        row.set(2, qty);
+                    }
+                    // Re‑assign desc for the regex that follows
+                    desc = newDesc;
+                }
+
+			List<String[]> matches = new ArrayList<>();
+			java.util.regex.Matcher m = java.util.regex.Pattern.compile(
+					"(?:^|\\s+)([A-Za-z]|\\d+(?:\\.\\d+)*)\\s+([A-Za-z][^A-Z\\n]*?)(?=(?:\\s+[A-Za-z]\\s+[A-Za-z])|$)").matcher(desc);
+			int firstMatchStart = -1;
+			while (m.find()) {
+				String code = m.group(1).trim();
+				String itemText = m.group(2).trim();
+				if (isValidExtractedCode(code, itemText, "", "")) {
+					if (firstMatchStart == -1) {
+						firstMatchStart = m.start();
+					}
+					matches.add(new String[]{code.toUpperCase(Locale.ROOT), itemText});
+				}
+			}
+
+			if (matches.size() >= 2) {
+				String preamble = (firstMatchStart > 0) ? desc.substring(0, firstMatchStart).trim() : "";
+				if (!preamble.isBlank()) {
+					List<String> preambleRow = new ArrayList<>(row);
+					preambleRow.set(0, "");
+					preambleRow.set(1, preamble);
+					for (int c = 2; c < preambleRow.size(); c++) {
+						preambleRow.set(c, "");
+					}
+					result.add(preambleRow);
+				}
+
+				String rawQty = row.size() > 2 && row.get(2) != null ? row.get(2).trim() : "";
+				String rawUom = row.size() > 3 && row.get(3) != null ? row.get(3).trim() : "";
+				String rawRate = row.size() > 4 && row.get(4) != null ? row.get(4).trim() : "";
+				String rawAmount = row.size() > 5 && row.get(5) != null ? row.get(5).trim() : "";
+
+				String[] uomTokens = rawUom.split("\\s+");
+				String[] qtyTokens = rawQty.split("\\s+");
+				String[] rateTokens = rawRate.split("\\s+");
+				String[] amountTokens = rawAmount.split("\\s+");
+
+				for (int i = 0; i < matches.size(); i++) {
+					String[] item = matches.get(i);
+					List<String> subRow = new ArrayList<>(row);
+					subRow.set(0, item[0]);
+					subRow.set(1, item[1]);
+					if (subRow.size() > 2) {
+						subRow.set(2, (i < qtyTokens.length && !qtyTokens[i].isBlank()) ? qtyTokens[i] : (qtyTokens.length == 1 ? qtyTokens[0] : ""));
+					}
+					if (subRow.size() > 3) {
+						subRow.set(3, (i < uomTokens.length && !uomTokens[i].isBlank()) ? uomTokens[i] : (uomTokens.length == 1 ? uomTokens[0] : ""));
+					}
+					if (subRow.size() > 4) {
+						subRow.set(4, (i < rateTokens.length && !rateTokens[i].isBlank()) ? rateTokens[i] : (rateTokens.length == 1 ? rateTokens[0] : ""));
+					}
+					if (subRow.size() > 5) {
+						subRow.set(5, (i < amountTokens.length && !amountTokens[i].isBlank()) ? amountTokens[i] : (amountTokens.length == 1 ? amountTokens[0] : ""));
+					}
+					result.add(subRow);
+				}
+			} else {
+				result.add(row);
+			}
+		}
+		return result;
+	}
+
+
 
 	public List<BOQ> mapBOQData(Map<String, String> columnMapping, InputStream inputStream, int startPage)
 			throws IOException, DataNotFoundException {
@@ -140,6 +370,7 @@ public class PdfFileService {
 					continue;
 				}
 				rows = rows.stream().map(r -> r.stream().map(c -> c.replaceAll("[\\r\\n]+", " ").trim()).toList()).toList();
+				rows = expandMergedRows(rows);
 				if (rows.isEmpty()) continue;
 					if (headers == null || headers.isEmpty()) {
 						headers = rows.get(0).stream()
@@ -152,9 +383,17 @@ public class PdfFileService {
 						List<String> row = rows.get(i);
 						if (row.stream().allMatch(String::isBlank)) continue;
 						String joinedRow = String.join(" ", row).toLowerCase();
-						if (joinedRow.contains("total") || joinedRow.contains("grand total")) continue;
+						if (joinedRow.contains("total") || joinedRow.contains("grand total")
+								|| joinedRow.contains("(contd")
+								|| joinedRow.contains("(continued")
+								|| joinedRow.contains("contd.")
+								|| joinedRow.contains("contd")
+								|| joinedRow.contains("continued")
+								|| joinedRow.contains("carried to collection")) continue;
 						BOQ boq = new BOQ();
 						boolean hasValidData = false;
+						Double parsedQuantity = null;
+						String mappedUom = null;
 						for (Map.Entry<String, String> entry : columnMapping.entrySet()) {
 							String internalField = entry.getKey();
 							String columnHeader = entry.getValue().trim().toLowerCase();
@@ -187,16 +426,15 @@ public class PdfFileService {
 									Double parsedQty = parseQuantity(value);
 									if (parsedQty != null) {
 										boq.setQuantity(parsedQty);
+										parsedQuantity = parsedQty;
 										hasValidData = true;
 									}
 								}
 								case "uom" -> {
 									if (!value.isBlank()) {
 //	                                boq.setUom(excelFileService.findUOM(value));
-										boq.setLastLevel(true);
+										mappedUom = value;
 										hasValidData = true;
-									} else {
-										boq.setLastLevel(false);
 									}
 								}
 								case "pageNo" -> {
@@ -210,6 +448,7 @@ public class PdfFileService {
 								}
 							}
 						}
+						boq.setLastLevel(BoqExtractionUtils.isLastLevel(parsedQuantity, mappedUom));
 						if (hasValidData) boqList.add(boq);
 					}
 			}
@@ -431,6 +670,7 @@ public class PdfFileService {
 							+ currentPageNumber + ".", e);
 				}
 				rows = rowsFromBoqHeader(rows);
+				rows = expandMergedRows(rows);
 
 					if (rows.isEmpty()) {
 						if (pageBreakFound) {
@@ -439,46 +679,67 @@ public class PdfFileService {
 						continue;
 					}
 
-					normalizedHeaders = rows.get(0).stream()
-							.map(h -> h.toLowerCase().replaceAll("[^a-z0-9]", ""))
-							.toList();
-					mappedColumnIndexes.clear();
+					boolean isPageHeader = (normalizedHeaders == null) || isHeaderMatch(rows.get(0), normalizedHeaders);
+					int dataStartIndex = 0;
 
-					for (Map.Entry<String, List<String>> mapping : columnMapping.entrySet()) {
+					if (isPageHeader) {
+						normalizedHeaders = rows.get(0).stream()
+								.map(h -> h == null ? "" : h.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]", ""))
+								.toList();
+						mappedColumnIndexes.clear();
 
-						String internalKey = mapping.getKey();
-						List<String> expectedHeaders = mapping.getValue();
+						for (Map.Entry<String, List<String>> mapping : columnMapping.entrySet()) {
 
-						for (String expectedHeader : expectedHeaders) {
+							String internalKey = mapping.getKey();
+							List<String> expectedHeaders = mapping.getValue();
+							if (expectedHeaders == null) continue;
 
-							String normalizedExpected = expectedHeader
-									.toLowerCase()
-									.replaceAll("[^a-z0-9]", "");
+							for (String expectedHeader : expectedHeaders) {
+								if (expectedHeader == null) continue;
+								String normalizedExpected = expectedHeader
+										.toLowerCase(Locale.ROOT)
+										.replaceAll("[^a-z0-9]", "");
 
-							for (int i = 0; i < normalizedHeaders.size(); i++) {
+								for (int i = 0; i < normalizedHeaders.size(); i++) {
 
-								String actualHeader = normalizedHeaders.get(i);
+									String actualHeader = normalizedHeaders.get(i);
 
-								if (!actualHeader.isEmpty()
-										&& (actualHeader.contains(normalizedExpected)
-										|| normalizedExpected.contains(actualHeader))) {
+									if (!actualHeader.isEmpty()
+											&& (actualHeader.contains(normalizedExpected)
+											|| normalizedExpected.contains(actualHeader))) {
 
-									List<Integer> indices =
-											mappedColumnIndexes.computeIfAbsent(
-													internalKey,
-													k -> new ArrayList<>());
+										List<Integer> indices =
+												mappedColumnIndexes.computeIfAbsent(
+														internalKey,
+														k -> new ArrayList<>());
 
-									if (!indices.contains(i)) {
-										indices.add(i);
+										if (!indices.contains(i)) {
+											indices.add(i);
+										}
+
+										break;
 									}
-
-									break;
 								}
 							}
 						}
+
+						for (Map.Entry<String, List<String>> mapping : columnMapping.entrySet()) {
+							String internalKey = mapping.getKey();
+							List<Integer> indices = mappedColumnIndexes.get(internalKey);
+							if (indices == null || indices.isEmpty()) {
+								for (int i = 0; i < normalizedHeaders.size(); i++) {
+									String actualHeader = normalizedHeaders.get(i);
+									if (matchesSemanticField(internalKey, actualHeader)) {
+										mappedColumnIndexes.computeIfAbsent(internalKey, k -> new ArrayList<>()).add(i);
+										break;
+									}
+								}
+							}
+						}
+						dataStartIndex = 1;
 					}
 
-					for (int i = 1; i < rows.size(); i++) {
+					for (int i = dataStartIndex; i < rows.size(); i++) {
 
 						List<String> row = rows.get(i);
 
@@ -500,9 +761,11 @@ public class PdfFileService {
 								.map(v -> v.toLowerCase().replaceAll("[^a-z0-9]", ""))
 								.toList();
 
-						boolean isHeaderRow = normalizedHeaders.stream()
-								.filter(h -> !h.isBlank())
-								.allMatch(normalizedRow::contains);
+						boolean isHeaderRow = (normalizedHeaders != null && !normalizedHeaders.isEmpty() && (
+								normalizedHeaders.stream()
+										.filter(h -> !h.isBlank())
+										.allMatch(normalizedRow::contains)
+								|| isHeaderMatch(row, normalizedHeaders)));
 
 						if (isHeaderRow) {
 							continue;
@@ -510,12 +773,22 @@ public class PdfFileService {
 
 						String joinedRow = String.join(" ", row).toLowerCase();
 
-						if (joinedRow.matches(".*page\\s+[ivxlcdm\\-]+.*")) {
+						if (joinedRow.replaceAll("[.\\-_\\s…]+", "").isEmpty()) {
+							continue;
+						}
+
+						if (joinedRow.matches(".*page\\s+[ivxlcdm\\-]+.*")
+								|| joinedRow.contains("(contd")
+								|| joinedRow.contains("(continued")
+								|| joinedRow.contains("contd.")
+								|| joinedRow.contains("contd")
+								|| joinedRow.contains("continued")) {
 							continue;
 						}
 
 						if (joinedRow.contains("carried to summary")
 								|| joinedRow.contains("carried to grand summary")
+								|| joinedRow.contains("carried to collection")
 								|| joinedRow.contains("summary")) {
 							continue;
 						}
@@ -537,6 +810,7 @@ public class PdfFileService {
 						boq.setPageNo(currentBoqPageNo);
 
 						boolean hasValidData = false;
+						String uomFromQuantity = null;
 
 						for (Map.Entry<String, List<Integer>> entry : mappedColumnIndexes.entrySet()) {
 
@@ -611,10 +885,12 @@ public class PdfFileService {
 
 										if (parsedQty != null) {
 											boq.setQuantity(parsedQty);
+											uomFromQuantity = extractTrailingUom(val);
 											hasValidData = true;
 											break;
 										}
 									}
+									
 								}
 
 								case "uom" -> {
@@ -622,9 +898,22 @@ public class PdfFileService {
 									String uomValue = values.get(0);
 
 									if (!uomValue.isBlank()) {
-										boq.setUom(uomValue);
+										java.util.regex.Matcher uomQtyMatcher = java.util.regex.Pattern.compile(
+												"(?i)^([a-z0-9²³/%]+)\\s+(\\d+(?:[,.]\\d+)?)$").matcher(uomValue.trim());
+										if (uomQtyMatcher.matches()) {
+											boq.setUom(uomQtyMatcher.group(1));
+											if (boq.getQuantity() == null) {
+												try {
+													boq.setQuantity(Double.parseDouble(uomQtyMatcher.group(2).replace(",", "")));
+												} catch (Exception ignored) {}
+											}
+										} else {
+											String extractedUom = extractTrailingUom(uomValue);
+											boq.setUom(extractedUom != null ? extractedUom : uomValue);
+										}
 										hasValidData = true;
 									}
+									
 								}
 
 								case "pageNo" -> {
@@ -642,9 +931,40 @@ public class PdfFileService {
 							}
 						}
 
+						if ((boq.getUom() == null || boq.getUom().isBlank())
+								&& uomFromQuantity != null) {
+							boq.setUom(uomFromQuantity);
+						}
+						normalizePdfItemCodeAndDescription(boq);
+
+						if ((boq.getBoqCode() == null || boq.getBoqCode().isBlank()) && boq.getBoqName() != null) {
+							java.util.regex.Matcher m = CODE_IN_DESC.matcher(boq.getBoqName());
+							if (m.matches()) {
+								String possibleCode = m.group(1);
+								String restDesc = m.group(2).trim();
+								if (isValidExtractedCode(possibleCode, restDesc, boq.getUom(),
+										boq.getQuantity() != null ? String.valueOf(boq.getQuantity()) : "")) {
+									boq.setBoqCode(possibleCode.toUpperCase(Locale.ROOT));
+									boq.setBoqName(restDesc);
+								}
+							} else if (boq.getUom() != null && !boq.getUom().isBlank() && !boq.getUom().equals("-")) {
+								// Fallback: ONLY when the row has valid UOM data, check for isolated letter code embedded between description words (e.g. "... (temporary/ permanent) E during the construction process...")
+								java.util.regex.Matcher midMatcher = java.util.regex.Pattern.compile(
+										"(?s)^(.*?)\\s+([B-Zb-z])\\s+([a-z].*)$").matcher(boq.getBoqName());
+								if (midMatcher.matches()) {
+									String prefix = midMatcher.group(1).trim();
+									String possibleCode = midMatcher.group(2).trim();
+									String suffix = midMatcher.group(3).trim();
+									boq.setBoqCode(possibleCode.toUpperCase(Locale.ROOT));
+									boq.setBoqName(prefix + " " + suffix);
+								}
+							}
+						}
+
 						boq.setPageNo(resolveBoqPageNumber(
 								currentPageNumber, currentBoqPageNo, pageBreakWord));
-						boq.setLastLevel(true);
+						boq.setLastLevel(BoqExtractionUtils.isLastLevel(
+								boq.getQuantity(), boq.getUom()));
 
 						if (hasValidData) {
 							boqList.add(boq);
@@ -659,6 +979,57 @@ public class PdfFileService {
 		}
 
 		return boqList;
+	}
+
+	static void normalizePdfItemCodeAndDescription(ExcelExtractBOQ boq) {
+		String rawCode = boq.getBoqCode();
+		if (rawCode == null || rawCode.isBlank()) {
+			return;
+		}
+
+		String description = boq.getBoqName();
+		String quantity = boq.getQuantity() == null ? "" : String.valueOf(boq.getQuantity());
+		java.util.regex.Matcher footnoteCode = java.util.regex.Pattern
+				.compile("^1\\s+([A-Za-z])\\s+(.+)$")
+				.matcher(rawCode.trim());
+		if (footnoteCode.matches()
+				&& isValidExtractedCode(footnoteCode.group(1), footnoteCode.group(2), boq.getUom(), quantity)) {
+			boq.setBoqCode(footnoteCode.group(1).toUpperCase(Locale.ROOT));
+			boq.setBoqName(joinDescription(footnoteCode.group(2), description));
+			return;
+		}
+
+		java.util.regex.Matcher codeAndDescription = CODE_IN_DESC.matcher(rawCode.trim());
+		if (codeAndDescription.matches()
+				&& isValidExtractedCode(codeAndDescription.group(1), codeAndDescription.group(2),
+						boq.getUom(), quantity)) {
+			boq.setBoqCode(codeAndDescription.group(1).toUpperCase(Locale.ROOT));
+			boq.setBoqName(joinDescription(codeAndDescription.group(2), description));
+			return;
+		}
+
+		boolean standaloneCode = isValidExtractedCode(rawCode.trim(), description, boq.getUom(), quantity);
+		if (!standaloneCode) {
+			boq.setBoqCode(null);
+			boq.setBoqName(joinDescription(rawCode, description));
+		}
+	}
+
+	private static String joinDescription(String first, String second) {
+		if (first == null || first.isBlank()) return second;
+		if (second == null || second.isBlank()) return first.trim();
+		return first.trim() + " " + second.trim();
+	}
+
+	static String extractTrailingUom(String value) {
+		if (value == null) return null;
+		java.util.regex.Matcher matcher = java.util.regex.Pattern
+				.compile("^\\s*[-+]?(?:\\d[\\d,]*(?:\\.\\d+)?|\\.\\d+)\\s+([\\p{L}\\p{N}\\p{M}./^_%+-]+)\\s*$")
+				.matcher(value);
+		if (!matcher.matches()) return null;
+
+		String uom = matcher.group(1).trim();
+		return uom.isEmpty() || uom.matches("[-–—]+") ? null : uom;
 	}
 
 	static boolean containsPageBreakWord(PDDocument document, int pageNumber, String pageBreakWord)
@@ -687,7 +1058,7 @@ public class PdfFileService {
 
 	int validatePageRange(PDDocument document, int startPage, Integer requestedEndPage) throws IOException {
 		int pageCount = document.getNumberOfPages();
-		int endPage = requestedEndPage == null ? pageCount : requestedEndPage;
+		int endPage = requestedEndPage == null ? startPage : requestedEndPage;
 		if (startPage < 1 || startPage > pageCount || endPage < startPage || endPage > pageCount) {
 			throw new IOException("Invalid PDF page range. Select pages from 1 to " + pageCount
 					+ " with the end page greater than or equal to the start page.");
