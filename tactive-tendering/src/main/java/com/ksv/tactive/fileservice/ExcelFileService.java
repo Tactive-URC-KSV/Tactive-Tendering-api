@@ -80,6 +80,36 @@ public class ExcelFileService {
 		return targetSheets;
 	}
 
+	void validateMatchingHeadersAcrossSheets(Workbook workbook, List<String> targetSheets) {
+		if (targetSheets == null || targetSheets.size() <= 1) {
+			return;
+		}
+
+		String firstSheetName = targetSheets.get(0);
+		List<String> firstHeaders = getColumnHeader(workbook.getSheet(firstSheetName));
+		List<String> normalizedFirst = firstHeaders.stream()
+				.filter(Objects::nonNull)
+				.map(h -> h.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]", ""))
+				.filter(h -> !h.isBlank())
+				.toList();
+
+		for (int i = 1; i < targetSheets.size(); i++) {
+			String currentSheetName = targetSheets.get(i);
+			List<String> currentHeaders = getColumnHeader(workbook.getSheet(currentSheetName));
+			List<String> normalizedCurrent = currentHeaders.stream()
+					.filter(Objects::nonNull)
+					.map(h -> h.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]", ""))
+					.filter(h -> !h.isBlank())
+					.toList();
+
+			if (!normalizedFirst.equals(normalizedCurrent)) {
+				throw new IllegalArgumentException(
+						"Column names are different between sheets '" + firstSheetName + "' and '"
+								+ currentSheetName + "'. Please select sheets with matching column headers or import them individually.");
+			}
+		}
+	}
+
 	public List<String> getColumns(MultipartFile boqFile, String sheetName) throws IOException {
 		try (Workbook workbook = boqFile.getOriginalFilename().endsWith(".xlsx") ? readXlsxFile(boqFile) : readXlsFile(boqFile)) {
 			List<String> targetSheets = resolveTargetSheets(workbook, sheetName);
@@ -89,20 +119,10 @@ public class ExcelFileService {
 				}
 				return List.of();
 			}
-			List<String> combinedColumns = new ArrayList<>();
-			Set<String> seenNormalized = new HashSet<>();
-			for (String targetSheet : targetSheets) {
-				Sheet sheet = workbook.getSheet(targetSheet);
-				if (sheet == null) continue;
-				List<String> headers = getColumnHeader(sheet);
-				for (String header : headers) {
-					String norm = header.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]", "");
-					if (!norm.isBlank() && seenNormalized.add(norm)) {
-						combinedColumns.add(header);
-					}
-				}
-			}
-			return combinedColumns;
+
+			validateMatchingHeadersAcrossSheets(workbook, targetSheets);
+
+			return getColumnHeader(workbook.getSheet(targetSheets.get(0)));
 		}
 	}
 
@@ -259,7 +279,7 @@ public class ExcelFileService {
 			Sheet sheet,
 			Map<String, List<String>> columnMapping) {
 
-		Map<String, List<Integer>> columnIndexMap = new HashMap<>();
+		Map<String, List<Integer>> columnIndexMap = new LinkedHashMap<>();
 
 		if (sheet == null) {
 			return columnIndexMap;
@@ -426,6 +446,8 @@ public class ExcelFileService {
 		try (Workbook workbook = boqFile.getOriginalFilename().endsWith(".xlsx") ? readXlsxFile(boqFile) : readXlsFile(boqFile)) {
 			List<String> targetSheets = resolveTargetSheets(workbook, sheetName);
 			if (targetSheets.isEmpty()) return new ArrayList<>();
+
+			validateMatchingHeadersAcrossSheets(workbook, targetSheets);
 
 			FormulaEvaluator evaluator = workbook.getCreationHelper().createFormulaEvaluator();
 			List<ExcelExtractBOQ> extractedData = new ArrayList<>();

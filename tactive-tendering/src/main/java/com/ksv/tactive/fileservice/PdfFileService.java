@@ -257,31 +257,31 @@ public class PdfFileService {
 		List<List<String>> result = new ArrayList<>();
 		result.add(rows.get(0));
 		for (int r = 1; r < rows.size(); r++) {
-			List<String> row = rows.get(r);
+			List<String> row = new ArrayList<>(rows.get(r));
 			if (row.size() < 2 || row.get(1) == null || row.get(1).isBlank()) {
 				result.add(row);
 				continue;
 			}
 
 			String desc = row.get(1).trim();
-                // If description ends with a numeric quantity and the quantity column is empty,
-                // split the trailing number into the quantity column (index 2) without hard‑coding any specific values.
-                java.util.regex.Matcher qtyMatcher = java.util.regex.Pattern.compile("(.*?)(\\d+)$").matcher(desc);
-                if (qtyMatcher.matches()) {
-                    String newDesc = qtyMatcher.group(1).trim();
-                    String qty = qtyMatcher.group(2);
-                    row.set(1, newDesc);
-                    // Ensure the row has at least three columns for the quantity slot.
-                    while (row.size() < 3) {
-                        row.add("");
-                    }
-                    // Only set quantity if it was previously blank.
-                    if (row.get(2) == null || row.get(2).isBlank()) {
-                        row.set(2, qty);
-                    }
-                    // Re‑assign desc for the regex that follows
-                    desc = newDesc;
-                }
+			// If description ends with a numeric quantity and the quantity column is empty,
+			// split the trailing number into the quantity column (index 2).
+			// Require whitespace before the digits so that codes like "GL-01" or "Type-01"
+			// are NOT mistakenly split (the digits in those cases follow a hyphen, not a space).
+			boolean hasEmptyQty = (row.size() < 3 || row.get(2) == null || row.get(2).isBlank());
+			java.util.regex.Matcher qtyMatcher = java.util.regex.Pattern.compile("(.*\\s)(\\d+(?:\\.\\d+)?)$").matcher(desc);
+			if (hasEmptyQty && qtyMatcher.matches()) {
+				String newDesc = qtyMatcher.group(1).trim();
+				String qty = qtyMatcher.group(2);
+				row.set(1, newDesc);
+				// Ensure the row has at least three columns for the quantity slot.
+				while (row.size() < 3) {
+					row.add("");
+				}
+				row.set(2, qty);
+				// Re-assign desc for the regex that follows
+				desc = newDesc;
+			}
 
 			List<String[]> matches = new ArrayList<>();
 			java.util.regex.Matcher m = java.util.regex.Pattern.compile(
@@ -383,12 +383,8 @@ public class PdfFileService {
 						List<String> row = rows.get(i);
 						if (row.stream().allMatch(String::isBlank)) continue;
 						String joinedRow = String.join(" ", row).toLowerCase();
+						String normalizedText = joinedRow.replaceAll("['’`]", "");
 						if (joinedRow.contains("total") || joinedRow.contains("grand total")
-								|| joinedRow.contains("(contd")
-								|| joinedRow.contains("(continued")
-								|| joinedRow.contains("contd.")
-								|| joinedRow.contains("contd")
-								|| joinedRow.contains("continued")
 								|| joinedRow.contains("carried to collection")) continue;
 						BOQ boq = new BOQ();
 						boolean hasValidData = false;
@@ -449,7 +445,11 @@ public class PdfFileService {
 							}
 						}
 						boq.setLastLevel(BoqExtractionUtils.isLastLevel(parsedQuantity, mappedUom));
-						if (hasValidData) boqList.add(boq);
+						boolean isOrphanRevisionNumber = (boq.getBoqCode() == null || boq.getBoqCode().isBlank())
+								&& boq.getQuantity() == 0.0
+								&& (boq.getUomCode() == null || boq.getUomCode().isBlank() || boq.getUomCode().equals("-"))
+								&& boq.getBoqName() != null && boq.getBoqName().trim().matches("^\\d{1,2}$");
+						if (hasValidData && !isOrphanRevisionNumber) boqList.add(boq);
 					}
 			}
 		} finally {
@@ -772,17 +772,13 @@ public class PdfFileService {
 						}
 
 						String joinedRow = String.join(" ", row).toLowerCase();
+						String normalizedText = joinedRow.replaceAll("['’`]", "");
 
 						if (joinedRow.replaceAll("[.\\-_\\s…]+", "").isEmpty()) {
 							continue;
 						}
 
-						if (joinedRow.matches(".*page\\s+[ivxlcdm\\-]+.*")
-								|| joinedRow.contains("(contd")
-								|| joinedRow.contains("(continued")
-								|| joinedRow.contains("contd.")
-								|| joinedRow.contains("contd")
-								|| joinedRow.contains("continued")) {
+						if (joinedRow.matches(".*page\\s+[ivxlcdm\\-]+.*")) {
 							continue;
 						}
 
@@ -966,7 +962,12 @@ public class PdfFileService {
 						boq.setLastLevel(BoqExtractionUtils.isLastLevel(
 								boq.getQuantity(), boq.getUom()));
 
-						if (hasValidData) {
+						boolean isOrphanRevisionNumber = (boq.getBoqCode() == null || boq.getBoqCode().isBlank())
+								&& boq.getQuantity() == null
+								&& (boq.getUom() == null || boq.getUom().isBlank() || boq.getUom().equals("-"))
+								&& boq.getBoqName() != null && boq.getBoqName().trim().matches("^\\d{1,2}$");
+
+						if (hasValidData && !isOrphanRevisionNumber) {
 							boqList.add(boq);
 							serialNumber++;
 						}

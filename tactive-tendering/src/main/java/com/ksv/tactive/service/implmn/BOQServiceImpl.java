@@ -205,15 +205,12 @@ public class BOQServiceImpl implements BOQService {
         if (extractedRows == null || extractedRows.isEmpty()) {
             throw new DataNotFoundException("No BOQ data extracted from file!");
         }
-        long serialOffset = 0;
-        if (pdfImport) {
-            serialOffset = boqDao.findMaxExcelSnoByProjectIdAndSourceFile(projectId, fileName);
-            if (pageBreakWord != null && !pageBreakWord.isBlank()) {
-                long pageOffset = boqDao.findMaxPageNoByProjectIdAndSourceFile(projectId, fileName);
-                for (ExcelExtractBOQ row : extractedRows) {
-                    if (row.getPageNo() != null) {
-                        row.setPageNo(row.getPageNo() + pageOffset);
-                    }
+        long serialOffset = boqDao.findMaxExcelSnoByProjectIdAndSourceFile(projectId, fileName);
+        if (pageBreakWord != null && !pageBreakWord.isBlank()) {
+            long pageOffset = boqDao.findMaxPageNoByProjectIdAndSourceFile(projectId, fileName);
+            for (ExcelExtractBOQ row : extractedRows) {
+                if (row.getPageNo() != null) {
+                    row.setPageNo(row.getPageNo() + pageOffset);
                 }
             }
         }
@@ -228,8 +225,7 @@ public class BOQServiceImpl implements BOQService {
             String safeBoqCode = row.getBoqCode() == null ? "" : row.getBoqCode();
             String safeBoqName = row.getBoqName() == null ? "" : row.getBoqName();
             String key = (safeBoqCode + "_" + safeBoqName).toLowerCase();
-            if (safeBoqCode.trim().isEmpty()
-                    && (pdfImport || safeBoqName.trim().isEmpty())) {
+            if (safeBoqCode.trim().isEmpty()) {
                 key += "_" + row.getSno();
             }
 
@@ -249,8 +245,7 @@ public class BOQServiceImpl implements BOQService {
             }
 
             if (boq == null) {
-                if (safeBoqCode.trim().isEmpty()
-                        && (pdfImport || safeBoqName.trim().isEmpty())) {
+                if (safeBoqCode.trim().isEmpty()) {
                     boq = new BOQ();
                 } else {
                     boq = boqDao

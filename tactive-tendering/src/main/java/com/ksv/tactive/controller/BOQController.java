@@ -68,10 +68,12 @@ public class BOQController {
             }
             return ResponseEntity.status(HttpStatus.OK).body(boqService.getExcelColumns(boqFile, sheetName));
         } catch (NumberFormatException e) {
-            return ResponseEntity.badRequest().body("Start page must be a valid page number.");
+            return ResponseEntity.badRequest().body(Map.of("message", "Start page must be a valid page number."));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         } catch (IOException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error reading the BOQ file: " + e.getMessage());
+                    .body(Map.of("message", "Error reading the BOQ file: " + e.getMessage()));
         }
     }
 
@@ -88,9 +90,10 @@ public class BOQController {
             return ResponseEntity.ok(response);
         } catch (IOException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error processing Excel file: " + e.getMessage());
+                    .body(Map.of("message", "Error processing file: " + e.getMessage()));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid request: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("message", "Invalid request: " + e.getMessage()));
         }
     }
 

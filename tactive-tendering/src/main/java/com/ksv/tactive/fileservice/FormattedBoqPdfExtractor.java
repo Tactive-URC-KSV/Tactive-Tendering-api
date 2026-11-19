@@ -66,6 +66,13 @@ public class FormattedBoqPdfExtractor {
             }
 
             String description = cells.get(1);
+            // Fix PDF encoding artefact: a clause-ending word (e.g. "complete") is immediately
+            // concatenated with the next capitalised word with no space in the PDF character stream.
+            // Insert a single space at that boundary without altering any other logic.
+            // e.g. "completeType GL-01" → "complete Type GL-01"
+            if (description != null) {
+                description = description.replaceAll("(?<=\\bcomplete)(?=[A-Z])", " ");
+            }
             boolean underlined = underlinedLines.contains(line);
             boolean bold = line.isBold(boundaries[0], boundaries[1]);
 
@@ -84,11 +91,35 @@ public class FormattedBoqPdfExtractor {
                 }
                 currentRow.append(1, description);
             } else {
-                if (currentRow != null) {
-                    rows.add(currentRow.toCells());
-                    currentRow = null;
+                double gap = (previousLineY > 0) ? (line.centerY() - previousLineY) : 0;
+                // A non-underlined line must NEVER continue an underlined heading row:
+                // underlined rows are standalone section headings; prose below them always starts fresh.
+                boolean prevIsUnderlineHeading = currentRow != null
+                        && (currentRow.kind == RowKind.UNDERLINE || currentRow.kind == RowKind.BOLD_UNDERLINE);
+                boolean isContinuationOfCurrentRow = !prevIsUnderlineHeading
+                        && currentRow != null
+                        && gap <= 22.0
+                        && (cells.get(0) == null || cells.get(0).isBlank())
+                        && (cells.get(2) == null || cells.get(2).isBlank())
+                        && (cells.get(3) == null || cells.get(3).isBlank())
+                        && (cells.get(4) == null || cells.get(4).isBlank())
+                        && (cells.get(5) == null || cells.get(5).isBlank())
+                        && description != null && !description.isBlank()
+                        && (endsInContinuationConnector(currentRow.cells[1])
+                            || Character.isLowerCase(description.trim().charAt(0))
+                            || (!isHeadingTitle(currentRow.cells[1])
+                                && !currentRow.cells[1].trim().endsWith(".")
+                                && !currentRow.cells[1].trim().endsWith(":")));
+
+                if (isContinuationOfCurrentRow) {
+                    currentRow.append(1, description);
+                } else {
+                    if (currentRow != null) {
+                        rows.add(currentRow.toCells());
+                        currentRow = null;
+                    }
+                    normalLines.add(line);
                 }
-                normalLines.add(line);
             }
             previousLineY = line.centerY();
         }
@@ -108,7 +139,14 @@ public class FormattedBoqPdfExtractor {
     private static final Set<String> CONTINUATION_WORDS = Set.of(
             "and", "or", "to", "for", "the", "of", "in", "with", "as", "by",
             "that", "which", "at", "from", "be", "under", "between", "during",
-            "on", "into", "onto", "including", "such", "an", "a"
+            "on", "into", "onto", "including", "such", "an", "a", "per"
+    );
+
+    private static final Set<String> OPEN_ADJECTIVES = Set.of(
+            "structural", "architectural", "general", "mep", "civil", "mechanical",
+            "electrical", "external", "internal", "technical", "contract", "tender",
+            "approved", "specified", "standard", "particular", "relevant", "associated", "applicable",
+            "aluminum", "aluminium", "side", "metal", "steel", "timber", "glazed"
     );
 
     private static boolean endsInContinuationConnector(String text) {
@@ -116,13 +154,17 @@ public class FormattedBoqPdfExtractor {
             return false;
         }
         String trimmed = text.trim();
-        if (trimmed.endsWith(",") || trimmed.endsWith("-") || trimmed.endsWith("–") || trimmed.endsWith("/")) {
+        if (trimmed.endsWith(")") || trimmed.endsWith("]") || trimmed.endsWith("}")) {
+            return false;
+        }
+        if (trimmed.endsWith(",") || trimmed.endsWith("-") || trimmed.endsWith("–") || trimmed.endsWith("/")
+                || trimmed.endsWith("+") || trimmed.endsWith("&")) {
             return true;
         }
         String[] words = trimmed.split("\\s+");
         if (words.length > 0) {
             String lastWord = words[words.length - 1].toLowerCase(Locale.ROOT).replaceAll("[^a-z]", "");
-            return CONTINUATION_WORDS.contains(lastWord);
+            return CONTINUATION_WORDS.contains(lastWord) || OPEN_ADJECTIVES.contains(lastWord);
         }
         return false;
     }
@@ -140,7 +182,7 @@ public class FormattedBoqPdfExtractor {
             return true;
         }
         double gap = (previousLineY > 0) ? (centerY - previousLineY) : 0;
-        if (gap > 22.0) {
+        if (gap > 21.0) {
             return true;
         }
         String prevDesc = currentRow.cells[1] != null ? currentRow.cells[1].trim() : "";
@@ -149,6 +191,11 @@ public class FormattedBoqPdfExtractor {
         }
         String currDesc = description != null ? description.trim() : "";
         if (currDesc.isBlank()) {
+            return false;
+        }
+
+        // 0. Explicit continuation marker like ..(cont'd) or (cont'd)
+        if (currDesc.startsWith("..") || currDesc.toLowerCase(Locale.ROOT).matches("^[.(]*cont['’]?d[.)]*$")) {
             return false;
         }
 
@@ -162,8 +209,14 @@ public class FormattedBoqPdfExtractor {
             return false;
         }
 
-        // 3. Sentence terminator: if previous line ended with period, colon, or semicolon
+        // 3. Sentence terminator: if previous line ended with period, colon, or semicolon, or concluded with cont'd marker
         if (prevDesc.endsWith(".") || prevDesc.endsWith(":") || prevDesc.endsWith(";")) {
+            return true;
+        }
+        if (prevDesc.toLowerCase(Locale.ROOT).matches(".*\\bcont['’]?d[.)]*$")) {
+            return true;
+        }
+        if (prevDesc.toLowerCase(Locale.ROOT).matches(".*\\b(complete|completed)\\.?$")) {
             return true;
         }
 
@@ -171,10 +224,7 @@ public class FormattedBoqPdfExtractor {
         boolean prevIsHeading = isHeadingTitle(prevDesc);
         boolean currIsHeading = isHeadingTitle(currDesc);
 
-        if (prevIsHeading && currIsHeading) {
-            return true;
-        }
-        if (prevIsHeading != currIsHeading) {
+        if (prevIsHeading || currIsHeading) {
             return true;
         }
 
@@ -186,7 +236,19 @@ public class FormattedBoqPdfExtractor {
             return false;
         }
         String trimmed = text.trim();
+        if (trimmed.contains(";")) {
+            return false;
+        }
         String lower = trimmed.toLowerCase(Locale.ROOT);
+        if (lower.startsWith("the ") || lower.startsWith("allow ") || lower.startsWith("provide ")
+                || lower.startsWith("to ") || lower.startsWith("for ") || lower.startsWith("all ")
+                || lower.startsWith("supply") || lower.startsWith("install") || lower.startsWith("construct")
+                || lower.startsWith("fabricat") || lower.startsWith("demolish") || lower.startsWith("excavat")
+                || lower.startsWith("lay ") || lower.startsWith("laying ") || lower.startsWith("apply ")
+                || lower.startsWith("fix ") || lower.startsWith("fixing ") || lower.startsWith("carry ")
+                || lower.startsWith("remove ") || lower.startsWith("removal ") || lower.startsWith("transport")) {
+            return false;
+        }
         if (lower.startsWith("bill no") || lower.contains("schedule")
                 || lower.equals("labour") || lower.equals("materials") || lower.equals("plant")
                 || lower.contains("specification") || lower.contains("shop drawings")
@@ -194,10 +256,6 @@ public class FormattedBoqPdfExtractor {
             return true;
         }
         if (trimmed.endsWith(".") || trimmed.endsWith(":") || trimmed.endsWith(",")) {
-            return false;
-        }
-        if (lower.startsWith("the ") || lower.startsWith("allow ") || lower.startsWith("provide ")
-                || lower.startsWith("to ") || lower.startsWith("for ") || lower.startsWith("all ")) {
             return false;
         }
         String[] words = trimmed.split("\\s+");
@@ -245,13 +303,13 @@ public class FormattedBoqPdfExtractor {
     }
 
     private static final class ParsedBoqLine {
-        final String code;
-        final String desc;
-        final String qty;
-        final String uom;
-        final String rate;
-        final String amount;
-        final double centerY;
+        String code;
+        String desc;
+        String qty;
+        String uom;
+        String rate;
+        String amount;
+        double centerY;
 
         ParsedBoqLine(String code, String desc, String qty, String uom, String rate, String amount, double centerY) {
             this.code = code;
@@ -261,6 +319,13 @@ public class FormattedBoqPdfExtractor {
             this.rate = rate;
             this.amount = amount;
             this.centerY = centerY;
+        }
+
+        void mergeData(ParsedBoqLine other) {
+            if (this.qty.isBlank() && !other.qty.isBlank()) this.qty = other.qty;
+            if (this.uom.isBlank() && !other.uom.isBlank()) this.uom = other.uom;
+            if (this.rate.isBlank() && !other.rate.isBlank()) this.rate = other.rate;
+            if (this.amount.isBlank() && !other.amount.isBlank()) this.amount = other.amount;
         }
     }
 
@@ -295,6 +360,9 @@ public class FormattedBoqPdfExtractor {
             List<String> cells = line.cells(boundaries);
             String col0 = cells.get(0).trim();
             String col1 = cells.get(1).trim();
+            // Fix PDF encoding artefact: clause-ending word immediately concatenated with next capitalised word.
+            // e.g. "completeType GL-01" → "complete Type GL-01"
+            col1 = col1.replaceAll("(?<=\\bcomplete)(?=[A-Z])", " ");
             String qty  = cells.size() > qtyCol ? cells.get(qtyCol).trim() : "";
             String uom  = cells.size() > uomCol ? cells.get(uomCol).trim() : "";
             String rate = cells.size() > rateCol ? cells.get(rateCol).trim() : "";
@@ -341,8 +409,13 @@ public class FormattedBoqPdfExtractor {
                 } else if (!uom.isBlank() || !qty.isBlank() || !rate.isBlank()) {
                     java.util.regex.Matcher endMatcher = Pattern.compile("^(.*?)\\s+([B-Zb-z])$").matcher(col1);
                     if (endMatcher.matches()) {
-                        col0 = endMatcher.group(2).toUpperCase(Locale.ROOT);
-                        col1 = endMatcher.group(1).trim();
+                        String prefix = endMatcher.group(1).trim().toLowerCase(Locale.ROOT);
+                        if (!prefix.endsWith("type") && !prefix.endsWith("class") && !prefix.endsWith("grade")
+                                && !prefix.endsWith("phase") && !prefix.endsWith("size") && !prefix.endsWith("model")
+                                && !prefix.endsWith("cat") && !prefix.endsWith("category") && !prefix.endsWith("group")) {
+                            col0 = endMatcher.group(2).toUpperCase(Locale.ROOT);
+                            col1 = endMatcher.group(1).trim();
+                        }
                     }
                 }
             } else if (!col0.isBlank() && !col1.isBlank()) {
@@ -352,13 +425,46 @@ public class FormattedBoqPdfExtractor {
                 }
             }
 
+            if (col1.isBlank() && qty.isBlank() && uom.isBlank() && rate.isBlank() && amount.isBlank()) {
+                if (col0.matches("^\\d+$")) {
+                    continue;
+                }
+            }
+
             parsedLines.add(new ParsedBoqLine(col0, col1, qty, uom, rate, amount, line.centerY()));
         }
+
+        List<ParsedBoqLine> consolidated = new ArrayList<>();
+        for (int i = 0; i < parsedLines.size(); i++) {
+            ParsedBoqLine pl = parsedLines.get(i);
+            if (pl.code.isBlank() && pl.desc.isBlank()) {
+                ParsedBoqLine target = null;
+                for (int j = i + 1; j < parsedLines.size() && (parsedLines.get(j).centerY - pl.centerY) <= 10.0; j++) {
+                    if (!parsedLines.get(j).code.isBlank() || !parsedLines.get(j).desc.isBlank()) {
+                        target = parsedLines.get(j);
+                        break;
+                    }
+                }
+                if (target == null && !consolidated.isEmpty()) {
+                    ParsedBoqLine prev = consolidated.get(consolidated.size() - 1);
+                    if (Math.abs(pl.centerY - prev.centerY) <= 10.0 && (!prev.code.isBlank() || !prev.desc.isBlank())) {
+                        target = prev;
+                    }
+                }
+                if (target != null) {
+                    target.mergeData(pl);
+                    continue;
+                }
+            }
+            consolidated.add(pl);
+        }
+        parsedLines = consolidated;
 
         BoqRow currentRow = null;
         double previousLineY = -1;
 
-        for (ParsedBoqLine pl : parsedLines) {
+        for (int i = 0; i < parsedLines.size(); i++) {
+            ParsedBoqLine pl = parsedLines.get(i);
             // hasData = true only when there is a REAL number or meaningful unit
             boolean hasData = hasMeaningfulUnit(pl.uom)
                     || isActualNumber(pl.qty)
@@ -369,12 +475,48 @@ public class FormattedBoqPdfExtractor {
 
             boolean bothHaveCode = (currentRow != null && !currentRow.cells[0].isBlank() && hasCode);
             boolean bothHaveData = (currentRow != null && currentRow.hasData() && hasData);
+            if (bothHaveData && pl.code.isBlank() && gap <= 10.0) {
+                boolean dataCollision = (!currentRow.cells[qtyCol].isBlank() && isActualNumber(pl.qty))
+                        || (!currentRow.cells[uomCol].isBlank() && hasMeaningfulUnit(pl.uom))
+                        || (!currentRow.cells[amountCol].isBlank() && isActualNumber(pl.amount));
+                if (!dataCollision) {
+                    bothHaveData = false;
+                }
+            }
             boolean gapAfterData = (currentRow != null && currentRow.hasData() && gap > 21.0);
             // A description-only continuation followed by a large gap → new row
             boolean gapBetweenDescOnly = (currentRow != null && !currentRow.hasData() && !hasData && gap > 21.0);
+            boolean isOpenContinuation = endsInContinuationConnector(currentRow != null ? currentRow.cells[1] : null);
+            boolean isLowercaseContinuation = pl.desc != null && !pl.desc.isBlank() && Character.isLowerCase(pl.desc.trim().charAt(0));
+
+            // A description-only preamble row followed by a data/code line → new row (preamble stays separate)
+            // UNLESS the preamble ends with a continuation connector like '+' or ',' which means it's an open item description,
+            // or the incoming line has no description of its own (the preceding line is its description),
+            // or the incoming line description starts with a lowercase letter (continuation of preceding description).
+            boolean preambleFollowedByItem = (currentRow != null && !currentRow.hasData()
+                    && currentRow.cells[0].isBlank() && (hasData || hasCode)
+                    && !isOpenContinuation && !pl.desc.isBlank() && !isLowercaseContinuation);
+
+            // Check if current line is the first line of an upcoming item whose code/data line is vertically centered
+            boolean isPrecedingDescOfNextItem = false;
+            if (currentRow != null && currentRow.hasData() && !hasCode && !hasData) {
+                if (i + 1 < parsedLines.size()) {
+                    ParsedBoqLine next = parsedLines.get(i + 1);
+                    double nextGap = next.centerY - pl.centerY;
+                    if (!next.code.isBlank() && nextGap <= 20.0) {
+                        boolean nextIsContinuation = next.desc.isBlank()
+                                || (next.desc.length() > 0 && Character.isLowerCase(next.desc.trim().charAt(0)));
+                        boolean currIsNewItemDesc = pl.desc.matches("^\\d+[A-Z]?\\s+.*")
+                                || !endsInContinuationConnector(currentRow.cells[1]);
+                        if (nextIsContinuation || currIsNewItemDesc) {
+                            isPrecedingDescOfNextItem = true;
+                        }
+                    }
+                }
+            }
 
             boolean startsNewRow = (currentRow == null) || bothHaveCode || bothHaveData
-                    || gapAfterData || gapBetweenDescOnly;
+                    || gapAfterData || gapBetweenDescOnly || preambleFollowedByItem || isPrecedingDescOfNextItem;
 
             if (startsNewRow) {
                 if (currentRow != null) {
@@ -742,9 +884,6 @@ public class FormattedBoqPdfExtractor {
                 || normalized.contains("grandtotal")
                 || normalized.contains("carriedtosummary")
                 || normalized.contains("carriedtocollection")
-                || normalized.equals("contd")
-                || normalized.equals("continued")
-                || normalized.equals("contd.")
                 || normalized.matches(".*page[billno]*\\d+.*");
     }
 
@@ -936,7 +1075,7 @@ public class FormattedBoqPdfExtractor {
 
     record PdfRect(double minX, double minY, double maxX, double maxY) {
         boolean isHorizontalRule() {
-            return maxX - minX > 10 && maxY - minY <= 0.5;
+            return maxX - minX > 10 && maxY - minY <= 2.0;
         }
 
         boolean isVerticalRule() {

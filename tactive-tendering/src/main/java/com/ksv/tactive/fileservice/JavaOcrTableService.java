@@ -427,8 +427,6 @@ public class JavaOcrTableService {
                 || text.startsWith("location")
                 || text.startsWith("client")
                 || text.startsWith("billno")
-                || text.contains("contd")
-                || text.contains("continued")
                 || text.contains("totalcarriedtocollection");
     }
 
