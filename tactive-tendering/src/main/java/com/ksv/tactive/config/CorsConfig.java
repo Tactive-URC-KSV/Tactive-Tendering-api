@@ -5,7 +5,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.web.filter.CorsFilter;
 @Configuration
 public class CorsConfig {
 	@Bean
@@ -14,16 +13,17 @@ public class CorsConfig {
         configuration.setAllowedOrigins(List.of("http://localhost:5173",
                 "http://localhost:5174",
                 "https://tactive-tendering-ui.onrender.com",
-                "https://tactive-tendering-contractor-form.onrender.com"));
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT","PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Cache-Control", "Content-Type"));
+                "https://tactive-tendering-contractor-form.onrender.com",
+                "http://182.20.10.1",
+                "http://20.233.8.189"
+                ));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setExposedHeaders(List.of("Authorization"));
         configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
-    }
-    @Bean
-    CorsFilter corsFilter() {
-        return new CorsFilter(corsConfigurationSource());
     }
 }

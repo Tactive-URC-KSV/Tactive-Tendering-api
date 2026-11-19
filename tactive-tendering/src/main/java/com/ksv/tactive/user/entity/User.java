@@ -1,19 +1,18 @@
 package com.ksv.tactive.user.entity;
 import java.sql.Date;
+import java.util.UUID;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Data;
 @Data
 @Entity
 @Table(name = "user_login")
 public class User {
 	@Id
-	@Column(length = 36)
-	private String id;
+	@GeneratedValue(strategy = GenerationType.UUID)
+	private UUID id;
 	@Column(unique = true , nullable = false)
 	private String email;
 	@Column(unique = true , nullable = false)

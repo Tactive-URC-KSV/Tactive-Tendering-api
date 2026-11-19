@@ -77,7 +77,9 @@ public class UserServiceImpl implements UserService{
 	}
 	@Override
 	public User getUserById(String userId) {
-		return userDao.findById(userId).orElseThrow(() -> new UsernameNotFoundException("User not found with id: " + userId));
+		System.out.println(userId);
+		return userDao.findById(UUID.fromString(userId))
+				.orElseThrow(() -> new UsernameNotFoundException("User not found with id: " + userId));
 	}
 
 	@Override
@@ -173,14 +175,27 @@ public class UserServiceImpl implements UserService{
 	}
 
 	@Override
+	public User findByEmail(String email) {
+		return userDao.findByEmail(email);
+	}
+
+	@Override
 	public void addUser(User user) {
-		String password = PasswordGenerator.generatePassword();
-		user.setId(UUID.randomUUID().toString());
+		if (user.getId() == null || user.getId().toString().isBlank()) {
+			String password = PasswordGenerator.generatePassword();
+			user.setUsername(user.getEmail());
+			user.setCreatedAt(Date.valueOf(LocalDate.now()));
+			user.setEnabled(true);
+			user.setPassword(passwordEncoder.encode(password));
+			user.setRole("USER");
+			userDao.save(user);
+			emailService.sentLoginCredentials(user, password);
+			return;
+		}
 		user.setUsername(user.getEmail());
-		user.setCreatedAt(Date.valueOf(LocalDate.now()));
-		user.setEnabled(true);
-		user.setPassword(passwordEncoder.encode(password));
+		if (user.getPassword() != null && !user.getPassword().isBlank()) {
+			user.setPassword(passwordEncoder.encode(user.getPassword()));
+		}
 		userDao.save(user);
-		emailService.sentLoginCredentials(user, password);
 	}
 }

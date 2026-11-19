@@ -1,32 +1,31 @@
 package com.ksv.tactive.project.entity;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
+
+import org.hibernate.annotations.SQLRestriction;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Index;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Data;
 @Data
 @Entity
+@SQLRestriction("archive = false")
 @Table(name = "boq", indexes = { @Index(name = "idx_project_id", columnList = "project_id"),
 		@Index(name = "idx_parent_boq_id", columnList = "parent_boq_id") })
 public class BOQ {
-	
+
 	@Id
-	private String id;
+	@GeneratedValue(strategy = GenerationType.UUID)
+	@Column(length = 36)
+	private UUID id;
 	private String boqCode;
 	@Column(name = "boq_name", length = 3000)
 	private String boqName;
-	@ManyToOne
+	@ManyToOne(cascade = CascadeType.DETACH)
 	@JoinColumn(name = "uom")
 	private Uom uom;
 	private int level;
@@ -34,15 +33,66 @@ public class BOQ {
 	private double totalRate;
 	private double totalAmount;
 	private boolean lastLevel;
-	@JsonBackReference
-	@ManyToOne
-	@JoinColumn(name = "project_id")
-	private Projects project;
-	@ManyToOne
+	@Column(nullable = true)
+	private String uomCode;
+	@JsonProperty("clientUom")
+	public String getClientUom() {
+		return uomCode;
+	}
+	private String projectId;
+	@JsonIgnore
+	@ManyToOne(cascade = CascadeType.DETACH)
 	@JoinColumn(name = "parent_boq_id")
 	private BOQ parentBOQ;
 	@JsonBackReference
 	@JsonIgnore
-	@OneToMany(mappedBy = "parentBOQ", cascade = CascadeType.ALL, orphanRemoval = true)
+	@OneToMany(mappedBy = "parentBOQ", cascade = { CascadeType.PERSIST, CascadeType.MERGE })
 	private List<BOQ> children = new ArrayList<>();
+	
+	@org.hibernate.annotations.Formula("(select count(b.id) from boq b where b.parent_boq_id = id and b.archive = false)")
+	private Integer childCount;
+	
+	@Transient
+	private String parentBoqId;
+	@JsonProperty("division")
+	private String division;
+	private Long pageNo;
+	
+	@Column
+	private Double enqSlNo;
+	
+	@Column(columnDefinition = "integer default 1")
+	private Integer version = 1;
+	
+	@Column(name = "source_file")
+	private String sourceFile;
+	
+	@Column(name = "excel_sno")
+	private Long excelSno;
+	
+	@JsonProperty("clientBoqCode")
+	private String clientBoqCode;
+	private String boqShortName;
+	
+	@Column(length = 6000)
+	private String description;
+	
+	@Column(columnDefinition = "boolean default false")
+	private boolean rateOnly = false;
+	
+	@Column(columnDefinition = "boolean default false")
+	private boolean provisionalSum = false;
+	
+	@Column(columnDefinition = "boolean default false")
+	private boolean notQuotedBoq = false;
+
+	@Column(columnDefinition = "boolean default false")
+	private boolean priceBoq = false;
+	
+	@Column(nullable = false, columnDefinition = "boolean default false")
+	private boolean archive = false;
+
+	@org.hibernate.annotations.CreationTimestamp
+	@Column(name = "created_at", updatable = false)
+	private java.sql.Timestamp createdAt;
 }

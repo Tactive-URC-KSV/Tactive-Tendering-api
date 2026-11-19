@@ -1,16 +1,16 @@
 package com.ksv.tactive.project.entity;
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.OneToOne;
+import jakarta.persistence.*;
 import lombok.Data;
+
+import java.util.UUID;
+
 @Data
 @Entity
 public class FeasibilityStudy {
 	@Id
-	private String id;
+	@GeneratedValue(strategy = GenerationType.UUID)
+	@Column(length = 36)
+	private UUID id;
 	@OneToOne(cascade = CascadeType.ALL)
 	@JoinColumn(name = "tech_feasibility_id")
 	private TechnicalFeasibility technFeasibility;

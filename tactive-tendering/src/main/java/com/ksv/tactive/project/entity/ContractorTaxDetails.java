@@ -1,7 +1,10 @@
 package com.ksv.tactive.project.entity;
 
 import java.sql.Date;
+import java.util.UUID;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.ksv.tactive.util.TaxType;
 import com.ksv.tactive.util.TerritoryType;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -9,11 +12,12 @@ import lombok.Data;
 @Data
 @Entity
 public class ContractorTaxDetails {
-	
+
 	@Id
-	private String id;
-	@ManyToOne
-	@JoinColumn(name = "tax_type")
+	@GeneratedValue(strategy = GenerationType.UUID)
+	@Column(length = 36)
+	private UUID id;
+	@Enumerated(EnumType.STRING)
 	private TaxType taxType;
 	@Enumerated(EnumType.STRING)
 	@Column(name = "territory_type")
@@ -28,6 +32,7 @@ public class ContractorTaxDetails {
 	private String city;
 	private String pinCode;
 	private String email;
+	@JsonIgnore
 	@ManyToOne
 	@JoinColumn(name = "contractor_id")
 	private Contractor contractor;

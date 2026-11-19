@@ -1,24 +1,40 @@
 @echo off
-REM -----------------------------
-REM Spring Boot application startup
-REM -----------------------------
+setlocal
 
-REM Path to your JAR
-SET JAR_PATH=E:\APP\Application\TactiveKSV\tactive.jar
+REM -------------------------------------------------------------
+REM Tactive Backend Startup Script (Spring Boot + Java OCR)
+REM -------------------------------------------------------------
 
-REM Path to Spring config folder (if any)
-SET CONFIG_PATH=E:\APP\Application\TactiveKSV\config\application-uat.properties
+:: Determine Root Directory
+SET "APP_DIR=%~dp0"
+IF "%APP_DIR:~-1%"=="\" SET "APP_DIR=%APP_DIR:~0,-1%"
+IF NOT EXIST "%APP_DIR%\tactive.jar" (
+    IF EXIST "E:\APP\Application\TactiveKSV\tactive.jar" (
+        SET "APP_DIR=E:\APP\Application\TactiveKSV"
+    )
+)
 
-REM Path to log file
-SET LOG_FILE=E:\APP\Application\TactiveKSV\logs\app.log
+SET "JAR_PATH=%APP_DIR%\tactive.jar"
+SET "CONFIG_PATH=%APP_DIR%\config\application-uat.properties"
+SET "LOG_DIR=%APP_DIR%\logs"
+SET "SPRING_LOG=%LOG_DIR%\app.log"
 
-echo Starting Spring Boot application...
+if not defined OCR_TESSDATA_PATH if exist "%APP_DIR%\tessdata\eng.traineddata" SET "OCR_TESSDATA_PATH=%APP_DIR%\tessdata"
+:: Create logs folder if missing
+if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"
 
-REM --- FIX IS HERE ---
-REM "start" launches a separate process.
-REM "" is the window title (required syntax when using start).
-REM /B means "background" (same window, no new popup).
-start "" /B java -jar "%JAR_PATH%" --spring.config.additional-location=file:"%CONFIG_PATH%" > "%LOG_FILE%" 2>&1
+echo Starting Tactive Backend Services from %APP_DIR%...
 
-echo Spring Boot app started successfully in background. Logs at %LOG_FILE%.
+:: 1. Start Spring Boot in Background
+echo Starting Spring Boot application on port 2087...
+SET "EXTRA_CONFIG="
+if exist "%CONFIG_PATH%" SET "EXTRA_CONFIG=--spring.config.additional-location=file:%CONFIG_PATH%"
+start "Tactive-SpringBoot" /B cmd /c ""java" -jar "%JAR_PATH%" --server.port=2087 %EXTRA_CONFIG% >> "%SPRING_LOG%" 2>&1"
+
+echo.
+echo =========================================================
+echo Spring Boot started in the background!
+echo   Spring Boot Log: %SPRING_LOG%
+echo =========================================================
+
 exit /b 0

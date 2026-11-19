@@ -6,9 +6,10 @@ import org.springframework.stereotype.Repository;
 import com.ksv.tactive.project.entity.ContractorNature;
 
 import java.util.List;
+import java.util.UUID;
 
 @Repository
-public interface ContractorNatureDao extends JpaRepository<ContractorNature, String>{
-    boolean existsByNatureIgnoreCaseAndContractorType_Id(String nature, String id);
-    List<ContractorNature> findByContractorTypeId(String contractorTypeId);
+public interface ContractorNatureDao extends JpaRepository<ContractorNature, UUID>{
+    boolean existsByNatureIgnoreCaseAndContractorType_Id(String nature, UUID id);
+    List<ContractorNature> findByContractorTypeId(UUID contractorTypeId);
 }

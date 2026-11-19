@@ -4,9 +4,10 @@ import org.springframework.stereotype.Repository;
 import com.ksv.tactive.project.entity.ActivityGroup;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface ActivityGroupDao extends JpaRepository<ActivityGroup, String>{
+public interface ActivityGroupDao extends JpaRepository<ActivityGroup, UUID>{
 	ActivityGroup findByActivityName(String activityGroup);
 	ActivityGroup findByActivityNameIgnoreCase(String activityName);
     Optional<ActivityGroup> findByActivityCodeIgnoreCaseAndActiveTrue(String activityCode);

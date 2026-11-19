@@ -4,15 +4,19 @@ import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.util.UUID;
+
 @Entity
 @Data
 public class CompanyContact {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(length = 36)
-    private String id;
-
-    private String position;
+    private UUID id;
+    @ManyToOne
+    @JoinColumn(name = "designation_id")
+    private Designation designation;
     private String name;
     private String phoneNo;
     private String email;

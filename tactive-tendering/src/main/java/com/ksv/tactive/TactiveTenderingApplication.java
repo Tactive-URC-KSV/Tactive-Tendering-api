@@ -25,16 +25,15 @@ TactiveTenderingApplication implements CommandLineRunner{
 	@Override
 	public void run(String... args) throws Exception {
 		if(userDao.count()==0) {
+			User admin = new User();
+			admin.setEmail("admin@gmail.com");
+			admin.setPassword(encoder.encode("admin@123"));
+			admin.setName("admin");
+			admin.setUsername(admin.getEmail());
+			admin.setPhoneNumber(9876543210L);
+			admin.setRole("admin");
+			userDao.save(admin);
 			User user = new User();
-			user.setId(UUID.randomUUID().toString());
-			user.setEmail("admin@gmail.com");
-			user.setPassword(encoder.encode("admin@123"));
-			user.setName("admin");
-			user.setUsername(user.getEmail());
-			user.setPhoneNumber(9876543210L);
-			user.setRole("admin");
-			userDao.save(user);
-			user.setId(UUID.randomUUID().toString());
 			user.setEmail("user@gmail.com");
 			user.setPassword(encoder.encode("user@123"));
 			user.setName("user");

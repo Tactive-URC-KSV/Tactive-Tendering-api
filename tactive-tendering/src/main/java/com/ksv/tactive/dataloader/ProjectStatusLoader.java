@@ -6,6 +6,7 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.annotation.Order;
 import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -32,13 +33,16 @@ public class ProjectStatusLoader implements MasterDataLoader<ProjectStatus>{
 			List<ProjectStatus> projectStatuses = objectMapper.readValue(inputStream, new TypeReference<>() {});
 				for(ProjectStatus projectStatus : projectStatuses) {
 					if(projectStatusDao.findByStatusIgnoreCase(projectStatus.getStatus()) != null) {
-						continue;
-					}else {
-						projectStatus.setId(UUID.randomUUID().toString());
+                    }else {
 						projectStatus.setActive(true);
 						projectStatusDao.save(projectStatus);
 					}
 				}
 		}
+	}
+
+	@Override
+	public int getOrder() {
+		return 4;
 	}
 }

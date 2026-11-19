@@ -5,9 +5,10 @@ import org.springframework.stereotype.Repository;
 import com.ksv.tactive.project.entity.ScopeOfPackage;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface ScopeOfPackDao extends JpaRepository<ScopeOfPackage, String>{
+public interface ScopeOfPackDao extends JpaRepository<ScopeOfPackage, UUID>{
 	ScopeOfPackage findByScope(String scope);
 	ScopeOfPackage findByScopeIgnoreCase(String scope);
 

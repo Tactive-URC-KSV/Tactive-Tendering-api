@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.annotation.Order;
 import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Component;
 
@@ -38,11 +39,15 @@ public class IdentityTypeDataLoader implements MasterDataLoader<IdentityType> {
     private void saveIdentityType(IdentityType identityTypeInput) {
         IdentityType existing = identityTypeDao.findByIdType(identityTypeInput.getIdType());
         if (existing == null) {
-            identityTypeInput.setId(UUID.randomUUID().toString());
             if (!identityTypeInput.isActive()) {
                 identityTypeInput.setActive(true);
             }
             identityTypeDao.save(identityTypeInput);
         }
+    }
+
+    @Override
+    public int getOrder() {
+        return 2;
     }
 }

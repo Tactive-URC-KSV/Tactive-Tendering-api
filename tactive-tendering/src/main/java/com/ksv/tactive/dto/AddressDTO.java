@@ -14,4 +14,7 @@ public class AddressDTO {
     private String phone;
     private String addressTypeId;
     private boolean isPrimary;
+    private String countryId;
+    private String stateId;
+    private String cityId;
 }

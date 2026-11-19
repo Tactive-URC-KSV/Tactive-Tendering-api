@@ -5,7 +5,9 @@ import org.springframework.stereotype.Repository;
 
 import com.ksv.tactive.project.entity.ContractorType;
 
+import java.util.UUID;
+
 @Repository
-public interface ContractorTypeDao extends JpaRepository<ContractorType, String>{
+public interface ContractorTypeDao extends JpaRepository<ContractorType, UUID>{
     boolean existsByTypeIgnoreCase(String type);
 }

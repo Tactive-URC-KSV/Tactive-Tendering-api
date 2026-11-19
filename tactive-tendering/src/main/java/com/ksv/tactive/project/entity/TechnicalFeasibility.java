@@ -1,14 +1,15 @@
 package com.ksv.tactive.project.entity;
 import java.util.List;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
+import java.util.UUID;
+
+import jakarta.persistence.*;
 import lombok.Data;
 @Data
 @Entity
 public class TechnicalFeasibility {
 	@Id
+	@GeneratedValue(strategy = GenerationType.UUID)
 	@Column(length = 36)
-	private String id;
+	private UUID id;
 	private List<String> executionCapabilities;
 }

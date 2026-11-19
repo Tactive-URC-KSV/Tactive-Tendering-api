@@ -5,13 +5,16 @@ import com.ksv.tactive.util.DirectorType;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.util.UUID;
+
 @Entity
 @Data
 public class CompanyDirector {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(length = 36)
-    private String id;
+    private UUID id;
     @Enumerated(EnumType.STRING)
     @Column(name = "director_type")
     private DirectorType directorType;
