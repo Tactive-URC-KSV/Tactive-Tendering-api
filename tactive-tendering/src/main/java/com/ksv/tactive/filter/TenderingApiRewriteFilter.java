@@ -7,6 +7,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletRequestWrapper;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -15,8 +16,13 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class TenderingApiRewriteFilter extends OncePerRequestFilter {
-	private static final String PUBLIC_PREFIX = "/tendering";
-	private static final String API_PREFIX = "/tendering/tactive";
+	private final String publicPrefix;
+	private final String apiPrefix;
+
+	public TenderingApiRewriteFilter(@Value("${app.public-path:/tendering}") String publicPath) {
+		this.publicPrefix = publicPath.endsWith("/") ? publicPath.substring(0, publicPath.length() - 1) : publicPath;
+		this.apiPrefix = this.publicPrefix + "/tactive";
+	}
 
 	@Override
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -26,8 +32,8 @@ public class TenderingApiRewriteFilter extends OncePerRequestFilter {
 		if (path.startsWith(contextPath)) {
 			path = path.substring(contextPath.length());
 		}
-		if (path.equals(API_PREFIX) || path.startsWith(API_PREFIX + "/")) {
-			String rewritten = path.substring(PUBLIC_PREFIX.length());
+		if (path.equals(apiPrefix) || path.startsWith(apiPrefix + "/")) {
+			String rewritten = path.substring(publicPrefix.length());
 			filterChain.doFilter(new RewrittenRequest(request, contextPath, path, rewritten), response);
 			return;
 		}

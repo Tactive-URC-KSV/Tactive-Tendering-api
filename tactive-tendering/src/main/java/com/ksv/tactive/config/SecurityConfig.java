@@ -1,5 +1,6 @@
 package com.ksv.tactive.config;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -26,6 +27,8 @@ public class SecurityConfig {
 	private AuthorizationException authException;
 	@Autowired
 	private CorsConfigurationSource corsConfigurationSource;
+	@Value("${app.public-path:/tendering}")
+	private String publicPath;
 	@Bean
 	SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 		AuthenticationManagerBuilder authBuilder = http.getSharedObject(AuthenticationManagerBuilder.class);
@@ -36,7 +39,7 @@ public class SecurityConfig {
 						.requestMatchers("/tactive/login","/swagger-ui/**", "/v3/api-docs/**","/actuator/**").permitAll()
 						.requestMatchers("/tactive/validateInvite","/tactive/validateTenderInvite").permitAll()
 						.requestMatchers("/tactive/forgot-password", "/tactive/reset-password","/tactive/verify-reset-otp").permitAll()
-						.requestMatchers(HttpMethod.GET, "/tendering", "/tendering/**").permitAll()
+						.requestMatchers(HttpMethod.GET, "/tendering", "/tendering/**", publicPath, publicPath + "/**").permitAll()
 						.anyRequest().authenticated())
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.httpBasic(Customizer.withDefaults())
