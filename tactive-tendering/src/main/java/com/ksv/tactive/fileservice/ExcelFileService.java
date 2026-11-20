@@ -169,6 +169,7 @@ public class ExcelFileService {
 				if (currentRow != null && !currentRow.getZeroHeight()) {
 					BOQ boq = new BOQ();
 					boolean hasData = false;
+					String uom = null;
 
 					for (Map.Entry<String, List<Integer>> entry : columnIndex.entrySet()) {
 						String internalField = entry.getKey();
@@ -194,14 +195,13 @@ public class ExcelFileService {
 								for (String val : values) {
 									try {
 										boq.setQuantity(Double.valueOf(val.replaceAll("[^0-9.-]", "")));
-										boq.setLastLevel(true);
 										hasData = true;
 										break;
 									} catch (NumberFormatException ignored) {}
 								}
 							}
 							case "uom" -> {
-								boq.setLastLevel(true);
+								uom = values.get(0);
 								hasData = true;
 							}
 							case "pageNo" -> {
@@ -219,6 +219,7 @@ public class ExcelFileService {
 						}
 					}
 					if(hasData) {
+						boq.setLastLevel(BoqExtractionUtils.isLastLevel(boq.getQuantity(), uom));
 						boqList.add(boq);
 					}
 				}

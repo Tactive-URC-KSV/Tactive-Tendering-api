@@ -6,6 +6,9 @@ final class BoqExtractionUtils {
 	}
 
 	static boolean isLastLevel(Double quantity, String uom) {
-		return quantity != null || (uom != null && !uom.isBlank());
+		if (quantity != null) {
+			return quantity != 0d;
+		}
+		return uom != null && !uom.isBlank();
 	}
 }
