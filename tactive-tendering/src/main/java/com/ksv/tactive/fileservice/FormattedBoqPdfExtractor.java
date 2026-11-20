@@ -146,7 +146,8 @@ public class FormattedBoqPdfExtractor {
             "structural", "architectural", "general", "mep", "civil", "mechanical",
             "electrical", "external", "internal", "technical", "contract", "tender",
             "approved", "specified", "standard", "particular", "relevant", "associated", "applicable",
-            "aluminum", "aluminium", "side", "metal", "steel", "timber", "glazed"
+            "aluminum", "aluminium", "side", "metal", "steel", "timber", "glazed",
+            "green", "specialist"
     );
 
     private static boolean endsInContinuationConnector(String text) {
@@ -222,13 +223,19 @@ public class FormattedBoqPdfExtractor {
 
         // 4. Standalone heading titles vs prose
         boolean prevIsHeading = isHeadingTitle(prevDesc);
-        boolean currIsHeading = isHeadingTitle(currDesc);
-
-        if (prevIsHeading || currIsHeading) {
+        if (prevIsHeading || isMajorHeading(currDesc)) {
             return true;
         }
 
         return false;
+    }
+
+    private static boolean isMajorHeading(String text) {
+        if (text == null || text.isBlank()) {
+            return false;
+        }
+        String lower = text.trim().toLowerCase(Locale.ROOT);
+        return lower.startsWith("bill no") || lower.contains("schedule");
     }
 
     private static boolean isHeadingTitle(String text) {

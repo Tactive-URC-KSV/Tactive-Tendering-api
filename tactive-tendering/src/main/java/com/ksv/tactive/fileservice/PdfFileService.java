@@ -265,22 +265,27 @@ public class PdfFileService {
 
 			String desc = row.get(1).trim();
 			// If description ends with a numeric quantity and the quantity column is empty,
-			// split the trailing number into the quantity column (index 2).
-			// Require whitespace before the digits so that codes like "GL-01" or "Type-01"
-			// are NOT mistakenly split (the digits in those cases follow a hyphen, not a space).
+			// only split the trailing number into the quantity column (index 2) when the row is a
+			// valid line item (has an item code and a valid UOM) and not a reference (dwg, spec, etc.).
+			String uomCell = row.size() > 3 && row.get(3) != null ? row.get(3).trim() : "";
+			boolean hasValidUom = !uomCell.isBlank() && !uomCell.matches("[-–—]+");
+			boolean hasItemCode = row.size() > 0 && row.get(0) != null && !row.get(0).isBlank();
 			boolean hasEmptyQty = (row.size() < 3 || row.get(2) == null || row.get(2).isBlank());
 			java.util.regex.Matcher qtyMatcher = java.util.regex.Pattern.compile("(.*\\s)(\\d+(?:\\.\\d+)?)$").matcher(desc);
-			if (hasEmptyQty && qtyMatcher.matches()) {
+			if (hasEmptyQty && hasValidUom && hasItemCode && qtyMatcher.matches()) {
 				String newDesc = qtyMatcher.group(1).trim();
-				String qty = qtyMatcher.group(2);
-				row.set(1, newDesc);
-				// Ensure the row has at least three columns for the quantity slot.
-				while (row.size() < 3) {
-					row.add("");
+				boolean isReference = newDesc.toLowerCase(Locale.ROOT).matches(".*\\b(dwg|drawing|spec|specification|model|type|grade|class|standard|ref|detail|bs|astm|nfpa)\\b:?\\s*$");
+				if (!isReference) {
+					String qty = qtyMatcher.group(2);
+					row.set(1, newDesc);
+					// Ensure the row has at least three columns for the quantity slot.
+					while (row.size() < 3) {
+						row.add("");
+					}
+					row.set(2, qty);
+					// Re-assign desc for the regex that follows
+					desc = newDesc;
 				}
-				row.set(2, qty);
-				// Re-assign desc for the regex that follows
-				desc = newDesc;
 			}
 
 			List<String[]> matches = new ArrayList<>();
