@@ -8,6 +8,7 @@ import org.springframework.security.config.annotation.authentication.builders.Au
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -35,6 +36,7 @@ public class SecurityConfig {
 						.requestMatchers("/tactive/login","/swagger-ui/**", "/v3/api-docs/**","/actuator/**").permitAll()
 						.requestMatchers("/tactive/validateInvite","/tactive/validateTenderInvite").permitAll()
 						.requestMatchers("/tactive/forgot-password", "/tactive/reset-password","/tactive/verify-reset-otp").permitAll()
+						.requestMatchers(HttpMethod.GET, "/tendering", "/tendering/**").permitAll()
 						.anyRequest().authenticated())
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.httpBasic(Customizer.withDefaults())
