@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 @Component
-@Order(Ordered.HIGHEST_PRECEDENCE + 1)
+@Order(Ordered.HIGHEST_PRECEDENCE + 2)
 public class PublicPathContentFilter extends OncePerRequestFilter {
 	private static final String PACKAGED_PREFIX = "/tendering/";
 	private final String publicPath;

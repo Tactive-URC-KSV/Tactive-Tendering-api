@@ -36,6 +36,7 @@ public class SecurityConfig {
 		return http.csrf(AbstractHttpConfigurer::disable)
 				.cors(cors -> cors.configurationSource(corsConfigurationSource))
 				.authorizeHttpRequests(requests -> requests
+						.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 						.requestMatchers("/tactive/login","/swagger-ui/**", "/v3/api-docs/**","/actuator/**").permitAll()
 						.requestMatchers("/tactive/validateInvite","/tactive/validateTenderInvite").permitAll()
 						.requestMatchers("/tactive/forgot-password", "/tactive/reset-password","/tactive/verify-reset-otp").permitAll()
