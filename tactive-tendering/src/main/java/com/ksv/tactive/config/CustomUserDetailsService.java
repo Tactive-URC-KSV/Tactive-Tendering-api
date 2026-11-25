@@ -34,7 +34,9 @@ public class CustomUserDetailsService implements UserDetailsService {
 
 	@Override
 	public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-		User user = dao.findByUsername(username).orElse(null);
+		User user = dao.findByUsername(username)
+				.or(() -> java.util.Optional.ofNullable(dao.findByEmail(username)))
+				.orElse(null);
 		if (user != null) {
 			return new UserPrincipal(user);
 		}
