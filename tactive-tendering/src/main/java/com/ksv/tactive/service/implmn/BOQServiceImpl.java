@@ -205,8 +205,13 @@ public class BOQServiceImpl implements BOQService {
         if (extractedRows == null || extractedRows.isEmpty()) {
             throw new DataNotFoundException("No BOQ data extracted from file!");
         }
-        long serialOffset = boqDao.findMaxExcelSnoByProjectIdAndSourceFile(projectId, fileName);
-        if (pageBreakWord != null && !pageBreakWord.isBlank()) {
+        // serialOffset is for appending NEW pages/sheets from the same file (PDF page-break imports).
+        // For a re-import of the same file (updating existing + adding new rows), offset must be 0
+        // so excelSno-based lookup correctly finds existing records (sno 1,2,3 → excelSno 1,2,3).
+        // Only apply offset when using pageBreakWord (multi-page append mode).
+        boolean isAppendMode = pageBreakWord != null && !pageBreakWord.isBlank();
+        long serialOffset = isAppendMode ? boqDao.findMaxExcelSnoByProjectIdAndSourceFile(projectId, fileName) : 0L;
+        if (isAppendMode) {
             long pageOffset = boqDao.findMaxPageNoByProjectIdAndSourceFile(projectId, fileName);
             for (ExcelExtractBOQ row : extractedRows) {
                 if (row.getPageNo() != null) {
@@ -231,12 +236,24 @@ public class BOQServiceImpl implements BOQService {
 
             BOQ boq = null;
             long persistedSno = row.getSno() + serialOffset;
+            String trimmedBoqCode = safeBoqCode.trim();
             if (saveAsNewSnoList != null && saveAsNewSnoList.contains(row.getSno())) {
                 boq = new BOQ();
                 key += "_" + UUID.randomUUID().toString();
             } else {
                 boq = boqUniqueMap.get(key);
-                if (boq == null && fileName != null) {
+                if (boq == null && !trimmedBoqCode.isEmpty()) {
+                    List<BOQ> existingByCode = boqDao.findByProjectIdAndBoqCodeIgnoreCaseOrderByCreatedAtDesc(projectId, trimmedBoqCode);
+                    if (!existingByCode.isEmpty()) {
+                        // Prefer exact (boqCode + boqName) match if multiple exist; otherwise take the most recent match by boqCode
+                        boq = existingByCode.stream()
+                                .filter(existing -> existing.getBoqName() != null
+                                        && existing.getBoqName().trim().equalsIgnoreCase(safeBoqName.trim()))
+                                .findFirst()
+                                .orElse(existingByCode.get(0));
+                    }
+                }
+                if (boq == null && trimmedBoqCode.isEmpty() && fileName != null) {
                     List<BOQ> existingByFile = boqDao.findByProjectIdAndSourceFileAndExcelSnoOrderByCreatedAtDesc(projectId, fileName, persistedSno);
                     if (!existingByFile.isEmpty()) {
                         boq = existingByFile.get(0);
@@ -245,17 +262,7 @@ public class BOQServiceImpl implements BOQService {
             }
 
             if (boq == null) {
-                if (safeBoqCode.trim().isEmpty()) {
-                    boq = new BOQ();
-                } else {
-                    boq = boqDao
-                            .findByProjectIdAndBoqCodeIgnoreCaseAndBoqNameIgnoreCase(
-                                    projectId,
-                                    safeBoqCode,
-                                    safeBoqName
-                            )
-                            .orElseGet(BOQ::new);
-                }
+                boq = new BOQ();
             }
 
             if (boq.getId() != null && !Boolean.TRUE.equals(duplicateHandled)) {
@@ -347,14 +354,15 @@ public class BOQServiceImpl implements BOQService {
             boq.setBoqCode(row.getBoqCode());
             boq.setBoqName(row.getBoqName());
             String rawUom = row.getUom();
-            if (rawUom != null) {
-                boq.setUomCode(rawUom);
-                String mappedUomCode = effectiveUomMappings.get(normalizeUomMappingKey(rawUom));
-                if (mappedUomCode != null) {
-                    boq.setUom(findUOM(mappedUomCode));
-                } else {
-                    boq.setUom(findUOM(rawUom));
+            if (rawUom != null && !rawUom.isBlank()) {
+                String trimmedRawUom = rawUom.trim();
+                boq.setUomCode(trimmedRawUom);
+                String mappedUomCode = effectiveUomMappings.get(normalizeUomMappingKey(trimmedRawUom));
+                Uom resolvedUom = mappedUomCode != null ? findUOM(mappedUomCode) : findUOM(trimmedRawUom);
+                if (resolvedUom == null && Boolean.TRUE.equals(persistUomMappings)) {
+                    throw new DataNotFoundException("UOM '" + trimmedRawUom + "' is not available in UOM Master. Please map or add it first.");
                 }
+                boq.setUom(resolvedUom);
             }
             if (boq.getCreatedAt() == null) {
                 boq.setCreatedAt(new java.sql.Timestamp(currentTime++));
@@ -396,6 +404,8 @@ public class BOQServiceImpl implements BOQService {
             BOQ parent = rowToBoqMap.get(parentSno);
             if (child != null && parent != null && child != parent) {
                 child.setParentBOQ(parent);
+                parent.setLastLevel(false);
+                parent.setPriceBoq(false);
                 parent.getChildren().add(child);
             }
         });
@@ -408,6 +418,8 @@ public class BOQServiceImpl implements BOQService {
             BOQ parent = rowToBoqMap.get(parentSno);
             if (child != null && parent != null && child != parent) {
                 child.setParentBOQ(parent);
+                parent.setLastLevel(false);
+                parent.setPriceBoq(false);
                 parent.getChildren().add(child);
             }
         }
@@ -453,10 +465,19 @@ public class BOQServiceImpl implements BOQService {
     }
 
     protected Uom findUOM(String value) {
-        String sanitizedValue = value.trim().replaceAll("[., /]", "");
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        String trimmedValue = value.trim();
+        String sanitizedValue = trimmedValue.replaceAll("[., /]", "");
         List<Uom> uoms = masterService.getAllUOMs();
         for (Uom uom : uoms) {
-            if (uom.getUomCode().equalsIgnoreCase(sanitizedValue) || uom.getUomName().equalsIgnoreCase(value)) {
+            String code = uom.getUomCode() != null ? uom.getUomCode().trim() : "";
+            String sanitizedCode = code.replaceAll("[., /]", "");
+            String name = uom.getUomName() != null ? uom.getUomName().trim() : "";
+            if (code.equalsIgnoreCase(trimmedValue)
+                    || (!sanitizedValue.isEmpty() && sanitizedCode.equalsIgnoreCase(sanitizedValue))
+                    || name.equalsIgnoreCase(trimmedValue)) {
                 return uom;
             }
         }
