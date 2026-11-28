@@ -27,6 +27,7 @@ public interface BOQDao extends JpaRepository<BOQ, UUID>{
 	List<BOQ> findByProjectIdAndLevelOrderByExcelSnoAscCreatedAtAsc(String projectId, int level);
 //    List<BOQ> findByProjectIdAndBoqNameContainingIgnoreCase(UUID projectId, String searchQuery);
     Optional<BOQ> findByProjectIdAndBoqCodeIgnoreCaseAndBoqNameIgnoreCase(String id, String boqCode, String boqName);
+    List<BOQ> findByProjectIdAndBoqCodeIgnoreCaseOrderByCreatedAtDesc(String projectId, String boqCode);
     Page<BOQ> findByProjectIdAndParentBOQIsNull(String projectId, Pageable pageable);
 
     @org.springframework.data.jpa.repository.Query("SELECT DISTINCT b.division FROM BOQ b WHERE b.projectId = :projectId AND b.division IS NOT NULL AND b.division != ''")
