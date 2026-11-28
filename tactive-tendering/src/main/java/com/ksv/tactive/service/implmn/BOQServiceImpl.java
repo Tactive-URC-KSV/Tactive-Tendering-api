@@ -354,13 +354,22 @@ public class BOQServiceImpl implements BOQService {
             boq.setBoqCode(row.getBoqCode());
             boq.setBoqName(row.getBoqName());
             String rawUom = row.getUom();
+            boolean isProvSumRow = isColumnMapped(columnMapping, "provisionalSum") && Boolean.TRUE.equals(row.getProvisionalSum());
             if (rawUom != null && !rawUom.isBlank()) {
                 String trimmedRawUom = rawUom.trim();
                 boq.setUomCode(trimmedRawUom);
-                String mappedUomCode = effectiveUomMappings.get(normalizeUomMappingKey(trimmedRawUom));
-                Uom resolvedUom = mappedUomCode != null ? findUOM(mappedUomCode) : findUOM(trimmedRawUom);
+                Uom resolvedUom;
+                if (isProvSumRow) {
+                    resolvedUom = findUOM("LS");
+                    if (resolvedUom == null) {
+                        resolvedUom = findUOM("Lumpsum");
+                    }
+                } else {
+                    String mappedUomCode = effectiveUomMappings.get(normalizeUomMappingKey(trimmedRawUom));
+                    resolvedUom = mappedUomCode != null ? findUOM(mappedUomCode) : findUOM(trimmedRawUom);
+                }
                 if (resolvedUom == null && Boolean.TRUE.equals(persistUomMappings)) {
-                    throw new DataNotFoundException("UOM '" + trimmedRawUom + "' is not available in UOM Master. Please map or add it first.");
+                    throw new DataNotFoundException("UOM '" + (isProvSumRow ? "LS" : trimmedRawUom) + "' is not available in UOM Master. Please map or add it first.");
                 }
                 boq.setUom(resolvedUom);
             }
@@ -377,8 +386,17 @@ public class BOQServiceImpl implements BOQService {
             if (isColumnMapped(columnMapping, "notQuotedBoq")) {
                 boq.setNotQuotedBoq(Boolean.TRUE.equals(row.getNotQuotedBoq()));
             }
+            if (isColumnMapped(columnMapping, "amount") && Boolean.TRUE.equals(row.getProvisionalSum()) && row.getAmount() != null) {
+                boq.setTotalAmount(row.getAmount());
+            }
             boqUniqueMap.put(key, boq);
-            boq.setQuantity(row.getQuantity() != null ? row.getQuantity() : 0.0);
+            boolean isLsUom = (boq.getUom() != null && "LS".equalsIgnoreCase(boq.getUom().getUomCode()))
+                    || (rawUom != null && "LS".equalsIgnoreCase(rawUom.trim()));
+            if (boq.isRateOnly() || isLsUom) {
+                boq.setQuantity(1.0);
+            } else {
+                boq.setQuantity(row.getQuantity() != null ? row.getQuantity() : 0.0);
+            }
             Long level = levelMapping.getOrDefault(row.getSno(), 0L);
             boq.setLevel(level.intValue());
             boq.setPageNo(row.getPageNo());
@@ -406,6 +424,11 @@ public class BOQServiceImpl implements BOQService {
                 child.setParentBOQ(parent);
                 parent.setLastLevel(false);
                 parent.setPriceBoq(false);
+                parent.setRateOnly(false);
+                parent.setProvisionalSum(false);
+                parent.setNotQuotedBoq(false);
+                parent.setQuantity(0.0);
+                parent.setTotalAmount(0.0);
                 parent.getChildren().add(child);
             }
         });
@@ -420,6 +443,11 @@ public class BOQServiceImpl implements BOQService {
                 child.setParentBOQ(parent);
                 parent.setLastLevel(false);
                 parent.setPriceBoq(false);
+                parent.setRateOnly(false);
+                parent.setProvisionalSum(false);
+                parent.setNotQuotedBoq(false);
+                parent.setQuantity(0.0);
+                parent.setTotalAmount(0.0);
                 parent.getChildren().add(child);
             }
         }

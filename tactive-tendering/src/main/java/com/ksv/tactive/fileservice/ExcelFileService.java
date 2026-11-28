@@ -535,6 +535,7 @@ public class ExcelFileService {
 								hasData = true;
 							}
 							case "rateOnly" -> {
+								boq.setRawRateOnly(values.get(0));
 								Boolean value = parseBooleanFlag(values.get(0));
 								if (value != null) {
 									boq.setRateOnly(value);
@@ -542,6 +543,7 @@ public class ExcelFileService {
 								}
 							}
 							case "provisionalSum" -> {
+								boq.setRawProvisionalSum(values.get(0));
 								Boolean value = parseBooleanFlag(values.get(0));
 								if (value != null) {
 									boq.setProvisionalSum(value);
@@ -549,10 +551,25 @@ public class ExcelFileService {
 								}
 							}
 							case "notQuotedBoq" -> {
+								boq.setRawNotQuotedBoq(values.get(0));
 								Boolean value = parseBooleanFlag(values.get(0));
 								if (value != null) {
 									boq.setNotQuotedBoq(value);
 									hasData = true;
+								}
+							}
+							case "amount" -> {
+								for (String val : values) {
+									try {
+										String cleanedValue = val.replace(",", "").replaceAll("[^0-9.-]", "").trim();
+										if (!cleanedValue.isEmpty()) {
+											boq.setAmount(Double.parseDouble(cleanedValue));
+											hasData = true;
+											break;
+										}
+									} catch (Exception e) {
+										// Try next column
+									}
 								}
 							}
 							case "quantity" -> {

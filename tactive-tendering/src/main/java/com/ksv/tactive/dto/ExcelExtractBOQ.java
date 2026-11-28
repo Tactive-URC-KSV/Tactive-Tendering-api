@@ -18,5 +18,9 @@ public class ExcelExtractBOQ {
 	private Boolean rateOnly;
 	private Boolean provisionalSum;
 	private Boolean notQuotedBoq;
+	private Double amount;
+	private String rawRateOnly;
+	private String rawProvisionalSum;
+	private String rawNotQuotedBoq;
 	
 }
